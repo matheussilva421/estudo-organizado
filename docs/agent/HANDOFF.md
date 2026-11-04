@@ -1,40 +1,44 @@
-# F6 — checkpoint de execução local
+# F6 — checkpoint de fechamento técnico pré-aceite
 
-**Atualizado:** 2026-11-03
+**Atualizado:** 2026-11-04
 **Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Branch:** `v2` (local, ahead de `origin/v2`; sem push)
-**Último commit de código:** `7b2fae1`
+**Último commit de código:** `994d5cd` (o commit documental deste checkpoint é o commit que contém este arquivo)
 
 ## Objetivo e escopo
 
-Executar localmente a especificação e o writing-plans F6 (T00–T20), com TDD, testes,
-revisão independente, Impeccable e pacote de revisão. Sem push de código, merge,
-deploy, PR, Actions ou alteração da `main`.
+Fechar tecnicamente a F6 antes do aceite humano: corrigir lacunas materiais, reconciliar
+documentação e evidências, executar testes locais, revisões independentes e entregar um
+ZIP verificável. Sem push de código, merge, deploy, PR, Actions ou alteração da `main`.
 
 ## Concluído
 
-- Etapa P publicada em `origin/v2@789e1bc`: especificação, writing-plans, GOAL e ROADMAP.
-- Implementação local F6: shell e rotas tipadas, Home operacional, busca local F2–F5,
-  central de atenção/integridade, configurações de tema/densidade, analytics derivado,
-  rascunhos recuperáveis, paginação progressiva, fontes OFL locais e vendor React separado.
-- Testes: typecheck/lint/build PASS; 562 unitários PASS em 85 arquivos; E2E 139 PASS + 2 skips.
-- Contrato visual 8 temas × 3 viewports: 24 capturas, contraste mínimo 6,78:1; 31 capturas F6 no total.
-- Duas revisões independentes read-only: nenhum P0; P1 corrigidos; P2 documentados. Impeccable 17/20.
+- AC18, AC20, AC29 e AC34 saíram de `NOT_RUN` para `PASS` com evidência real.
+- Rascunhos por documento (não por sessionStorage), com detecção de revisão-base,
+  resolução explícita e falha de quota visível nos formulários principais.
+- Concorrência entre abas: CAS com um vencedor, broadcast e formulário obsoleto bloqueado.
+- INCOMING parcial real (`OPEN` + `resolution: INCOMING`) rebaixa projeções para `PARTIAL`.
+- Prioridades da Home separam diagnóstico remoto da ação acadêmica.
+- Analytics com série por dia e distribuição por estado não aditiva.
+- 320 px e 640×450 sem overflow; reduced motion com transição real.
+- Duas revisões independentes read-only: P1 corrigidos; P2/P3 documentados.
+- Pacote `F6-REVIEW-PACKAGE-FINAL.zip` validado por extração e manifesto.
 
 ## Pendente
 
-- Aceite humano H-01–H-17 do `F6-HUMAN-ACCEPTANCE.md` (NVDA/Narrator, toque físico, zoom,
-  oito temas, offline, falha de IDB e hardware modesto real).
-- RF parciais: RF04, RF06, RF13, RF15, RF17, RF25, RF28, RF30 e RF31.
-- Integração de `v2` à `origin/v2`: exige autorização explícita, por fast-forward e com read-back.
+- Aceite humano H-01–H-17; H-02 (NVDA/Narrator) e H-16 (hardware modesto) `NOT_RUN`.
+- AC24 `DEFERRED_F7` (UI de troca de perfil não existe na F6).
+- RF parciais: RF04, RF06, RF13, RF15, RF25, RF30, RF31 e RF32.
+- Integração de `v2` à `origin/v2`: exige autorização explícita, fast-forward e read-back.
 - F7/F8 não iniciadas.
 
 ## Estado Git
 
 - `main` e `origin/main`: `9046cfa` (intactas).
-- `origin/v2`: `789e1bc` (documentação F6 publicada).
-- `v2` local: 20 commits de código à frente de `origin/v2`, sem push de código.
-- Worktree: apenas os três PNGs F4 modificados, preservados fora do repositório.
+- `origin/v2`: `789e1bc`.
+- `v2`: 20 commits de código F6 + 2 commits documentais/corretivos, sem push.
+- Worktree: apenas os três PNGs F4 modificados, preservados fora dos commits.
+- Branch `codex/f5-local-preserved-20261102`: 4 commits exclusivos preservados; não é ancestral da v2.
 
 ## Testes e evidências
 
@@ -47,17 +51,19 @@ npx playwright test --grep-invert "f4 representative visual evidence"
 npm run build
 ```
 
-- Unitários: 562 PASS (85 arquivos, 27,19 s).
-- E2E: 139 PASS + 2 skips (50,2 s).
-- Build: principal 379,72 kB (98,58 kB gzip) + vendor React 218,77 kB (68,25 kB gzip).
-- Pacote: `C:\Users\slvma\Downloads\Github\estudo-organizado-preservacao-20261103\F6-REVIEW-PACKAGE.zip`.
+- Unitários: 572 PASS em 85 arquivos (40,08 s).
+- E2E: 150 PASS + 2 skips (~60 s).
+- Build: principal 388,75 kB (100,58 kB gzip) + vendor React 218,77 kB (68,25 kB gzip).
+- Runtime: carga 326 ms, rota 38 ms, árvore de 1.000 assuntos em 54 ms.
+- Pacote: `C:\Users\slvma\Downloads\Github\estudo-organizado-preservacao-20261103\F6-REVIEW-PACKAGE-FINAL.zip`.
 
 ## Decisões e riscos
 
-- Lazy loading dos workspaces foi revertido por quebrar F4/F5; o split adotado é apenas do vendor React.
-- As três capturas F4 históricas não são regeneradas; permanecem preservadas.
+- Rascunho é não autoritativo e não substitui CAS do IndexedDB.
+- Contagem de INCOMING parcial pode persistir após reconciliação manual posterior (P2).
+- `refreshSeq` existe, mas não há teste de corrida artificial (P2).
+- `window.confirm` permanece no guard de navegação (P2).
 - Quatro HIGH F0 seguem `UNVERIFIED`; F4-T13 e hardware modesto real seguem `NOT_RUN`.
-- Nenhuma promessa de sync remoto, backup verificado ou convergência F7.
 
 ## Próxima ação
 
