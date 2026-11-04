@@ -1,0 +1,310 @@
+import type { Firestore } from 'firebase/firestore';
+import type {
+  OutboxOperation,
+  RemoteMutationPort,
+  RemoteMutationResult,
+} from '../../application/sync-types';
+import {
+  validateRemoteEnvelope,
+  type RemoteChange,
+  type RemoteEntity,
+  type RemoteReceipt,
+} from './remote-schema';
+
+export type RemoteHead = { epoch: number; changeSequence: number };
+
+export type RemoteSnapshot = {
+  receipt: RemoteReceipt | null;
+  entity: RemoteEntity | null;
+  head: RemoteHead | null;
+};
+
+export type RemoteMutationPlan =
+  | {
+      kind: 'APPLIED';
+      remoteRevision: number;
+      entity: RemoteEntity;
+      receipt: RemoteReceipt;
+      change: RemoteChange;
+      head: RemoteHead;
+    }
+  | { kind: 'ALREADY_APPLIED'; remoteRevision: number }
+  | { kind: 'CONFLICT'; remoteRevision: number }
+  | { kind: 'INVALID'; reason: string };
+
+export class RemoteOperationError extends Error {
+  readonly code = 'REMOTE_OPERATION';
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'RemoteOperationError';
+  }
+}
+
+export type FirestoreTransactionPort = {
+  get(path: string): Promise<unknown | null>;
+  set(path: string, value: unknown): void;
+};
+
+export type FirestorePort = {
+  runTransaction<T>(task: (transaction: FirestoreTransactionPort) => Promise<T>): Promise<T>;
+  get(path: string): Promise<unknown | null>;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+    .join(',')}}`;
+}
+
+export async function digestPayload(payload: unknown): Promise<string> {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) throw new RemoteOperationError('Web Crypto SHA-256 is unavailable');
+  const bytes = new TextEncoder().encode(canonicalJson(payload));
+  const digest = await subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function requireId(value: unknown, label: string): string {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) throw new RemoteOperationError(`${label} is required`);
+  return normalized;
+}
+
+function requireScope(operation: OutboxOperation): {
+  profileId: string;
+  uid: string;
+  libraryId: string;
+  entityId: string;
+  operationId: string;
+} {
+  if (operation.deliveryMode === 'BLOCKED') {
+    throw new RemoteOperationError('blocked operations never reach the remote adapter');
+  }
+  return {
+    profileId: requireId(operation.profileId, 'profileId'),
+    uid: requireId(operation.deliveryUid, 'deliveryUid'),
+    libraryId: requireId(operation.remoteLibraryId, 'remoteLibraryId'),
+    entityId: requireId(operation.entityId, 'entityId'),
+    operationId: requireId(operation.operationId, 'operationId'),
+  };
+}
+
+function asReceipt(value: unknown): RemoteReceipt | null {
+  return isRecord(value) && typeof value.operationId === 'string' ? (value as RemoteReceipt) : null;
+}
+
+function asEntity(value: unknown): RemoteEntity | null {
+  return isRecord(value) && typeof value.entityId === 'string' ? (value as RemoteEntity) : null;
+}
+
+function asHead(value: unknown): RemoteHead | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.epoch !== 'number' || typeof value.changeSequence !== 'number') return null;
+  return { epoch: value.epoch, changeSequence: value.changeSequence };
+}
+
+/** Pure planner; the Firestore transaction only supplies the current snapshot. */
+export async function planRemoteMutation(
+  operation: OutboxOperation,
+  snapshot: RemoteSnapshot,
+): Promise<RemoteMutationPlan> {
+  const scope = requireScope(operation);
+  const digest = await digestPayload(operation.payload);
+  const receipt = asReceipt(snapshot.receipt);
+  if (receipt) {
+    if (receipt.entityId !== scope.entityId) {
+      return { kind: 'INVALID', reason: 'operationId was already applied to another entity' };
+    }
+    if (receipt.payloadDigest.toLowerCase() !== digest) {
+      return { kind: 'INVALID', reason: 'operationId was reused with a different payload' };
+    }
+    return { kind: 'ALREADY_APPLIED', remoteRevision: receipt.revision };
+  }
+
+  const entity = asEntity(snapshot.entity);
+  const currentRevision = entity?.revision ?? 0;
+  const baseRevision =
+    operation.remoteBaseRevision !== undefined && operation.remoteBaseRevision !== null
+      ? operation.remoteBaseRevision
+      : operation.baseRevision ?? 0;
+  if (!Number.isInteger(baseRevision) || baseRevision < 0) {
+    return { kind: 'INVALID', reason: 'baseRevision must be a non-negative integer' };
+  }
+  if (baseRevision !== currentRevision) {
+    return { kind: 'CONFLICT', remoteRevision: currentRevision };
+  }
+
+  const head = asHead(snapshot.head);
+  const epoch = head?.epoch ?? entity?.epoch ?? 0;
+  if (!Number.isInteger(epoch) || epoch < 0) {
+    return { kind: 'INVALID', reason: 'epoch must be a non-negative integer' };
+  }
+  const changeSequence = (head?.changeSequence ?? 0) + 1;
+  if (!Number.isInteger(changeSequence) || changeSequence < 1) {
+    return { kind: 'INVALID', reason: 'changeSequence is invalid' };
+  }
+  const remoteRevision = currentRevision + 1;
+  const deleted = operation.kind === 'delete';
+  const nextEntity: RemoteEntity = {
+    entityId: scope.entityId,
+    entityType: operation.entityType,
+    schemaVersion: operation.schemaVersion,
+    revision: remoteRevision,
+    deleted,
+    payload: deleted ? null : operation.payload,
+    epoch,
+  };
+  const validation = validateRemoteEnvelope(nextEntity);
+  if (!validation.ok) return { kind: 'INVALID', reason: validation.reason };
+
+  if (!deleted) {
+    const payload = operation.payload as { id?: unknown; profileId?: unknown } | null;
+    if (!isRecord(payload) || payload.id !== scope.entityId || payload.profileId !== scope.profileId) {
+      return { kind: 'INVALID', reason: 'payload profile or entity does not match the operation' };
+    }
+  }
+
+  return {
+    kind: 'APPLIED',
+    remoteRevision,
+    entity: nextEntity,
+    receipt: {
+      operationId: scope.operationId,
+      entityId: scope.entityId,
+      payloadDigest: digest,
+      revision: remoteRevision,
+      changeSequence,
+    },
+    change: {
+      sequence: changeSequence,
+      entityId: scope.entityId,
+      revision: remoteRevision,
+      deleted,
+      epoch,
+    },
+    head: { epoch, changeSequence },
+  };
+}
+
+export type FirebaseRemotePortOptions = {
+  uid: string;
+  remoteLibraryId: string;
+  profileId: string;
+  store: FirestorePort;
+};
+
+/** Firestore adapter for one authenticated uid/library scope. */
+export class FirebaseRemotePort implements RemoteMutationPort {
+  private readonly uid: string;
+  private readonly libraryId: string;
+  private readonly profileId: string;
+  private readonly store: FirestorePort;
+
+  constructor(options: FirebaseRemotePortOptions) {
+    this.uid = requireId(options.uid, 'uid');
+    this.libraryId = requireId(options.remoteLibraryId, 'remoteLibraryId');
+    this.profileId = requireId(options.profileId, 'profileId');
+    this.store = options.store;
+  }
+
+  private path(collection: string, id: string): string {
+    return `users/${this.uid}/libraries/${this.libraryId}/${collection}/${id}`;
+  }
+
+  private assertScope(operation: OutboxOperation): void {
+    const scope = requireScope(operation);
+    if (scope.uid !== this.uid || scope.libraryId !== this.libraryId || scope.profileId !== this.profileId) {
+      throw new RemoteOperationError('operation is outside the authenticated uid/library scope');
+    }
+  }
+
+  async apply(operation: OutboxOperation): Promise<RemoteMutationResult> {
+    this.assertScope(operation);
+    const plan = await this.store.runTransaction(async (transaction) => {
+      const receipt = await transaction.get(this.path('operations', operation.operationId));
+      const entity = await transaction.get(this.path('entities', operation.entityId));
+      const head = await transaction.get(this.path('meta', 'head'));
+      const next = await planRemoteMutation(operation, {
+        receipt: asReceipt(receipt),
+        entity: asEntity(entity),
+        head: asHead(head),
+      });
+      if (next.kind === 'APPLIED') {
+        transaction.set(this.path('entities', operation.entityId), { ...next.entity, uid: this.uid });
+        transaction.set(this.path('operations', operation.operationId), {
+          ...next.receipt,
+          uid: this.uid,
+        });
+        transaction.set(this.path('changes', String(next.change.sequence)), {
+          ...next.change,
+          uid: this.uid,
+        });
+        transaction.set(this.path('meta', 'head'), { ...next.head, uid: this.uid });
+      }
+      return next;
+    });
+
+    if (plan.kind === 'INVALID') throw new RemoteOperationError(plan.reason);
+    if (plan.kind === 'CONFLICT') return { kind: 'CONFLICT', remoteRevision: plan.remoteRevision };
+    if (plan.kind === 'ALREADY_APPLIED') {
+      return { kind: 'ALREADY_APPLIED', remoteRevision: plan.remoteRevision };
+    }
+    return { kind: 'APPLIED', remoteRevision: plan.remoteRevision };
+  }
+
+  async lookup(
+    operationId: string,
+    entityId?: string,
+  ): Promise<'APPLIED' | 'MISSING' | 'UNKNOWN' | 'MISMATCH'> {
+    try {
+      const receipt = asReceipt(await this.store.get(this.path('operations', operationId)));
+      if (!receipt) return 'MISSING';
+      if (entityId !== undefined && receipt.entityId !== entityId) return 'MISMATCH';
+      return 'APPLIED';
+    } catch {
+      return 'UNKNOWN';
+    }
+  }
+
+  async lookupRevision(operationId: string): Promise<number | null> {
+    try {
+      const receipt = asReceipt(await this.store.get(this.path('operations', operationId)));
+      return receipt?.revision ?? null;
+    } catch {
+      return null;
+    }
+  }
+}
+
+/** Creates the production Firestore transaction port for an injected database. */
+export async function createFirestorePort(db: Firestore): Promise<FirestorePort> {
+  const { doc, getDoc, runTransaction } = await import('firebase/firestore');
+  return {
+    async runTransaction<T>(task: (transaction: FirestoreTransactionPort) => Promise<T>): Promise<T> {
+      return runTransaction(db, async (transaction) =>
+        task({
+          async get(path) {
+            const snapshot = await transaction.get(doc(db, path));
+            return snapshot.exists() ? snapshot.data() : null;
+          },
+          set(path, value) {
+            transaction.set(doc(db, path), value);
+          },
+        }),
+      );
+    },
+    async get(path) {
+      const snapshot = await getDoc(doc(db, path));
+      return snapshot.exists() ? snapshot.data() : null;
+    },
+  };
+}
