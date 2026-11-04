@@ -85,6 +85,8 @@ export type OutboxOperation = {
   remoteBaseRevision?: number | null;
   /** Causal order inside one entity; the outbox key stays the operationId. */
   sequence?: number;
+  /** Revision proved by the remote adapter before a durable ACK. */
+  remoteRevision?: number;
   attempts?: number;
   nextRetryAt?: number | null;
   /** Delivery metadata, assigned only after explicit consent. */
