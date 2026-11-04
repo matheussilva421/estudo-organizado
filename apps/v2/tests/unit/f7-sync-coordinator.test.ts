@@ -1,0 +1,142 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { OutboxOperation, RemoteMutationPort, RemoteMutationResult } from '../../src/application/sync-types';
+import type { ProfileRecord } from '../../src/application/profile-service';
+import { SyncCoordinator } from '../../src/platform/sync/sync-coordinator';
+import { FakeRemotePort } from '../../src/platform/sync/fake-remote';
+import type { LockPort } from '../../src/platform/sync/coordination';
+import { LocalProfileRepository } from '../../src/platform/local-profile-repository';
+import {
+  deleteV2DatabaseForTests,
+  openV2Database,
+  requestResult,
+  STORES,
+  transactionDone,
+} from '../../src/platform/indexeddb';
+
+const profileId = 'profile-coordinator';
+const uid = 'uid-a';
+const libraryId = 'library-a';
+
+function profile(): ProfileRecord {
+  return {
+    profileId,
+    uid,
+    remoteLibraryId: libraryId,
+    syncEnabled: true,
+    state: 'READY',
+    primaryEditalId: null,
+    localRevision: 1,
+  };
+}
+
+function operation(overrides: Partial<OutboxOperation> = {}): OutboxOperation {
+  return {
+    operationId: 'op-coord',
+    profileId,
+    entityType: 'edital',
+    entityId: 'edital-1',
+    kind: 'upsert',
+    baseRevision: 0,
+    payload: { id: 'edital-1', profileId, title: 'TJPB', status: 'ACTIVE', localRevision: 1 },
+    schemaVersion: 1,
+    status: 'PENDING',
+    deliveryUid: uid,
+    remoteLibraryId: libraryId,
+    ...overrides,
+  };
+}
+
+async function seed(record: OutboxOperation): Promise<void> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction([STORES.profiles, STORES.outbox], 'readwrite');
+  tx.objectStore(STORES.profiles).put(profile());
+  tx.objectStore(STORES.outbox).put(record);
+  await transactionDone(tx);
+}
+
+async function read(operationId = 'op-coord'): Promise<OutboxOperation | undefined> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction(STORES.outbox, 'readonly');
+  return requestResult(tx.objectStore(STORES.outbox).get(operationId)) as Promise<
+    OutboxOperation | undefined
+  >;
+}
+
+class MemoryLocks implements LockPort {
+  private readonly queues = new Map<string, Promise<unknown>>();
+
+  request<T>(name: string, task: () => Promise<T>): Promise<T> {
+    const previous = this.queues.get(name) ?? Promise.resolve();
+    const next = previous.then(task, task);
+    this.queues.set(name, next.catch(() => undefined));
+    return next;
+  }
+}
+
+function coordinator(remote: RemoteMutationPort, locks: LockPort | null = new MemoryLocks()): SyncCoordinator {
+  return new SyncCoordinator({ remote, locks, now: () => Date.now() });
+}
+
+beforeEach(async () => {
+  await deleteV2DatabaseForTests();
+});
+
+describe('F7 sync coordinator', () => {
+  it('f7_two_tabs_do_not_double_apply', async () => {
+    await seed(operation());
+    const remote = new FakeRemotePort({ uid, profileId });
+    const locks = new MemoryLocks();
+    const first = coordinator(remote, locks);
+    const second = coordinator(remote, locks);
+    await Promise.all([
+      first.requestFlush(profileId, 'MANUAL'),
+      second.requestFlush(profileId, 'MANUAL'),
+    ]);
+    expect(remote.appliedCount()).toBe(1);
+    expect((await read())?.status).toBe('CONFIRMED');
+  });
+
+  it('f7_lock_missing_blocks_network_send', async () => {
+    await seed(operation());
+    const remote = new FakeRemotePort({ uid, profileId });
+    const result = await coordinator(remote, null).requestFlush(profileId, 'MANUAL');
+    expect(result.mode).toBe('PAUSED_LOCK');
+    expect(remote.appliedCount()).toBe(0);
+    expect((await read())?.status).toBe('PENDING');
+  });
+
+  it('f7_crash_after_remote_commit_recovers_by_lookup', async () => {
+    await seed(operation());
+    const remote = new FakeRemotePort({ uid, profileId, simulateTimeoutAfterApply: true });
+    await coordinator(remote).requestFlush(profileId, 'RESUME');
+    expect(remote.appliedCount()).toBe(1);
+    expect((await read())?.status).toBe('CONFIRMED');
+  });
+
+  it('f7_logout_while_request_inflight_rejects_old_ack', async () => {
+    await seed(operation());
+    const base = new FakeRemotePort({ uid, profileId });
+    const remote: RemoteMutationPort = {
+      async apply(next): Promise<RemoteMutationResult> {
+        const result = await base.apply(next);
+        await new LocalProfileRepository().logoutRemote(profileId, 'logout-during-flush');
+        return result;
+      },
+      lookup: (operationId, entityId) => base.lookup(operationId, entityId),
+      lookupRevision: (operationId) => base.lookupRevision(operationId),
+    };
+    await coordinator(remote).requestFlush(profileId, 'MANUAL');
+    expect((await read())?.status).toBe('PENDING');
+    expect((await new LocalProfileRepository().getProfile(profileId)).uid).toBeNull();
+  });
+
+  it('f7_delete_timeout_not_resurrected', async () => {
+    await seed(operation());
+    const remote = new FakeRemotePort({ uid, profileId, simulateTimeoutAfterApply: true });
+    await coordinator(remote).requestFlush(profileId, 'RESUME');
+    await seed(operation({ operationId: 'op-del', kind: 'delete', baseRevision: 1 }));
+    await coordinator(remote).requestFlush(profileId, 'RESUME');
+    expect(remote.readEntity('edital-1')).toBeNull();
+    expect((await read('op-del'))?.status).toBe('CONFIRMED');
+  });
+});
