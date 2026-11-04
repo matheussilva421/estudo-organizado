@@ -1,7 +1,7 @@
 # F7 — Runbook dos gates externos (G-EXT e G-STAGING)
 
 **Estado atual:** `F7_LOCAL_CODE_COMPLETE` / `F7_BLOCKED_G-EXT_G-STAGING`  
-**Código local:** `ff4db1d`; documentação: `9b2f0f5`  
+**Código local:** `df957f6`; documentação: `188b03a` (este runbook integra o commit documental seguinte)  
 **V1/main:** `9046cfa`, intocada.  
 **Regra:** este runbook não autoriza nada por si só. G-EXT e G-STAGING exigem consentimento expresso e separado.
 
