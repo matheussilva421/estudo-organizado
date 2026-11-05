@@ -9,10 +9,11 @@
 
 ## F7-UX — Redesign integral e homologação visual (registro documental de 05/11/2026)
 
-**Situação:** `F7_UX_BRAINSTORM_APPROVED_D01_D71` e **`F7_UX_SPEC_APPROVED`** pelo proprietário em 05/11/2026. **Writing Plans:** `F7_UX_PLAN_PROPOSED_AWAITING_APPROVAL`; **GOAL/implementação:** não autorizados por esta atualização documental. A F7 funcional e seus gates permanecem independentes. Este registro posterior prevalece sobre cabeçalhos históricos de proposta nos arquivos de origem; não os reescreve nem altera seus hashes.
+**Situação:** `F7_UX_BRAINSTORM_APPROVED_D01_D71` e **`F7_UX_SPEC_APPROVED`** pelo proprietário em 05/11/2026. **Writing Plans:** `F7_UX_PLAN_APPROVED` (aceite humano expresso em 05/11/2026, UX-01–UX-31); **GOAL:** `F7_UX_GOAL_PREPARED_NOT_EXECUTED` (documento preparado, sem ordem de execução); **implementação:** não autorizada por esta atualização documental. A F7 funcional e seus gates permanecem independentes. Este registro posterior prevalece sobre cabeçalhos históricos de proposta nos arquivos de origem; não os reescreve nem altera seus hashes.
 
 - [Especificação formal F7-UX v0.1 aprovada](../specs/2026-11-05-estudo-organizado-v2-f7-ux-design.md) — SHA-256 do arquivo aprovado: `4babe27132ce2b5096ee09ca07f05c83e491ddeaa4e1cfc168e24945b04d2c7a`.
-- [Writing Plans F7-UX (31 tarefas UX-01–UX-31; aguarda aceite)](../plans/2026-11-05-estudo-organizado-v2-f7-ux-writing-plans.md) — não renumera F7 T01–T27, não autoriza execução.
+- [Writing Plans F7-UX (31 tarefas UX-01–UX-31; **aprovado em 05/11/2026**)](../plans/2026-11-05-estudo-organizado-v2-f7-ux-writing-plans.md) — não renumera F7 T01–T27, não autoriza execução.
+- [GOAL único F7-UX para Codex Desktop — PREPARADO, NÃO EXECUTADO](../goals/2026-11-05-estudo-organizado-v2-f7-ux-codex-desktop.md) — passa a autorizar apenas mediante ordem futura explícita; G-EXT/G-STAGING/F8 permanecem separados.
 - [Transcrição integral do brainstorming enviada pelo proprietário](transcripts/2026-11-05-f7-ux-conversa-completa.md) — histórico literal, SHA-256 `687f02d9c599e001774472fc9d7999c2b31d4fd994bd84bb15b70f5f5fe41864`. **Atenção:** este repositório é público e a transcrição também ficará pública.
 
 **Sequência preservada:** D01 é visão livre; D02–D29 aprovadas; D30 (gráficos) adiada e aprovada D após D64; D31–D71 aprovadas. Encerramento do brainstorming não equivale a testes, integração de código ou homologação de serviços. O redesign F7-UX deve anteceder a avaliação visual da V2, sem cancelar os gates `G-EXT` e `G-STAGING` nem antecipar F8.
