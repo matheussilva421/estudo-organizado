@@ -53,6 +53,7 @@ describe('F7 environment boundary', () => {
       projectId: V2_EMULATOR_PROJECT_ID,
       authDomain: 'demo-estudo-v2.firebaseapp.com',
       appId: '1:123456789:web:demo',
+      apiKey: 'demo-api-key',
       firestoreEmulator: { host: '127.0.0.1', port: 8080 },
       authEmulator: { url: 'http://127.0.0.1:9099' },
     });

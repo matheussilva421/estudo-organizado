@@ -11,6 +11,7 @@ export const V1_HOSTS = [
 ] as const;
 
 export const V2_EMULATOR_PROJECT_ID = 'demo-estudo-v2';
+export const V2_APP_NAME = 'estudo-organizado-v2';
 
 /**
  * Real Firebase projects require an explicit G-EXT decision. Keeping this list
@@ -22,6 +23,7 @@ export type V2RemoteConfig = {
   projectId: string;
   authDomain: string;
   appId: string;
+  apiKey: string;
   firestoreEmulator?: { host: string; port: number };
   authEmulator?: { url: string };
 };
@@ -107,6 +109,7 @@ export function resolveV2RemoteConfig(
       projectId,
       authDomain,
       appId,
+      apiKey: read(env, 'VITE_V2_FIREBASE_API_KEY') || 'demo-api-key',
       firestoreEmulator: { host: firestoreHost, port },
       authEmulator: { url: authEmulatorUrl },
     };
@@ -115,6 +118,8 @@ export function resolveV2RemoteConfig(
   const approved = read(env, 'VITE_V2_APPROVED_PROJECT_ID');
   if (!approved || approved !== projectId) return null;
   if (!APPROVED_REAL_PROJECT_IDS.includes(projectId)) return null;
+  const apiKey = read(env, 'VITE_V2_FIREBASE_API_KEY');
+  if (!apiKey) return null;
 
-  return { projectId, authDomain, appId };
+  return { projectId, authDomain, appId, apiKey };
 }

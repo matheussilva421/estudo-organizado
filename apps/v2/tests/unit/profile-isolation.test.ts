@@ -70,8 +70,9 @@ describe('profile isolation', () => {
     expect(previewLink('profile-a', 'uid-a', { remoteCount: 3 }, NOW)).toEqual({
       profileId: 'profile-a',
       uid: 'uid-a',
+      remoteLibraryId: 'library-main',
       remoteCount: 3,
-      previewId: `link:profile-a:uid-a:3:${NOW}:${NOW + 300_000}`,
+      previewId: `link:profile-a:uid-a:library-main:3:${NOW}:${NOW + 300_000}`,
       issuedAt: NOW,
       expiresAt: NOW + 300_000,
       requiresConsent: true,

@@ -122,6 +122,7 @@ describe('F7 Google auth port', () => {
     );
     expect(initializeApp).toHaveBeenCalledWith(
       expect.objectContaining({ projectId: V2_EMULATOR_PROJECT_ID }),
+      `estudo-organizado-v2:${V2_EMULATOR_PROJECT_ID}`,
     );
   });
 });

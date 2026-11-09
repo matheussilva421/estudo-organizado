@@ -1,5 +1,5 @@
 import type { Auth, User } from 'firebase/auth';
-import type { V2RemoteConfig } from './config';
+import { V2_APP_NAME, type V2RemoteConfig } from './config';
 import {
   GoogleAuthError,
   type GoogleAuthPort,
@@ -58,17 +58,15 @@ async function createFirebaseBackend(
   load: FirebaseLoader,
 ): Promise<GoogleAuthBackend> {
   const { app: appModule, auth: authModule } = await load();
-  const app = appModule.getApps().length > 0
-    ? appModule.getApp()
-    : appModule.initializeApp({
+  const appName = `${V2_APP_NAME}:${config.projectId}`;
+  const existing = appModule.getApps().find((candidate) => candidate.name === appName);
+  const app = existing ?? appModule.initializeApp({
         projectId: config.projectId,
         authDomain: config.authDomain,
         appId: config.appId,
-        // Firebase Auth requires a public API key. Emulator mode accepts the
-        // demo value; real projects will provide the approved public key at
-        // G-EXT, never a secret committed to this repository.
-        apiKey: 'demo-api-key',
-      });
+        // Public key only; G-EXT supplies the isolated project value.
+        apiKey: config.apiKey,
+      }, appName);
   const auth: Auth = authModule.getAuth(app);
 
   if (config.authEmulator) {
@@ -108,7 +106,7 @@ async function createFirebaseBackend(
       notify(listeners, null);
     },
     async current() {
-      identity = mapUser(auth.currentUser) ?? identity;
+      identity = mapUser(auth.currentUser);
       return identity;
     },
     async getIdToken() {

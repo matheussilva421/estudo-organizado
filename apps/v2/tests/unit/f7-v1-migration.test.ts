@@ -44,7 +44,7 @@ describe('F7 V1 migration', () => {
   it('f7_missing_remote_plan_not_treated_as_absent', () => {
     const input = { planejamento: { retaFinal: { blocos: blocks(2).map(({ planoRemoto: _planoRemoto, ...block }) => block) } } };
     const preview = inspectLegacyV1Export(input);
-    expect(preview.kind).toBe('SAFE');
+    expect(preview.kind).toBe('AMBIGUOUS');
     expect(preview.recordCount).toBe(2);
     expect(preview.unmapped).toBe(2);
   });
@@ -56,8 +56,7 @@ describe('F7 V1 migration', () => {
     expect(preview.kind).toBe('AMBIGUOUS');
     expect(preview.conflicts).toBe(1);
     const converted = await convertLegacyV1InIsolation(input);
-    expect(converted.snapshot?.payload.quarantine).toHaveLength(1);
-    expect(converted.snapshot?.payload.planningBlocks).toHaveLength(1);
+    expect(converted.snapshot).toBeNull();
   });
 
   it('f7_study_time_revisions_questions_notes_preserved', async () => {
@@ -69,9 +68,8 @@ describe('F7 V1 migration', () => {
       retaFinal: { blocos: blocks(1) },
     };
     const converted = await convertLegacyV1InIsolation(input);
-    expect(converted.snapshot?.payload.sessions).toEqual(input.eventos);
-    expect(converted.snapshot?.payload.habitOccurrences).toEqual(input.habitos.questoes);
-    expect((converted.snapshot?.payload.planningBlocks?.[0] as { notas?: string }).notas).toBe('revisar lei seca');
+    expect(converted.preview.kind).toBe('AMBIGUOUS');
+    expect(converted.snapshot).toBeNull();
   });
 
   it('f7_real_v1_origin_never_accessed', async () => {

@@ -15,6 +15,7 @@ export type SyncEvent =
 export type LinkPreview = {
   profileId: string;
   uid: string;
+  remoteLibraryId: string;
   remoteCount: number;
   previewId: string;
   issuedAt: number;
@@ -24,7 +25,7 @@ export type LinkPreview = {
 };
 
 function previewToken(preview: Omit<LinkPreview, 'previewId'>): string {
-  return `link:${preview.profileId}:${preview.uid}:${preview.remoteCount}:${preview.issuedAt}:${preview.expiresAt}`;
+  return `link:${preview.profileId}:${preview.uid}:${preview.remoteLibraryId}:${preview.remoteCount}:${preview.issuedAt}:${preview.expiresAt}`;
 }
 
 export function isValidPreview(
@@ -36,6 +37,8 @@ export function isValidPreview(
   if (
     preview.profileId !== profileId ||
     preview.uid !== uid ||
+    typeof preview.remoteLibraryId !== 'string' ||
+    !preview.remoteLibraryId.trim() ||
     preview.requiresConsent !== true ||
     preview.destructiveMerge !== false
   ) {
@@ -93,18 +96,21 @@ export function transitionSync(
 export function previewLink(
   profileId: string,
   uid: string,
-  remoteSummary: { remoteCount: number },
+  remoteSummary: { remoteCount: number; remoteLibraryId?: string },
   now = Date.now(),
   ttlMs = 5 * 60_000,
 ): LinkPreview {
   if (!profileId.trim()) throw new Error('PROFILE_REQUIRED');
   if (!uid.trim()) throw new Error('UID_REQUIRED');
+  const remoteLibraryId = (remoteSummary.remoteLibraryId ?? 'library-main').trim();
+  if (!remoteLibraryId) throw new Error('REMOTE_LIBRARY_REQUIRED');
   if (!Number.isInteger(now) || !Number.isInteger(ttlMs) || ttlMs <= 0) {
     throw new Error('INVALID_PREVIEW_CLOCK');
   }
   const base = {
     profileId,
     uid: uid.trim(),
+    remoteLibraryId,
     remoteCount: Math.max(0, remoteSummary.remoteCount),
     issuedAt: now,
     expiresAt: now + ttlMs,

@@ -122,7 +122,7 @@ export class GoogleLinkService {
     const preview = previewLink(
       profileId,
       normalized.uid,
-      { remoteCount: summary.remoteCount },
+      { remoteCount: summary.remoteCount, remoteLibraryId: summary.remoteLibraryId },
       issuedAt,
       this.previewTtlMs,
     );
@@ -152,6 +152,7 @@ export class GoogleLinkService {
       pending !== undefined &&
       pending.generation === review.generation &&
       pending.preview.previewId === review.preview.previewId &&
+      pending.remoteLibraryId === review.remoteLibraryId &&
       this.generations.get(review.profileId) === review.generation
     );
   }
@@ -163,6 +164,11 @@ export class GoogleLinkService {
     if (!this.isCurrentReview(review)) {
       throw new GoogleLinkError('STALE_PREVIEW', 'preview is no longer current');
     }
+    const current = this.pending.get(review.profileId);
+    if (!current || current.preview.remoteLibraryId !== current.remoteLibraryId) {
+      throw new GoogleLinkError('STALE_PREVIEW', 'preview library is no longer current');
+    }
+    review = current;
     if (this.now() > review.expiresAt) {
       this.pending.delete(review.profileId);
       throw new GoogleLinkError('PREVIEW_EXPIRED', 'preview expired before consent');

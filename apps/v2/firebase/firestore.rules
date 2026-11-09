@@ -39,7 +39,10 @@ service cloud.firestore {
         && data.epoch <= 1000000000
         && data.uid is string
         && data.uid == request.auth.uid
-        && (data.payload == null || data.payload is map);
+        && (
+          (data.deleted == true && data.payload == null)
+          || (data.deleted == false && data.payload is map)
+        );
     }
 
     function validOperation(data) {
@@ -118,6 +121,7 @@ service cloud.firestore {
           allow read: if owns(uid) && validLibrary(remoteLibraryId);
           allow create: if owns(uid)
             && validLibrary(remoteLibraryId)
+            && changeId == string(request.resource.data.sequence)
             && validChange(request.resource.data);
           allow update, delete: if false;
         }

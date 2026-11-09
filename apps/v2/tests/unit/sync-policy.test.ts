@@ -48,8 +48,9 @@ describe('sync policy', () => {
     expect(preview).toEqual({
       profileId: 'profile-a',
       uid: 'uid-a',
+      remoteLibraryId: 'library-main',
       remoteCount: 0,
-      previewId: `link:profile-a:uid-a:0:${NOW}:${NOW + 300_000}`,
+      previewId: `link:profile-a:uid-a:library-main:0:${NOW}:${NOW + 300_000}`,
       issuedAt: NOW,
       expiresAt: NOW + 300_000,
       requiresConsent: true,

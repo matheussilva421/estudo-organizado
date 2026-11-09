@@ -76,10 +76,14 @@ export function inspectLegacyV1Export(input: unknown): LegacyMigrationPreview {
   const questions = questionArray(input);
   const blocks = blocksOf(input);
   const split = blockIds(blocks);
-  const unmapped = blocks.filter((block) => !isRecord(block) || block.planoRemoto === undefined || block.planoRemoto === null).length;
+  const unmapped =
+    blocks.filter((block) => !isRecord(block) || block.planoRemoto === undefined || block.planoRemoto === null).length +
+    editais.length +
+    events.length +
+    questions.length;
   const recordCount = editais.length + events.length + questions.length + split.unique.length;
   return {
-    kind: split.duplicates.length > 0 ? 'AMBIGUOUS' : 'SAFE',
+    kind: split.duplicates.length > 0 || unmapped > 0 ? 'AMBIGUOUS' : 'SAFE',
     recordCount,
     unmapped,
     conflicts: split.duplicates.length,
@@ -91,7 +95,7 @@ export async function convertLegacyV1InIsolation(
   input: unknown,
 ): Promise<{ preview: LegacyMigrationPreview; snapshot: F7BackupSnapshot | null }> {
   const preview = inspectLegacyV1Export(input);
-  if (preview.kind === 'INVALID') return { preview, snapshot: null };
+  if (preview.kind !== 'SAFE') return { preview, snapshot: null };
 
   const editais = arrayOf(input, 'editais');
   const events = arrayOf(input, 'eventos');
