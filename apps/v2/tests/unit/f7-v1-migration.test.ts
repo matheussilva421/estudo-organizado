@@ -117,6 +117,18 @@ describe('F7 V1 migration', () => {
     expect(converted.snapshot).toBeNull();
   });
 
+  it('f7_v1_nested_blocks_are_not_hidden_by_an_empty_top_level_array', async () => {
+    const input = {
+      schemaVersion: 12,
+      blocos: [],
+      retaFinal: { blocos: [{ id: 'b1', titulo: 'Bloco real' }] },
+    };
+    expect(inspectLegacyV1Export(input).kind).toBe('AMBIGUOUS');
+    const converted = await convertLegacyV1InIsolation(input);
+    expect(converted.preview.kind).toBe('AMBIGUOUS');
+    expect(converted.snapshot).toBeNull();
+  });
+
   it('f7_v1_empty_content_remains_safe', async () => {
     const input = {
       schemaVersion: 12,

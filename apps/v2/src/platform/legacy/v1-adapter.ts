@@ -22,6 +22,17 @@ function blocksOf(input: unknown): unknown[] {
   return [];
 }
 
+function blockArrays(input: unknown): unknown[][] {
+  if (!isRecord(input)) return [];
+  const arrays: unknown[][] = [];
+  if (Array.isArray(input.blocos)) arrays.push(input.blocos);
+  if (isRecord(input.retaFinal) && Array.isArray(input.retaFinal.blocos)) {
+    arrays.push(input.retaFinal.blocos);
+  }
+  if (isRecord(input.planejamento)) arrays.push(...blockArrays(input.planejamento));
+  return arrays;
+}
+
 function arrayOf(input: unknown, key: string): unknown[] {
   return isRecord(input) && Array.isArray(input[key]) ? (input[key] as unknown[]) : [];
 }
@@ -121,6 +132,9 @@ export function inspectLegacyV1Export(input: unknown): LegacyMigrationPreview {
   const questions = questionArray(input);
   const blocks = blocksOf(input);
   const split = blockIds(blocks);
+  const extraBlocks = blockArrays(input).some(
+    (rows) => rows !== blocks && rows.some((row) => hasContent(row)),
+  );
   const unmapped =
     blocks.filter((block) => !isRecord(block) || block.planoRemoto === undefined || block.planoRemoto === null).length +
     editais.length +
@@ -131,7 +145,11 @@ export function inspectLegacyV1Export(input: unknown): LegacyMigrationPreview {
   const recordCount = editais.length + events.length + questions.length + split.unique.length;
   return {
     kind:
-      split.duplicates.length > 0 || unmapped > 0 || hasData || hasUnmappedContent(input)
+      split.duplicates.length > 0 ||
+      unmapped > 0 ||
+      hasData ||
+      extraBlocks ||
+      hasUnmappedContent(input)
         ? 'AMBIGUOUS'
         : 'SAFE',
     recordCount,
