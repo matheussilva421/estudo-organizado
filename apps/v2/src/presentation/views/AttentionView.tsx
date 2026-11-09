@@ -57,6 +57,13 @@ export function AttentionView({
         </div>
       </header>
 
+      {health.mode === 'RECOVERY_REQUIRED' ? (
+        <p className="inline-notice" role="status" data-recovery-required>
+          Sincronização bloqueada por recuperação pendente. Nenhuma operação será enviada até um
+          rebaseline explícito; os dados locais permanecem disponíveis.
+        </p>
+      ) : null}
+
       <section className="panel" aria-labelledby="attention-academic-title">
         <header className="section-header">
           <h3 id="attention-academic-title">Pendências acadêmicas</h3>
