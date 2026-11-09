@@ -3,6 +3,8 @@ import type { OutboxOperation } from '../../src/application/sync-types';
 import type { ProfileRecord } from '../../src/application/profile-service';
 import { snapshotChecksum, type F7BackupSnapshot } from '../../src/platform/backup/f7-format';
 import { commitF7Restore, prepareF7Restore } from '../../src/platform/backup/restore-commit';
+import { previewLink } from '../../src/application/sync-policy';
+import { LocalProfileRepository } from '../../src/platform/local-profile-repository';
 import {
   deleteV2DatabaseForTests,
   getEligibleOutbox,
@@ -147,7 +149,25 @@ describe('F7 restore', () => {
     const stored = (await requestResult(tx.objectStore(STORES.outbox).get('op-restore'))) as OutboxOperation | undefined;
     expect(stored?.status).toBe('PENDING');
     expect(stored?.deliveryMode).toBe('BLOCKED');
+    expect(stored?.blockedReason).toBe('RESTORE');
     await expect(getEligibleOutbox(profileId, Date.now())).resolves.toEqual([]);
+
+    const proof = {
+      profileId,
+      uid,
+      remoteLibraryId: libraryId,
+      consent: true as const,
+      preview: previewLink(profileId, uid, { remoteCount: 0, remoteLibraryId: libraryId }),
+    };
+    await expect(
+      new LocalProfileRepository().adoptLocalOperations(profileId, uid, libraryId, proof),
+    ).resolves.toMatchObject({ kind: 'LOCAL_COMMITTED' });
+    const afterRelink = db.transaction(STORES.outbox, 'readonly');
+    const blocked = (await requestResult(
+      afterRelink.objectStore(STORES.outbox).get('op-restore'),
+    )) as OutboxOperation | undefined;
+    expect(blocked?.deliveryMode).toBe('BLOCKED');
+    expect(blocked?.blockedReason).toBe('RESTORE');
   });
 
   it('f7_restore_invalidates_cursor_and_requires_rebaseline', async () => {

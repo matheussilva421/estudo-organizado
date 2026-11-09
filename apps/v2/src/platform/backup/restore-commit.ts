@@ -398,7 +398,7 @@ export async function commitF7Restore(
       outbox.index('by_profile_status').getAll([stored.targetProfileId, 'PENDING']),
     )) as Array<Record<string, unknown>>;
     for (const row of pendingRows) {
-      outbox.put({ ...row, deliveryMode: 'BLOCKED' });
+      outbox.put({ ...row, deliveryMode: 'BLOCKED', blockedReason: 'RESTORE' });
     }
     meta.delete(cursorKey(stored.targetProfileId));
     meta.put({

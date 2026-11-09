@@ -229,9 +229,13 @@ export class LocalProfileRepository implements ProfileRepository {
 
       let adopted = 0;
       for (const operation of pending) {
+        // A restore deliberately invalidated these intents. Relinking must not
+        // turn them into deliverable operations for any account.
+        if (operation.blockedReason === 'RESTORE') continue;
         if (operation.deliveryMode === 'BLOCKED') {
           const next = { ...operation };
           delete next.deliveryMode;
+          delete next.blockedReason;
           outbox.put({ ...next, deliveryUid: uid, remoteLibraryId });
           adopted += 1;
           continue;
