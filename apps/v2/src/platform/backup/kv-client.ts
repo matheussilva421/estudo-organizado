@@ -99,7 +99,11 @@ export function createKvBackupPort(
 
     async get(id) {
       if (!validId(id)) return null;
-      const response = await request(`/backups/${encodeURIComponent(id)}`);
+      const response = await request(
+        `/backups/${encodeURIComponent(id)}`,
+        {},
+        options.expectedUid,
+      );
       if (!response || !response.ok) return null;
       try {
         return (await response.json()) as EncryptedBackup;
@@ -109,7 +113,7 @@ export function createKvBackupPort(
     },
 
     async list() {
-      const response = await request('/backups');
+      const response = await request('/backups', {}, options.expectedUid);
       if (!response || !response.ok) return [];
       try {
         const parsed = (await response.json()) as { items?: unknown };
@@ -129,7 +133,11 @@ export function createKvBackupPort(
 
     async deleteVerifiedOldVersion(id) {
       if (!validId(id)) return false;
-      const response = await request(`/backups/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const response = await request(
+        `/backups/${encodeURIComponent(id)}`,
+        { method: 'DELETE' },
+        options.expectedUid,
+      );
       return response?.status === 204;
     },
   };

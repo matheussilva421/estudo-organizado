@@ -93,6 +93,21 @@ describe('F7 KV storage', () => {
     expect(server.docs.size).toBe(0);
   });
 
+  it('f7_reads_and_deletes_refuse_a_switched_identity', async () => {
+    const server = new MemoryServer();
+    server.docs.set('v1', JSON.stringify(encrypted));
+    const kv = createKvBackupPort('https://worker.example', async () => 'token-b', {
+      fetch: server.fetch,
+      expectedUid: 'uid-a',
+      getCurrentUid: async () => 'uid-b',
+    });
+    await expect(kv.get('v1')).resolves.toBeNull();
+    await expect(kv.list()).resolves.toEqual([]);
+    await expect(kv.deleteVerifiedOldVersion('v1')).resolves.toBe(false);
+    expect(server.calls).toBe(0);
+    expect(server.docs.has('v1')).toBe(true);
+  });
+
   it('f7_remote_readback_required_before_success', async () => {
     const server = new MemoryServer();
     const kv = port(server);
