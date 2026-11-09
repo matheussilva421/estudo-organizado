@@ -1,10 +1,27 @@
 import { createGoogleJwksPort, verifyFirebaseIdToken, type JwksPort } from './token-verifier';
 
+export type KVListKey = {
+  name: string;
+  expiration?: number;
+  metadata?: unknown;
+};
+
+export type KVListOptions = {
+  prefix?: string;
+  cursor?: string;
+};
+
+export type KVListResult = {
+  keys: KVListKey[];
+  list_complete: boolean;
+  cursor?: string;
+};
+
 export type KVNamespaceLike = {
   get(key: string): Promise<string | null>;
   put(key: string, value: string): Promise<void>;
   delete(key: string): Promise<void>;
-  list(prefix: string, cursor?: string): Promise<{ keys: string[]; cursor?: string }>;
+  list(options?: KVListOptions): Promise<KVListResult>;
 };
 
 export type BackupWorkerBindings = {
@@ -51,6 +68,26 @@ function validEncrypted(value: unknown): boolean {
     record.kdf !== null &&
     typeof record.kdf === 'object'
   );
+}
+
+async function listBackupKeys(
+  kv: KVNamespaceLike,
+  prefix: string,
+): Promise<{ keys: string[]; complete: boolean }> {
+  const keys: string[] = [];
+  const seenCursors = new Set<string>();
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await kv.list(cursor === undefined ? { prefix } : { prefix, cursor });
+    for (const key of page.keys) {
+      if (key && typeof key.name === 'string' && key.name.length > 0) keys.push(key.name);
+    }
+    if (page.list_complete) return { keys, complete: true };
+    const next = typeof page.cursor === 'string' ? page.cursor.trim() : '';
+    if (!next || seenCursors.has(next)) return { keys, complete: false };
+    seenCursors.add(next);
+    cursor = next;
+  }
 }
 
 async function identity(request: Request, bindings: BackupWorkerBindings): Promise<string | null> {
@@ -121,12 +158,13 @@ export async function handleBackupRequest(
   }
 
   if (request.method === 'GET' && parts.length === 1 && parts[0] === 'backups') {
-    const listed = await bindings.BACKUPS.list(prefix);
+    const listed = await listBackupKeys(bindings.BACKUPS, prefix);
+    if (!listed.complete) return json(500, { error: 'LIST' }, bindings.ALLOWED_ORIGIN);
     return json(
       200,
       {
-        items: listed.keys.map((key) => {
-          const id = key.slice(prefix.length);
+        items: listed.keys.map((name) => {
+          const id = name.slice(prefix.length);
           const timestamp = Number(id.split('-').at(-1));
           return {
             id,
@@ -153,7 +191,8 @@ export async function handleBackupRequest(
       return json(200, JSON.parse(stored), bindings.ALLOWED_ORIGIN);
     }
     if (request.method === 'DELETE') {
-      const listed = await bindings.BACKUPS.list(prefix);
+      const listed = await listBackupKeys(bindings.BACKUPS, prefix);
+      if (!listed.complete) return json(500, { error: 'LIST' }, bindings.ALLOWED_ORIGIN);
       if (listed.keys.length <= 1) {
         return json(409, { error: 'LAST_COPY' }, bindings.ALLOWED_ORIGIN);
       }

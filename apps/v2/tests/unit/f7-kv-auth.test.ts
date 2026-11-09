@@ -14,6 +14,9 @@ const origin = 'https://v2.example.test';
 
 class MemoryKV implements KVNamespaceLike {
   readonly values = new Map<string, string>();
+  readonly listCalls: Array<{ prefix?: string; cursor?: string }> = [];
+  pageSize = Number.MAX_SAFE_INTEGER;
+
   async get(key: string) {
     return this.values.get(key) ?? null;
   }
@@ -23,8 +26,19 @@ class MemoryKV implements KVNamespaceLike {
   async delete(key: string) {
     this.values.delete(key);
   }
-  async list(prefix: string) {
-    return { keys: [...this.values.keys()].filter((key) => key.startsWith(prefix)) };
+  async list(options: { prefix?: string; cursor?: string } = {}) {
+    this.listCalls.push({ ...options });
+    const prefix = options.prefix ?? '';
+    const names = [...this.values.keys()].filter((key) => key.startsWith(prefix)).sort();
+    const start = options.cursor === undefined ? 0 : Number(options.cursor);
+    const page = names.slice(start, start + this.pageSize);
+    const next = start + page.length;
+    const listComplete = next >= names.length;
+    return {
+      keys: page.map((name) => ({ name })),
+      list_complete: listComplete,
+      ...(listComplete ? {} : { cursor: String(next) }),
+    };
   }
 }
 
@@ -252,5 +266,76 @@ describe('F7 backup worker auth', () => {
       id,
       createdAt: new Date(createdAt).toISOString(),
     });
+  });
+
+  it('f7_worker_lists_every_page_of_backups', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const kv = new MemoryKV();
+    kv.pageSize = 2;
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: kv,
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      JWKS: jwks,
+    };
+    const token = await jwt('uid-a', {}, privateKey);
+    const encrypted = {
+      format: 'eo-v2-encrypted-v1',
+      iv: 'a',
+      ciphertext: 'b',
+      wrappedKey: 'c',
+      kdf: { name: 'PBKDF2' },
+    };
+    const ids = ['v1', 'v2', 'v3'];
+    const post = (id: string) =>
+      handleBackupRequest(
+        request('POST', '/backups', token, JSON.stringify({ id, encrypted }), {
+          'Content-Type': 'application/json',
+        }),
+        bindings,
+      );
+    for (const id of ids) {
+      expect((await post(id)).status).toBe(201);
+    }
+    const listed = await handleBackupRequest(request('GET', '/backups', token), bindings);
+    expect(listed.status).toBe(200);
+    const body = (await listed.json()) as { items: Array<{ id: string }> };
+    expect(body.items.map((item) => item.id).sort()).toEqual(ids);
+    expect(kv.listCalls.map((call) => call.cursor)).toEqual([undefined, '2']);
+    expect(kv.listCalls.every((call) => call.prefix === 'backups/uid-a/')).toBe(true);
+  });
+
+  it('f7_worker_delete_considers_all_pages', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const kv = new MemoryKV();
+    kv.pageSize = 1;
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: kv,
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      JWKS: jwks,
+    };
+    const token = await jwt('uid-a', {}, privateKey);
+    const encrypted = {
+      format: 'eo-v2-encrypted-v1',
+      iv: 'a',
+      ciphertext: 'b',
+      wrappedKey: 'c',
+      kdf: { name: 'PBKDF2' },
+    };
+    const post = (id: string) =>
+      handleBackupRequest(
+        request('POST', '/backups', token, JSON.stringify({ id, encrypted }), {
+          'Content-Type': 'application/json',
+        }),
+        bindings,
+      );
+    expect((await post('v1')).status).toBe(201);
+    expect((await post('v2')).status).toBe(201);
+    const deleted = await handleBackupRequest(request('DELETE', '/backups/v1', token), bindings);
+    expect(deleted.status).toBe(204);
+    expect(kv.listCalls).toHaveLength(2);
+    expect(await kv.get('backups/uid-a/v1')).toBeNull();
+    expect(await kv.get('backups/uid-a/v2')).not.toBeNull();
   });
 });
