@@ -9,6 +9,7 @@ import { LocalProfileRepository } from './local-profile-repository';
 import {
   getConflicts,
   getPendingOutbox,
+  getRecoveryRequired,
   openV2Database,
   requestResult,
   STORES,
@@ -176,9 +177,10 @@ export class F7Runtime {
     if (this.disposed) return;
     try {
       const profile = await this.profiles.getProfile(this.profileId);
-      const [pendingRows, savedConflicts] = await Promise.all([
+      const [pendingRows, savedConflicts, recovery] = await Promise.all([
         getPendingOutbox(this.profileId),
         getConflicts(this.profileId).catch(() => [] as PersistedConflict[]),
+        getRecoveryRequired(this.profileId).catch(() => null),
       ]);
       const openConflicts = savedConflicts.filter((conflict) => conflict.status === 'OPEN');
       const pending = pendingRows.length + openConflicts.length;
@@ -206,11 +208,11 @@ export class F7Runtime {
         mode:
           identityMismatch || identityMissing
             ? 'PAUSED_AUTH'
-            : openConflicts.length > 0 &&
-                this.lastHealth?.mode !== 'RECOVERY_REQUIRED' &&
-                this.lastHealth?.mode !== 'PAUSED_QUOTA'
-              ? 'CONFLICT'
-              : this.lastHealth?.mode ?? profile.state,
+            : recovery
+              ? 'RECOVERY_REQUIRED'
+              : openConflicts.length > 0 && this.lastHealth?.mode !== 'PAUSED_QUOTA'
+                ? 'CONFLICT'
+                : this.lastHealth?.mode ?? profile.state,
         conflictCount: openConflicts.length,
       });
       const backup = this.backupScheduler?.state(this.profileId) ?? null;
@@ -249,7 +251,9 @@ export class F7Runtime {
           ? 'IDENTITY_MISMATCH'
           : identityMissing
             ? 'AUTH_REQUIRED'
-            : null,
+            : recovery
+              ? 'RECOVERY_REQUIRED'
+              : null,
       };
       this.emit();
     } catch (error) {
@@ -413,8 +417,19 @@ export class F7Runtime {
   > {
     if (!this.backupRemote) return { kind: 'INVALID', reason: 'CLOUD_BACKUP_UNAVAILABLE' };
     if (!this.recoverySecret) return { kind: 'INVALID', reason: 'RECOVERY_SECRET_REQUIRED' };
+    const [profile, identity] = await Promise.all([
+      this.profiles.getProfile(this.profileId),
+      this.currentIdentity(),
+    ]);
+    if (profile.uid && identity?.uid !== profile.uid) {
+      return { kind: 'INVALID', reason: 'IDENTITY_MISMATCH' };
+    }
     const envelope = await this.backupRemote.get(backupId).catch(() => null);
     if (!envelope) return { kind: 'INVALID', reason: 'BACKUP_NOT_FOUND' };
+    const afterFetch = await this.currentIdentity();
+    if (profile.uid && afterFetch?.uid !== profile.uid) {
+      return { kind: 'INVALID', reason: 'IDENTITY_MISMATCH' };
+    }
     let snapshot: F7BackupSnapshot;
     try {
       snapshot = await decryptBackup(envelope, this.recoverySecret);
@@ -424,10 +439,17 @@ export class F7Runtime {
         reason: error instanceof Error ? error.message : 'BACKUP_DECRYPT_FAILED',
       };
     }
+    const afterDecrypt = await this.currentIdentity();
+    if (profile.uid && afterDecrypt?.uid !== profile.uid) {
+      return { kind: 'INVALID', reason: 'IDENTITY_MISMATCH' };
+    }
     return prepareF7Restore(snapshot, this.profileId);
   }
 
   async commitRestore(previewId: string): Promise<string> {
+    // Stop new sends before the restore invalidates the outbox; the coordinator
+    // also aborts an in-flight flush before ACK.
+    this.coordinator?.stop(this.profileId);
     const result = await commitF7Restore(previewId, true);
     if (result === 'LOCAL_COMMITTED') {
       // The restored snapshot no longer matches the old cursor/outbox. Drop
@@ -441,6 +463,10 @@ export class F7Runtime {
       this.syncScheduler = null;
       this.backupScheduler = null;
       this.backupRemote = null;
+    } else {
+      // A failed/stale restore must not leave a permanently stopped coordinator.
+      this.coordinator = null;
+      this.remote = null;
     }
     await this.refresh();
     if (result === 'LOCAL_COMMITTED' && this.backupScheduler) {
@@ -536,6 +562,9 @@ export class F7Runtime {
       coordinator: this.coordinator,
       isOnline: () => typeof navigator === 'undefined' || navigator.onLine,
       hasAuth: async () => Boolean((await this.profiles.getProfile(this.profileId)).uid),
+      onHealth: () => {
+        void this.refresh();
+      },
     });
 
     const endpoint = (this.env.VITE_V2_BACKUP_ENDPOINT ?? '').trim();
@@ -559,30 +588,43 @@ export class F7Runtime {
           return current?.uid === expectedUid && bound.uid === expectedUid && bound.syncEnabled;
         },
         now: this.now,
-        loadState: loadBackupState,
-        saveState: saveBackupState,
+        loadState: (id) => loadBackupState(id, uid, remoteLibraryId),
+        saveState: (id, state) => saveBackupState(id, uid, remoteLibraryId, state),
       });
       await this.backupScheduler.hydrate(this.profileId);
     }
   }
 }
 
-async function loadBackupState(profileId: string): Promise<BackupSchedulerState | null> {
+async function loadBackupState(
+  profileId: string,
+  uid: string,
+  libraryId: string,
+): Promise<BackupSchedulerState | null> {
   const database = await openV2Database(profileId);
   const transaction = database.transaction(STORES.meta, 'readonly');
+  const store = transaction.objectStore(STORES.meta);
+  const binding = (await requestResult(
+    store.get(`backup-binding:${profileId}`),
+  )) as { value?: { uid?: string; libraryId?: string } } | undefined;
+  if (binding?.value?.uid !== uid || binding?.value?.libraryId !== libraryId) return null;
   const row = (await requestResult(
-    transaction.objectStore(STORES.meta).get(`backup-state:${profileId}`),
+    store.get(`backup-state:${profileId}`),
   )) as { value?: BackupSchedulerState } | undefined;
   return row?.value ?? null;
 }
 
 async function saveBackupState(
   profileId: string,
+  uid: string,
+  libraryId: string,
   state: BackupSchedulerState,
 ): Promise<void> {
   const database = await openV2Database(profileId);
   const transaction = database.transaction(STORES.meta, 'readwrite');
-  transaction.objectStore(STORES.meta).put({ key: `backup-state:${profileId}`, value: state });
+  const store = transaction.objectStore(STORES.meta);
+  store.put({ key: `backup-binding:${profileId}`, value: { uid, libraryId } });
+  store.put({ key: `backup-state:${profileId}`, value: state });
   await transactionDone(transaction);
 }
 

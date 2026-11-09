@@ -63,6 +63,16 @@ async function seedProfile(record: Partial<ProfileRecord> = {}): Promise<void> {
   await transactionDone(tx);
 }
 
+async function seedRecoveryMarker(): Promise<void> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction(STORES.meta, 'readwrite');
+  tx.objectStore(STORES.meta).put({
+    key: `recovery-required:${profileId}`,
+    value: { reason: 'RESTORE_COMMITTED', at: new Date().toISOString() },
+  });
+  await transactionDone(tx);
+}
+
 beforeEach(async () => {
   await deleteV2DatabaseForTests();
 });
@@ -184,5 +194,15 @@ describe('F7 runtime composition', () => {
     } finally {
       fetchSpy.mockRestore();
     }
+  });
+
+  it('f7_runtime_surfaces_a_persisted_recovery_gate', async () => {
+    await seedProfile();
+    await seedRecoveryMarker();
+    const runtime = new F7Runtime(profileId, {}, { auth: fakeAuth(identityA) });
+    await runtime.init();
+    expect(runtime.getState().health.mode).toBe('RECOVERY_REQUIRED');
+    expect(runtime.getState().lastError).toBe('RECOVERY_REQUIRED');
+    runtime.dispose();
   });
 });
