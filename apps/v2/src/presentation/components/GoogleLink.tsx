@@ -1,8 +1,11 @@
+import type { LinkReview } from '../../application/google-link-service';
+
 export type GoogleLinkStatus = 'LOCAL_ONLY' | 'LINKING' | 'READY' | 'PAUSED_AUTH';
 
 export type GoogleLinkProps = {
   status: GoogleLinkStatus;
   email?: string | null;
+  review?: LinkReview | null;
   onPreview?: () => void;
   onConfirm?: () => void;
   onLogout?: () => void;
@@ -12,7 +15,14 @@ export type GoogleLinkProps = {
  * Account linking is opt-in. Rendering this component never starts a request,
  * and every remote action requires an explicit handler.
  */
-export function GoogleLink({ status, email, onPreview, onConfirm, onLogout }: GoogleLinkProps) {
+export function GoogleLink({
+  status,
+  email,
+  review,
+  onPreview,
+  onConfirm,
+  onLogout,
+}: GoogleLinkProps) {
   const label =
     status === 'READY'
       ? 'Conta Google vinculada'
@@ -34,6 +44,26 @@ export function GoogleLink({ status, email, onPreview, onConfirm, onLogout }: Go
               : 'Sincronização e backup usam esta conta somente após a vinculação consentida.'}
       </p>
       {email ? <p data-google-email>{email}</p> : null}
+      {review ? (
+        <dl className="link-review" data-link-review>
+          <div>
+            <dt>Conta</dt>
+            <dd>{review.email ?? review.uid}</dd>
+          </div>
+          <div>
+            <dt>UID</dt>
+            <dd>{review.uid}</dd>
+          </div>
+          <div>
+            <dt>Biblioteca remota</dt>
+            <dd>{review.remoteLibraryId}</dd>
+          </div>
+          <div>
+            <dt>Itens remotos</dt>
+            <dd>{review.remoteCount} (contagem não verificada neste dispositivo)</dd>
+          </div>
+        </dl>
+      ) : null}
       <div className="button-row">
         {status === 'LOCAL_ONLY' || status === 'PAUSED_AUTH' ? (
           <button type="button" className="button-primary" onClick={onPreview} disabled={!onPreview}>
@@ -47,6 +77,11 @@ export function GoogleLink({ status, email, onPreview, onConfirm, onLogout }: Go
         ) : null}
         {status === 'READY' ? (
           <button type="button" className="button-ghost" onClick={onLogout} disabled={!onLogout}>
+            Sair desta conta
+          </button>
+        ) : null}
+        {status === 'PAUSED_AUTH' && onLogout ? (
+          <button type="button" className="button-ghost" onClick={onLogout}>
             Sair desta conta
           </button>
         ) : null}

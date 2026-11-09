@@ -26,6 +26,7 @@ import {
   toLocalPersistenceError,
   transactionDone,
 } from './indexeddb';
+import { notifyReviewChange } from './local-events';
 
 type Fault = 'abort' | 'quota' | null;
 
@@ -268,6 +269,7 @@ export class LocalReviewRepository {
         committedAt: this.now(),
       } satisfies OperationRecord);
       await transactionDone(transaction);
+      notifyReviewChange(scope.profileId, primary.entityId);
       return outcome;
     } catch (error) {
       try { transaction.abort(); } catch { /* already aborted */ }
@@ -473,6 +475,7 @@ export class LocalReviewRepository {
         committedAt: this.now(),
       } satisfies OperationRecord);
       await transactionDone(transaction);
+      notifyReviewChange(profileId, operationId);
       return outcome;
     } catch (error) {
       try {

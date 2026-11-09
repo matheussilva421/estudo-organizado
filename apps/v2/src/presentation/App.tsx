@@ -15,12 +15,18 @@ import {
   LocalPersistenceError,
   subscribeDatabaseUpgrade,
   type DatabaseUpgradeState,
+  type PersistedConflict,
 } from '../platform/indexeddb';
 import { ImportCommitter } from '../platform/import-commit';
 import { LocalContentRepository } from '../platform/local-content-repository';
 import { LocalProfileRepository } from '../platform/local-profile-repository';
 import { LocalSubjectRepository } from '../platform/local-subject-repository';
-import { subscribeLocalChanges } from '../platform/local-events';
+import {
+  subscribeLocalChanges,
+  subscribePlanningChanges,
+  subscribeReviewChanges,
+  subscribeSessionChanges,
+} from '../platform/local-events';
 import { getE2EFault } from '../platform/e2e-fault';
 import { EditalManager } from './components/EditalManager';
 import { ContentTree } from './components/ContentTree';
@@ -29,7 +35,12 @@ import { SubjectForm } from './components/SubjectForm';
 import { SubjectList } from './components/SubjectList';
 import { SyncStatus } from './components/SyncStatus';
 import { GoogleLink } from './components/GoogleLink';
+import {
+  SyncConflictsPanel,
+  type SyncConflictChoice,
+} from './components/SyncConflictsPanel';
 import { BackupControls, type BackupHealth } from './components/BackupControls';
+import { CloudBackupPanel } from './components/CloudBackupPanel';
 import { LocalBackupPanel } from './components/LocalBackupPanel';
 import { F7Runtime, type F7RuntimeState } from '../platform/f7-runtime';
 import { holdTabPresence } from '../platform/tab-presence';
@@ -211,6 +222,8 @@ export function App() {
   const refreshSeq = useRef(0);
   const runtimeRef = useRef<F7Runtime | null>(null);
   const [f7, setF7] = useState<F7RuntimeState | null>(null);
+  const [syncConflictBusy, setSyncConflictBusy] = useState<string | null>(null);
+  const [cloudRestoreBusy, setCloudRestoreBusy] = useState<string | null>(null);
   const [analyticsCache] = useState(() => new ExperienceProjectionCache());
 
   useDraftGuard('f2-subject', form.title.trim().length > 0, 'nova disciplina');
@@ -328,6 +341,19 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const notify = () => runtimeRef.current?.notifyLocalCommit();
+    const unsubscribe = [
+      subscribeLocalChanges(PROFILE_ID, notify),
+      subscribePlanningChanges(PROFILE_ID, notify),
+      subscribeReviewChanges(PROFILE_ID, notify),
+      subscribeSessionChanges(PROFILE_ID, notify),
+    ];
+    return () => {
+      for (const stop of unsubscribe) stop();
+    };
+  }, []);
+
   useEffect(() => holdTabPresence(), []);
 
   useEffect(() => {
@@ -394,6 +420,30 @@ export function App() {
     setNotice(error instanceof Error ? error.message : 'Falha na operação de nuvem.');
   }
 
+  async function resolveSyncConflict(
+    conflict: PersistedConflict,
+    choice: SyncConflictChoice,
+  ): Promise<void> {
+    const runtime = runtimeRef.current;
+    if (!runtime) return;
+    setSyncConflictBusy(conflict.conflictId);
+    try {
+      const result = await runtime.resolveConflict(conflict.conflictId, choice);
+      if (result === 'LOCAL_COMMITTED') {
+        setNotice('Conflito resolvido; a versão escolhida foi preservada.');
+      } else if (result === 'STALE') {
+        setNotice('O conflito mudou. Revise novamente antes de decidir.');
+      } else {
+        setNotice('Não foi possível resolver o conflito; nenhuma versão foi sobrescrita.');
+      }
+    } catch (error) {
+      reportRuntimeError(error);
+    } finally {
+      setSyncConflictBusy(null);
+      await refresh();
+    }
+  }
+
   async function exportLocalBackup(): Promise<void> {
     const runtime = runtimeRef.current;
     if (!runtime) throw new Error('Runtime de backup indisponível.');
@@ -439,6 +489,30 @@ export function App() {
     return result === 'VERIFIED'
       ? 'Backup confirmado no destino remoto.'
       : `Backup não confirmado: ${result}`;
+  }
+
+  async function restoreCloudBackup(backupId: string): Promise<string> {
+    const runtime = runtimeRef.current;
+    if (!runtime) return 'Runtime de backup indisponível.';
+    setCloudRestoreBusy(backupId);
+    try {
+      const prepared = await runtime.prepareCloudRestore(backupId);
+      if (prepared.kind === 'INVALID') return `Backup na nuvem inválido: ${prepared.reason}`;
+      const preview = prepared.preview;
+      const confirmed = window.confirm(
+        `Prévia da restauração remota:\n${preview.toCreate} criação(ões), ${preview.toUpdate} atualização(ões), ${preview.conflicts} conflito(s).\n` +
+          `${preview.requiresRebaseline ? 'Este backup exige rebaseline; entidades excluídas não serão ressuscitadas.\n' : ''}` +
+          'Aplicar agora?',
+      );
+      if (!confirmed) return 'Restauração cancelada.';
+      const result = await runtime.commitRestore(preview.id);
+      await refresh();
+      return result === 'LOCAL_COMMITTED'
+        ? 'Backup remoto restaurado e conferido nos stores locais.'
+        : `Restauração não concluída: ${result}`;
+    } finally {
+      setCloudRestoreBusy(null);
+    }
   }
 
   function configureRecoverySecret(): void {
@@ -834,6 +908,7 @@ export function App() {
                 <GoogleLink
                   status={googleStatus}
                   email={googleEmail}
+                  review={f7?.linkReview ?? null}
                   onPreview={
                     f7?.cloudAvailable
                       ? () => {
@@ -849,12 +924,21 @@ export function App() {
                       : undefined
                   }
                   onLogout={
-                    f7?.googleStatus === 'READY'
+                    f7?.googleStatus === 'READY' || f7?.googleStatus === 'PAUSED_AUTH'
                       ? () => {
                           void runtimeRef.current?.logout().catch(reportRuntimeError);
                         }
                       : undefined
                   }
+                />
+              }
+              syncConflicts={
+                <SyncConflictsPanel
+                  conflicts={f7?.conflicts ?? []}
+                  busyId={syncConflictBusy}
+                  onResolve={(conflict, choice) => {
+                    void resolveSyncConflict(conflict, choice);
+                  }}
                 />
               }
               backupControls={
@@ -871,6 +955,17 @@ export function App() {
                         }
                       : undefined
                   }
+                />
+              }
+              cloudBackups={
+                <CloudBackupPanel
+                  versions={f7?.cloudBackups ?? []}
+                  available={f7?.backupAvailable ?? false}
+                  recoverySecretConfigured={f7?.recoverySecretConfigured ?? false}
+                  busyId={cloudRestoreBusy}
+                  onRestore={(id) => {
+                    void restoreCloudBackup(id).then(setNotice).catch(reportRuntimeError);
+                  }}
                 />
               }
               localBackup={

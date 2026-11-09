@@ -137,3 +137,48 @@ export function subscribeSessionChanges(
 export function notifySessionChange(profileId: string, sessionId: string): void {
   deliverSession({ profileId, sessionId }, true);
 }
+
+type ReviewChange = { profileId: string; entityId: string };
+
+type ReviewListener = (change: ReviewChange) => void;
+
+const reviewListeners = new Map<string, Set<ReviewListener>>();
+let reviewChannel: BroadcastChannel | null = null;
+
+function ensureReviewChannel(): BroadcastChannel | null {
+  if (reviewChannel) return reviewChannel;
+  if (typeof BroadcastChannel !== 'function') return null;
+  reviewChannel = new BroadcastChannel('estudo-organizado-v2-review');
+  reviewChannel.onmessage = (event: MessageEvent<ReviewChange>) => {
+    const change = event.data;
+    if (change && typeof change.profileId === 'string' && typeof change.entityId === 'string') {
+      deliverReview(change, false);
+    }
+  };
+  return reviewChannel;
+}
+
+function deliverReview(change: ReviewChange, broadcast: boolean): void {
+  for (const listener of reviewListeners.get(change.profileId) ?? []) {
+    listener(change);
+  }
+  if (broadcast) ensureReviewChannel()?.postMessage(change);
+}
+
+export function subscribeReviewChanges(
+  profileId: string,
+  onChange: ReviewListener,
+): () => void {
+  ensureReviewChannel();
+  const listeners = reviewListeners.get(profileId) ?? new Set<ReviewListener>();
+  listeners.add(onChange);
+  reviewListeners.set(profileId, listeners);
+  return () => {
+    listeners.delete(onChange);
+    if (listeners.size === 0) reviewListeners.delete(profileId);
+  };
+}
+
+export function notifyReviewChange(profileId: string, entityId: string): void {
+  deliverReview({ profileId, entityId }, true);
+}

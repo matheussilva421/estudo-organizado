@@ -133,6 +133,10 @@ export function AttentionView({
         <ul className="integrity-notes">
           <li>Outbox pendente: {pendingOutbox} operação(ões). Isso não prova ACK remoto.</li>
           <li>
+            Conflitos remotos abertos: {health.conflictCount ?? 0}. Nenhuma versão é sobrescrita
+            sem decisão explícita.
+          </li>
+          <li>
             Armazenamento local:{' '}
             {upgradeBlocked
               ? 'bloqueado por outra aba; edições suspensas sem apagar dados.'

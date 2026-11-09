@@ -18,7 +18,9 @@ type Props = {
   pendingOutbox: number;
   upgrade: DatabaseUpgradeState;
   googleLink?: ReactNode;
+  syncConflicts?: ReactNode;
   backupControls?: ReactNode;
+  cloudBackups?: ReactNode;
   localBackup?: ReactNode;
 };
 
@@ -34,7 +36,9 @@ export function SettingsView({
   pendingOutbox,
   upgrade,
   googleLink,
+  syncConflicts,
   backupControls,
+  cloudBackups,
   localBackup,
 }: Props) {
   return (
@@ -98,7 +102,9 @@ export function SettingsView({
             sem configuração e consentimento explícitos.
           </p>
           {googleLink}
+          {syncConflicts}
           {backupControls}
+          {cloudBackups}
           {localBackup}
         </section>
       ) : null}
@@ -129,6 +135,7 @@ export function SettingsView({
         </dl>
         <ul className="integrity-notes">
           <li>Outbox: {pendingOutbox} operação(ões) pendente(s).</li>
+          <li>Conflitos remotos abertos: {health.conflictCount ?? 0}.</li>
           <li>Atualização do banco: {upgrade.kind}{upgrade.blocked ? ' (bloqueada)' : ''}.</li>
           <li>
             Nenhuma ação destrutiva é automática. Limpeza, reconstrução e restore exigem decisão
