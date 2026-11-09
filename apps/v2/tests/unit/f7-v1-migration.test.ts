@@ -72,6 +72,15 @@ describe('F7 V1 migration', () => {
     expect(converted.snapshot).toBeNull();
   });
 
+  it('f7_nonempty_legacy_export_is_never_safe_by_inference', async () => {
+    const input = { retaFinal: { blocos: blocks(2) } };
+    const preview = inspectLegacyV1Export(input);
+    expect(preview.kind).toBe('AMBIGUOUS');
+    expect(preview.recordCount).toBe(2);
+    const converted = await convertLegacyV1InIsolation(input);
+    expect(converted.snapshot).toBeNull();
+  });
+
   it('f7_real_v1_origin_never_accessed', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
       throw new Error('network must not be used');

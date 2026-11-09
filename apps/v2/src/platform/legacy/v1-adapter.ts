@@ -81,9 +81,11 @@ export function inspectLegacyV1Export(input: unknown): LegacyMigrationPreview {
     editais.length +
     events.length +
     questions.length;
+  const hasData =
+    editais.length > 0 || events.length > 0 || questions.length > 0 || blocks.length > 0;
   const recordCount = editais.length + events.length + questions.length + split.unique.length;
   return {
-    kind: split.duplicates.length > 0 || unmapped > 0 ? 'AMBIGUOUS' : 'SAFE',
+    kind: split.duplicates.length > 0 || unmapped > 0 || hasData ? 'AMBIGUOUS' : 'SAFE',
     recordCount,
     unmapped,
     conflicts: split.duplicates.length,
