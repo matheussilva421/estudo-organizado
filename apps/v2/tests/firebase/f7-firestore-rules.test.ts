@@ -124,9 +124,18 @@ describe('F7 Firestore rules', () => {
     await assertFails(
       setDoc(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a', 2)),
     );
-    await assertSucceeds(
-      setDoc(doc(db, `users/uid-a/libraries/${library}/changes/2`), change('uid-a', 2)),
-    );
+    const initial = writeBatch(db);
+    initial.set(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a'));
+    initial.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
+    await assertSucceeds(initial.commit());
+
+    const next = writeBatch(db);
+    next.set(doc(db, `users/uid-a/libraries/${library}/changes/2`), change('uid-a', 2));
+    next.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), {
+      ...head('uid-a'),
+      changeSequence: 2,
+    });
+    await assertSucceeds(next.commit());
   });
 
   it('f7_rules_deny_forged_revision_or_scope', async () => {
@@ -225,6 +234,9 @@ describe('F7 Firestore rules', () => {
         changeSequence: 5,
       }),
     );
+    await assertFails(
+      setDoc(doc(db, `users/uid-a/libraries/${library}/changes/5`), change('uid-a', 5)),
+    );
 
     const next = writeBatch(db);
     next.set(doc(db, `users/uid-a/libraries/${library}/changes/5`), change('uid-a', 5));
@@ -232,6 +244,14 @@ describe('F7 Firestore rules', () => {
       ...head('uid-a'),
       changeSequence: 5,
     });
-    await assertSucceeds(next.commit());
+    await assertFails(next.commit());
+
+    const sequential = writeBatch(db);
+    sequential.set(doc(db, `users/uid-a/libraries/${library}/changes/2`), change('uid-a', 2));
+    sequential.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), {
+      ...head('uid-a'),
+      changeSequence: 2,
+    });
+    await assertSucceeds(sequential.commit());
   });
 });

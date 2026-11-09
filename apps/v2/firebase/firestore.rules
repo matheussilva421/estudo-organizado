@@ -128,6 +128,7 @@ service cloud.firestore {
           allow create: if owns(uid)
             && validLibrary(remoteLibraryId)
             && changeId == string(request.resource.data.sequence)
+            && changeId == string(getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.changeSequence)
             && validChange(request.resource.data);
           allow update, delete: if false;
         }
@@ -140,7 +141,11 @@ service cloud.firestore {
             && validHead(request.resource.data)
             && (
               request.method == 'create'
-              || request.resource.data.changeSequence >= resource.data.changeSequence
+                ? (
+                  request.resource.data.changeSequence == 0
+                  || request.resource.data.changeSequence == 1
+                )
+                : request.resource.data.changeSequence == resource.data.changeSequence + 1
             )
             && (
               request.method == 'create'
