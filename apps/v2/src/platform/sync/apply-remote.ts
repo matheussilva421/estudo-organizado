@@ -21,14 +21,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function conflictFor(
+async function conflictFor(
   transaction: IDBTransaction,
   profileId: string,
   change: RemoteChange,
   entity: RemoteEntity,
   local: unknown,
   pending: readonly OutboxOperation[],
-): void {
+): Promise<void> {
   const operation = pending[0];
   const conflictId = operation?.operationId ??
     `remote:${entity.entityType}:${entity.entityId}:${entity.revision}`;
@@ -46,7 +46,28 @@ function conflictFor(
   for (const queued of pending) {
     outbox.put({ ...queued, status: 'CONFLICT' });
   }
-  transaction.objectStore(STORES.conflicts).put({
+  const conflicts = transaction.objectStore(STORES.conflicts);
+  const existingOpen = (await requestResult(
+    conflicts.index('by_profile_entity').getAll([
+      profileId,
+      entity.entityType,
+      entity.entityId,
+    ]),
+  )) as Array<{ conflictId: string; status?: string }>;
+  const open = existingOpen.find((row) => row.status === 'OPEN');
+  if (open) {
+    // A later change of the same entity updates the single open conflict
+    // instead of creating a second decision that can never be resolved.
+    conflicts.put({
+      ...open,
+      remotePayload: entity.payload,
+      remoteRevision: entity.revision,
+      remoteEpoch: entity.epoch,
+      deleted: entity.deleted,
+    });
+    return;
+  }
+  conflicts.put({
     conflictId,
     profileId,
     operationId: operation?.operationId ?? `remote:${change.sequence}`,
@@ -54,6 +75,7 @@ function conflictFor(
     entityId: entity.entityId,
     localPayload: localKind === 'delete' ? null : local,
     localKind,
+    localExisted: local !== undefined && local !== null,
     remotePayload: entity.payload,
     baseRevision: operation?.baseRevision ?? null,
     remoteRevision: entity.revision,
@@ -166,7 +188,7 @@ export async function applyRemoteChange(
     let outcome: ApplyRemoteOutcome = 'UNCHANGED';
     if (entity.deleted) {
       if (local !== undefined || active.length > 0) {
-        conflictFor(transaction, profileId, change, entity, local ?? null, active);
+        await conflictFor(transaction, profileId, change, entity, local ?? null, active);
         outcome = 'CONFLICT';
       } else {
         const currentTombstone = (await requestResult(
@@ -189,7 +211,7 @@ export async function applyRemoteChange(
     } else {
       const reconciled = reconcileRemoteEntity(local ?? null, entity, active);
       if (reconciled.kind === 'CONFLICT') {
-        conflictFor(transaction, profileId, change, entity, local ?? null, active);
+        await conflictFor(transaction, profileId, change, entity, local ?? null, active);
         outcome = 'CONFLICT';
       } else if (reconciled.kind === 'APPLY') {
         if (!isRecord(reconciled.next)) {

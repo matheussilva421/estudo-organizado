@@ -160,6 +160,13 @@ describe('F7 sync conflicts', () => {
   it('f7_stale_resolution_rejected', async () => {
     const record = operation();
     await seed(record);
+    await seedLocalRow({
+      id: 'edital-1',
+      profileId,
+      title: 'A',
+      status: 'ACTIVE',
+      localRevision: 1,
+    });
     await markConflict(profileId, record, 2, { payload: remote().payload, deleted: false });
     const [conflict] = await getConflicts(profileId);
     expect(conflict).toBeDefined();
@@ -175,6 +182,20 @@ describe('F7 sync conflicts', () => {
     const second = operation({ operationId: 'op-2', entityId: 'edital-2' });
     await seed(first);
     await seed(second);
+    await seedLocalRow({
+      id: 'edital-1',
+      profileId,
+      title: 'A',
+      status: 'ACTIVE',
+      localRevision: 1,
+    });
+    await seedLocalRow({
+      id: 'edital-2',
+      profileId,
+      title: 'A',
+      status: 'ACTIVE',
+      localRevision: 1,
+    });
     await markConflict(profileId, first, 2, { payload: remote().payload, deleted: false });
     await markConflict(profileId, second, 2, { payload: remote({ entityId: 'edital-2' }).payload, deleted: false });
     const conflicts = await getConflicts(profileId);
@@ -186,6 +207,13 @@ describe('F7 sync conflicts', () => {
   it('f7_remote_resolution_applies_the_remote_payload', async () => {
     const record = operation();
     await seed(record);
+    await seedLocalRow({
+      id: 'edital-1',
+      profileId,
+      title: 'A',
+      status: 'ACTIVE',
+      localRevision: 1,
+    });
     await markConflict(profileId, record, 2, { payload: remote().payload, deleted: false });
     const [conflict] = await getConflicts(profileId);
     await expect(resolveRemoteConflict(conflict!.conflictId, 'REMOTE', 2)).resolves.toBe(
@@ -200,6 +228,13 @@ describe('F7 sync conflicts', () => {
   it('f7_remote_delete_resolution_records_a_tombstone', async () => {
     const record = operation();
     await seed(record);
+    await seedLocalRow({
+      id: 'edital-1',
+      profileId,
+      title: 'A',
+      status: 'ACTIVE',
+      localRevision: 1,
+    });
     await markConflict(profileId, record, 2, { payload: null, deleted: true }, 2);
     const [conflict] = await getConflicts(profileId);
     await expect(resolveRemoteConflict(conflict!.conflictId, 'REMOTE', 2)).resolves.toBe(
@@ -393,5 +428,97 @@ describe('F7 sync conflicts', () => {
     await expect(
       requestResult(check.objectStore(STORES.editais).get([profileId, 'edital-1'])),
     ).resolves.toMatchObject({ title: 'LOCAL-NEWER', localRevision: 2 });
+  });
+
+  it('f7_resolution_is_stale_when_another_tab_deletes_the_entity', async () => {
+    const record = operation();
+    await seed(record);
+    await seedLocalRow({
+      id: 'edital-1',
+      profileId,
+      title: 'A',
+      status: 'ACTIVE',
+      localRevision: 1,
+    });
+    await markConflict(profileId, record, 2, {
+      payload: remote().payload,
+      deleted: false,
+    });
+    const [conflict] = await getConflicts(profileId);
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(STORES.editais, 'readwrite');
+    tx.objectStore(STORES.editais).delete([profileId, 'edital-1']);
+    await transactionDone(tx);
+    await expect(
+      resolveRemoteConflict(conflict!.conflictId, 'LOCAL', conflict!.remoteRevision),
+    ).resolves.toBe('STALE');
+    await expect(
+      resolveRemoteConflict(conflict!.conflictId, 'REMOTE', conflict!.remoteRevision),
+    ).resolves.toBe('STALE');
+  });
+
+  it('f7_pull_keeps_one_open_conflict_and_the_latest_remote_revision', async () => {
+    const pending = operation({ operationId: 'op-pending' });
+    await seed(pending);
+    await seedLocalRow({
+      id: 'edital-1',
+      profileId,
+      title: 'LOCAL',
+      status: 'ACTIVE',
+      localRevision: 1,
+    });
+    const first = await applyRemoteChange(
+      profileId,
+      { uid, libraryId },
+      { sequence: 1, entityId: 'edital-1', revision: 2, deleted: false, epoch: 1 },
+      {
+        entityId: 'edital-1',
+        entityType: 'edital',
+        schemaVersion: 1,
+        revision: 2,
+        deleted: false,
+        payload: {
+          id: 'edital-1',
+          profileId,
+          title: 'REMOTE-2',
+          status: 'ACTIVE',
+          localRevision: 2,
+        },
+        epoch: 1,
+      },
+    );
+    expect(first).toBe('CONFLICT');
+    const second = await applyRemoteChange(
+      profileId,
+      { uid, libraryId },
+      { sequence: 2, entityId: 'edital-1', revision: 3, deleted: false, epoch: 1 },
+      {
+        entityId: 'edital-1',
+        entityType: 'edital',
+        schemaVersion: 1,
+        revision: 3,
+        deleted: false,
+        payload: {
+          id: 'edital-1',
+          profileId,
+          title: 'REMOTE-3',
+          status: 'ACTIVE',
+          localRevision: 3,
+        },
+        epoch: 1,
+      },
+    );
+    expect(second).toBe('CONFLICT');
+    const conflicts = await getConflicts(profileId);
+    expect(conflicts.filter((item) => item.status === 'OPEN')).toHaveLength(1);
+    expect(conflicts[0]?.remoteRevision).toBe(3);
+    await expect(
+      resolveRemoteConflict(conflicts[0]!.conflictId, 'REMOTE', 3),
+    ).resolves.toBe('LOCAL_COMMITTED');
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(STORES.editais, 'readonly');
+    await expect(
+      requestResult(tx.objectStore(STORES.editais).get([profileId, 'edital-1'])),
+    ).resolves.toMatchObject({ title: 'REMOTE-3', localRevision: 3 });
   });
 });

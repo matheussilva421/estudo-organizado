@@ -147,6 +147,10 @@ export async function resolveRemoteConflict(
     const currentRevision = revisionOf(localRow);
     const localKind =
       current.localKind ?? (current.localPayload === null ? 'delete' : 'upsert');
+    if (current.localExisted === true && localRow === undefined) {
+      transaction.abort();
+      return 'STALE';
+    }
     if (localKind === 'delete') {
       if (localRow !== undefined) {
         transaction.abort();

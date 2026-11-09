@@ -283,7 +283,13 @@ export class FirebaseRemotePort implements RemoteMutationPort, RemoteChangePort 
         kind: 'CONFLICT',
         remoteRevision: plan.remoteRevision,
         ...(plan.remote
-          ? { remote: { payload: plan.remote.payload, deleted: plan.remote.deleted } }
+          ? {
+            remote: {
+              payload: plan.remote.payload,
+              deleted: plan.remote.deleted,
+              epoch: plan.remote.epoch,
+            },
+          }
           : {}),
       };
     }

@@ -456,6 +456,7 @@ export async function markConflict(
       entityId: persisted.entityId,
       localPayload: localKind === 'delete' ? null : latest.payload,
       localKind,
+      localExisted: localKind !== 'delete',
       remotePayload: remote?.payload ?? null,
       baseRevision: persisted.baseRevision,
       remoteRevision,
@@ -484,6 +485,8 @@ export type PersistedConflict = {
   deleted: boolean;
   /** Local intent captured with the conflict, so delete never becomes upsert. */
   localKind?: 'upsert' | 'delete';
+  /** Whether a local row existed when the conflict was captured. */
+  localExisted?: boolean;
   status: 'OPEN' | 'RESOLVED';
   resolution?: 'LOCAL' | 'REMOTE';
   resolvedByOperationId?: string;
