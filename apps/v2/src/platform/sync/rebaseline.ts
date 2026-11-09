@@ -155,22 +155,44 @@ export async function commitRebaseline(
     )) as Array<{ entityType: string; entityId: string }>;
     const pendingKeys = new Set(pending.map((row) => `${row.entityType}:${row.entityId}`));
     const tombstones = transaction.objectStore(STORES.tombstones);
+    const tombstoneRows = (await requestResult(
+      tombstones.index('by_profile').getAll(profileId),
+    )) as Array<{ entityType?: unknown; entityId?: unknown; epoch?: unknown }>;
+    const tombstoneEpoch = new Map<string, number>();
+    for (const row of tombstoneRows) {
+      if (typeof row.entityType !== 'string' || typeof row.entityId !== 'string') continue;
+      const epoch =
+        typeof row.epoch === 'number' && Number.isInteger(row.epoch) ? row.epoch : 0;
+      const key = `${row.entityType}:${row.entityId}`;
+      tombstoneEpoch.set(key, Math.max(tombstoneEpoch.get(key) ?? -1, epoch));
+    }
     let applied = 0;
     let preserved = 0;
     for (const entity of stored.snapshot) {
-      if (pendingKeys.has(`${entity.entityType}:${entity.entityId}`)) {
+      const key = `${entity.entityType}:${entity.entityId}`;
+      if (pendingKeys.has(key)) {
         preserved += 1;
         continue;
       }
       const storeName = STORE_BY_ENTITY_TYPE[entity.entityType];
       if (!entity.deleted) {
         if (!storeName || !entity.payload) continue;
+        // A live remote snapshot must never resurrect an entity that a newer
+        // local tombstone explicitly deleted.
+        if ((tombstoneEpoch.get(key) ?? -1) >= entity.epoch) {
+          preserved += 1;
+          continue;
+        }
         transaction.objectStore(storeName).put({
           ...entity.payload,
           profileId,
           id: entity.entityId,
         });
         applied += 1;
+        continue;
+      }
+      if ((tombstoneEpoch.get(key) ?? -1) > entity.epoch) {
+        preserved += 1;
         continue;
       }
       tombstones.put({

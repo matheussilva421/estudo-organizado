@@ -5,6 +5,7 @@ import { snapshotChecksum, type F7BackupSnapshot } from '../../src/platform/back
 import { commitF7Restore, prepareF7Restore } from '../../src/platform/backup/restore-commit';
 import {
   deleteV2DatabaseForTests,
+  getEligibleOutbox,
   openV2Database,
   requestResult,
   STORES,
@@ -145,6 +146,45 @@ describe('F7 restore', () => {
     const tx = db.transaction(STORES.outbox, 'readonly');
     const stored = (await requestResult(tx.objectStore(STORES.outbox).get('op-restore'))) as OutboxOperation | undefined;
     expect(stored?.status).toBe('PENDING');
+    expect(stored?.deliveryMode).toBe('BLOCKED');
+    await expect(getEligibleOutbox(profileId, Date.now())).resolves.toEqual([]);
+  });
+
+  it('f7_restore_invalidates_cursor_and_requires_rebaseline', async () => {
+    const record: OutboxOperation = {
+      operationId: 'op-cursor',
+      profileId,
+      entityType: 'edital',
+      entityId: 'edital-1',
+      kind: 'upsert',
+      baseRevision: 0,
+      payload: { id: 'edital-1', profileId, title: 'A', status: 'ACTIVE', localRevision: 1 },
+      schemaVersion: 1,
+      status: 'PENDING',
+      deliveryUid: uid,
+      remoteLibraryId: libraryId,
+    };
+    await seed(record);
+    const db = await openV2Database(profileId);
+    const cursorTx = db.transaction(STORES.meta, 'readwrite');
+    cursorTx.objectStore(STORES.meta).put({
+      key: `sync-cursor:${profileId}`,
+      value: {
+        profileId,
+        uid,
+        libraryId,
+        epoch: 1,
+        cursor: 7,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+    await transactionDone(cursorTx);
+
+    const prepared = await prepareF7Restore(await snapshot(), profileId);
+    if (prepared.kind === 'PREVIEW') await commitF7Restore(prepared.preview.id, true);
+    const keys = await metaKeys();
+    expect(keys).not.toContain(`sync-cursor:${profileId}`);
+    expect(keys).toContain(`recovery-required:${profileId}`);
   });
 
   it('f7_restore_aborted_commit_preserves_original', async () => {
@@ -241,6 +281,65 @@ describe('F7 restore', () => {
     ).resolves.toBeDefined();
     await expect(
       requestResult(tx.objectStore(STORES.editalDisciplines).get([profileId, 'link-1'])),
+    ).resolves.toBeUndefined();
+  });
+
+  it('f7_restore_propagates_a_tombstoned_parent_to_descendants', async () => {
+    await seed();
+    const db = await openV2Database(profileId);
+    const tombstoneTx = db.transaction(STORES.tombstones, 'readwrite');
+    tombstoneTx.objectStore(STORES.tombstones).put({
+      profileId,
+      entityType: 'edital',
+      entityId: 'edital-1',
+      operationId: 'delete-edital',
+      baseRevision: 1,
+      epoch: 2,
+      deleted: true,
+      deletedAt: new Date().toISOString(),
+      snapshot: {},
+    });
+    await transactionDone(tombstoneTx);
+
+    const payload = {
+      [STORES.editais]: [{ profileId, id: 'edital-1', title: 'TJPB' }],
+      [STORES.subjects]: [{ profileId, id: 'subject-1', title: 'Disciplina' }],
+      [STORES.editalDisciplines]: [
+        { profileId, id: 'link-1', editalId: 'edital-1', subjectId: 'subject-1' },
+      ],
+      [STORES.assuntos]: [
+        { profileId, id: 'assunto-1', editalDisciplineId: 'link-1', parentId: null },
+      ],
+    };
+    const manifestFields = {
+      formatVersion: 3 as const,
+      profileId,
+      recordCount: 4,
+      epoch: 1,
+      deletionHistoryComplete: true,
+    };
+    const input = {
+      manifest: { ...manifestFields, checksum: await snapshotChecksum(manifestFields, payload) },
+      payload,
+    };
+    const prepared = await prepareF7Restore(input, profileId);
+    expect(prepared.kind).toBe('PREVIEW');
+    if (prepared.kind !== 'PREVIEW') return;
+    expect(prepared.preview.conflicts).toBe(3);
+    await expect(commitF7Restore(prepared.preview.id, true)).resolves.toBe('LOCAL_COMMITTED');
+
+    const check = db.transaction(
+      [STORES.subjects, STORES.editalDisciplines, STORES.assuntos],
+      'readonly',
+    );
+    await expect(
+      requestResult(check.objectStore(STORES.subjects).get([profileId, 'subject-1'])),
+    ).resolves.toBeDefined();
+    await expect(
+      requestResult(check.objectStore(STORES.editalDisciplines).get([profileId, 'link-1'])),
+    ).resolves.toBeUndefined();
+    await expect(
+      requestResult(check.objectStore(STORES.assuntos).get([profileId, 'assunto-1'])),
     ).resolves.toBeUndefined();
   });
 });

@@ -1,6 +1,8 @@
 import { inspectF7Backup, type F7BackupSnapshot } from './f7-format';
 import {
+  cursorKey,
   openV2Database,
+  recoveryKey,
   requestResult,
   STORES,
   transactionDone,
@@ -134,72 +136,107 @@ function snapshotTombstones(snapshot: F7BackupSnapshot): Record<string, unknown>
   return rows.filter(isRecord);
 }
 
-type SnapshotIds = {
-  editais: Set<string>;
-  subjects: Set<string>;
-  links: Set<string>;
-  assuntos: Set<string>;
-  aulas: Set<string>;
-  scenarios: Set<string>;
+type EffectiveIds = {
+  byStore: Map<string, Set<string>>;
+  scenarioEdital: Map<string, string>;
 };
 
-function idsOf(snapshot: F7BackupSnapshot, store: string): Set<string> {
+function rowsOf(snapshot: F7BackupSnapshot, store: string): Record<string, unknown>[] {
   const rows = snapshot.payload[store];
-  if (!Array.isArray(rows)) return new Set();
-  return new Set(
-    rows
-      .filter(isRecord)
-      .map((row) => (typeof row.id === 'string' ? row.id : ''))
-      .filter((id) => id.length > 0),
-  );
+  if (!Array.isArray(rows)) return [];
+  return rows.filter(isRecord);
 }
 
-function snapshotIds(snapshot: F7BackupSnapshot): SnapshotIds {
-  return {
-    editais: idsOf(snapshot, STORES.editais),
-    subjects: idsOf(snapshot, STORES.subjects),
-    links: idsOf(snapshot, STORES.editalDisciplines),
-    assuntos: idsOf(snapshot, STORES.assuntos),
-    aulas: idsOf(snapshot, STORES.aulas),
-    scenarios: idsOf(snapshot, STORES.planningScenarios),
-  };
-}
-
-function missingReference(value: unknown, ids: Set<string>): boolean {
-  return typeof value !== 'string' || !ids.has(value);
-}
-
-/** Conservative referential integrity for the F2/F3 academic hierarchy. */
-function referentialConflict(
+function tombstoned(
   store: string,
   row: Record<string, unknown>,
-  ids: SnapshotIds,
+  tombstones: TombstoneIndex,
 ): boolean {
-  if (store === STORES.editalDisciplines) {
-    return missingReference(row.editalId, ids.editais) ||
-      missingReference(row.subjectId, ids.subjects);
+  const entityType = ENTITY_TYPE_BY_STORE[store];
+  if (!entityType || typeof row.id !== 'string' || !row.id) return false;
+  return tombstones.has(`${entityType}:${row.id}`);
+}
+
+function idIn(ids: Map<string, Set<string>>, store: string, value: unknown): boolean {
+  return typeof value === 'string' && ids.get(store)?.has(value) === true;
+}
+
+/**
+ * Computes the IDs that can actually be written, in dependency order. A row
+ * whose parent is tombstoned or rejected never enters the set, so descendants
+ * are rejected transitively instead of being written as orphans.
+ */
+function effectiveIds(
+  snapshot: F7BackupSnapshot,
+  tombstones: TombstoneIndex,
+): EffectiveIds {
+  const rows = new Map<string, Record<string, unknown>[]>();
+  const ids = new Map<string, Set<string>>();
+  for (const store of RESTORABLE_STORES) {
+    rows.set(store, rowsOf(snapshot, store));
+    ids.set(store, new Set());
   }
-  if (store === STORES.assuntos) {
-    if (missingReference(row.editalDisciplineId, ids.links)) return true;
-    return row.parentId !== null && row.parentId !== undefined &&
-      missingReference(row.parentId, ids.assuntos);
+  const scenarioEdital = new Map<string, string>();
+
+  const dependenciesMet = (store: string, row: Record<string, unknown>): boolean => {
+    if (store === STORES.editalDisciplines) {
+      return idIn(ids, STORES.editais, row.editalId) && idIn(ids, STORES.subjects, row.subjectId);
+    }
+    if (store === STORES.assuntos) {
+      if (!idIn(ids, STORES.editalDisciplines, row.editalDisciplineId)) return false;
+      return row.parentId === null || row.parentId === undefined ||
+        idIn(ids, STORES.assuntos, row.parentId);
+    }
+    if (store === STORES.aulas) {
+      return idIn(ids, STORES.editalDisciplines, row.editalDisciplineId);
+    }
+    if (store === STORES.lessonTopicLinks) {
+      return idIn(ids, STORES.aulas, row.aulaId) && idIn(ids, STORES.assuntos, row.assuntoId);
+    }
+    if (store === STORES.planningScenarios) {
+      return idIn(ids, STORES.editais, row.editalId);
+    }
+    if (store === STORES.planningBlocks) {
+      if (!idIn(ids, STORES.planningScenarios, row.scenarioId)) return false;
+      if (!idIn(ids, STORES.editais, row.editalId)) return false;
+      if (scenarioEdital.get(String(row.scenarioId)) !== row.editalId) return false;
+      if (row.editalDisciplineId !== 'unmapped' &&
+        !idIn(ids, STORES.editalDisciplines, row.editalDisciplineId)) return false;
+      return row.assuntoId === null || row.assuntoId === undefined ||
+        idIn(ids, STORES.assuntos, row.assuntoId);
+    }
+    return true;
+  };
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [store, list] of rows) {
+      const storeIds = ids.get(store)!;
+      for (const row of list) {
+        if (typeof row.id !== 'string' || !row.id || storeIds.has(row.id)) continue;
+        if (tombstoned(store, row, tombstones)) continue;
+        if (!dependenciesMet(store, row)) continue;
+        storeIds.add(row.id);
+        if (store === STORES.planningScenarios && typeof row.editalId === 'string') {
+          scenarioEdital.set(row.id, row.editalId);
+        }
+        changed = true;
+      }
+    }
   }
-  if (store === STORES.aulas) {
-    return missingReference(row.editalDisciplineId, ids.links);
-  }
-  if (store === STORES.lessonTopicLinks) {
-    return missingReference(row.aulaId, ids.aulas) ||
-      missingReference(row.assuntoId, ids.assuntos);
-  }
-  if (store === STORES.planningScenarios) {
-    return missingReference(row.editalId, ids.editais);
-  }
-  if (store === STORES.planningBlocks) {
-    if (missingReference(row.scenarioId, ids.scenarios)) return true;
-    return row.editalDisciplineId !== 'unmapped' &&
-      missingReference(row.editalDisciplineId, ids.links);
-  }
-  return false;
+  return { byStore: ids, scenarioEdital };
+}
+
+function rowIsEffective(
+  store: string,
+  row: Record<string, unknown>,
+  effective: EffectiveIds,
+): boolean {
+  const entityType = ENTITY_TYPE_BY_STORE[store];
+  if (!entityType) return true;
+  const id = typeof row.id === 'string' ? row.id : '';
+  return id.length > 0 && effective.byStore.get(store)?.has(id) === true;
 }
 
 async function currentTombstones(
@@ -236,7 +273,7 @@ export async function prepareF7Restore(
   const database = await openV2Database(targetProfileId);
   const tombstones = await currentTombstones(database, targetProfileId).catch(() => new Map());
   for (const row of snapshotTombstones(snapshot)) addTombstone(tombstones, row);
-  const ids = snapshotIds(snapshot);
+  const effective = effectiveIds(snapshot, tombstones);
 
   const stores = RESTORABLE_STORES.filter(
     (name) => name !== STORES.tombstones && database.objectStoreNames.contains(name),
@@ -260,7 +297,7 @@ export async function prepareF7Restore(
         conflicts += 1;
         continue;
       }
-      if (referentialConflict(name, row, ids)) {
+      if (!rowIsEffective(name, row, effective)) {
         conflicts += 1;
         continue;
       }
@@ -300,8 +337,10 @@ export async function commitF7Restore(
       name === STORES.tombstones ||
       (Array.isArray(stored.snapshot.payload[name]) && database.objectStoreNames.contains(name)),
   );
-  const transaction = database.transaction([STORES.meta, ...stores], 'readwrite');
-  const ids = snapshotIds(stored.snapshot);
+  const transaction = database.transaction(
+    [STORES.meta, STORES.outbox, ...stores],
+    'readwrite',
+  );
 
   try {
     const meta = transaction.objectStore(STORES.meta);
@@ -332,6 +371,7 @@ export async function commitF7Restore(
       tombstones.set(key, epoch);
     }
 
+    const effective = effectiveIds(stored.snapshot, tombstones);
     let applied = 0;
     for (const name of stores) {
       if (name === STORES.tombstones) continue;
@@ -345,11 +385,29 @@ export async function commitF7Restore(
         if (key === null) continue;
         const entityId = typeof row.id === 'string' ? row.id : '';
         if (entityType && entityId && tombstones.has(`${entityType}:${entityId}`)) continue;
-        if (referentialConflict(name, row, ids)) continue;
+        if (!rowIsEffective(name, row, effective)) continue;
         store.put({ ...row, profileId: stored.targetProfileId });
         applied += 1;
       }
     }
+
+    // A restored snapshot invalidates every earlier delivery intent. The rows
+    // stay in the outbox for audit, but the delivery gate refuses to send them.
+    const outbox = transaction.objectStore(STORES.outbox);
+    const pendingRows = (await requestResult(
+      outbox.index('by_profile_status').getAll([stored.targetProfileId, 'PENDING']),
+    )) as Array<Record<string, unknown>>;
+    for (const row of pendingRows) {
+      outbox.put({ ...row, deliveryMode: 'BLOCKED' });
+    }
+    meta.delete(cursorKey(stored.targetProfileId));
+    meta.put({
+      key: recoveryKey(stored.targetProfileId),
+      value: {
+        reason: 'RESTORE_COMMITTED',
+        at: new Date().toISOString(),
+      },
+    });
 
     meta.put({
       key: `restore:${stored.targetProfileId}`,

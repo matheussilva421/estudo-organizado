@@ -74,6 +74,14 @@ async function tombstones(): Promise<Array<{ entityId: string }>> {
   >;
 }
 
+async function edital(): Promise<Record<string, unknown> | undefined> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction(STORES.editais, 'readonly');
+  return (await requestResult(
+    tx.objectStore(STORES.editais).get([profileId, 'edital-1']),
+  )) as Record<string, unknown> | undefined;
+}
+
 beforeEach(async () => {
   await deleteV2DatabaseForTests();
 });
@@ -104,8 +112,10 @@ describe('F7 rebaseline', () => {
     const second = await prepareRebaseline(profileId, [entity({ deleted: false })]);
     if (second.kind === 'PREVIEW') {
       expect(second.preview.conflicts).toBeGreaterThan(0);
+      await commitRebaseline(profileId, second.previewId);
     }
     expect((await tombstones()).map((row) => row.entityId)).toContain('edital-1');
+    await expect(edital()).resolves.toBeUndefined();
   });
 
   it('f7_pending_offline_edit_is_preserved_during_rebaseline', async () => {
