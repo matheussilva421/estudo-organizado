@@ -448,9 +448,16 @@ export class F7Runtime {
 
   async commitRestore(previewId: string): Promise<string> {
     // Stop new sends before the restore invalidates the outbox; the coordinator
-    // also aborts an in-flight flush before ACK.
+    // also aborts an in-flight flush before ACK and drains it before committing.
     this.coordinator?.stop(this.profileId);
-    const result = await commitF7Restore(previewId, true);
+    await this.coordinator?.drain(this.profileId);
+    const locks = typeof navigator !== 'undefined' ? navigator.locks : null;
+    const result = locks
+      ? await locks.request(
+        `estudo-organizado-v2:flush:${this.profileId}`,
+        () => commitF7Restore(previewId, true),
+      )
+      : await commitF7Restore(previewId, true);
     if (result === 'LOCAL_COMMITTED') {
       // The restored snapshot no longer matches the old cursor/outbox. Drop
       // remote authority objects so the persisted recovery gate is consulted

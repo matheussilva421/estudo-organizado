@@ -173,7 +173,7 @@ describe('F7 sync coordinator', () => {
         return {
           kind: 'CONFLICT',
           remoteRevision: 2,
-          remote: { payload: remotePayload, deleted: false },
+          remote: { payload: remotePayload, deleted: false, epoch: 2 },
         };
       },
       async lookup() {
@@ -186,6 +186,7 @@ describe('F7 sync coordinator', () => {
       remotePayload: remotePayload,
       deleted: false,
       remoteRevision: 2,
+      remoteEpoch: 2,
     });
   });
 
@@ -443,7 +444,15 @@ describe('F7 sync coordinator', () => {
     const running = subject.requestFlush(profileId, 'MANUAL');
     await new Promise((resolve) => setTimeout(resolve, 10));
     subject.stop(profileId);
+    let drained = false;
+    const drain = subject.drain(profileId).then(() => {
+      drained = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(drained).toBe(false);
     release!();
+    await drain;
+    expect(drained).toBe(true);
     await expect(running).resolves.toMatchObject({ mode: 'STOPPED' });
     expect(applied).toBe(1);
     expect((await read())?.status).toBe('PENDING');

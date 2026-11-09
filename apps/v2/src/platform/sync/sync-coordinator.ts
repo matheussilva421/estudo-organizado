@@ -82,6 +82,7 @@ export class SyncCoordinator {
   private readonly countConflicts: (profileId: string) => Promise<number>;
   private readonly stopped = new Set<string>();
   private readonly recoveryRequired = new Set<string>();
+  private readonly activeFlights = new Map<string, Promise<SyncHealth>>();
 
   constructor(options: SyncCoordinatorOptions) {
     this.remote = options.remote;
@@ -106,6 +107,12 @@ export class SyncCoordinator {
 
   stop(profileId: string): void {
     this.stopped.add(profileId);
+  }
+
+  /** Waits for an in-flight flush to observe stop and settle before restore. */
+  async drain(profileId: string): Promise<void> {
+    const flight = this.activeFlights.get(profileId);
+    if (flight) await flight.catch(() => undefined);
   }
 
   async clearRecovery(profileId: string): Promise<void> {
@@ -135,7 +142,14 @@ export class SyncCoordinator {
       );
     }
     const lockName = `estudo-organizado-v2:flush:${profileId}`;
-    const outcome = await withSafeFlushLock(lockName, () => this.run(profileId, reason), this.locks);
+    const outcome = await withSafeFlushLock(lockName, () => {
+      const flight = this.run(profileId, reason);
+      this.activeFlights.set(profileId, flight);
+      void flight.finally(() => {
+        if (this.activeFlights.get(profileId) === flight) this.activeFlights.delete(profileId);
+      });
+      return flight;
+    }, this.locks);
     if (outcome.kind === 'BLOCKED') {
       const pending = await this.pendingCount(profileId);
       return pending < 0
@@ -263,6 +277,7 @@ export class SyncCoordinator {
       const revision = result.proof[operationId];
       if (typeof revision !== 'number') continue;
       const digest = await this.digest(operation.payload);
+      if (this.stopped.has(profileId)) break;
       const ack = await this.confirm(profileId, operationId, {
         uid: operation.deliveryUid ?? '',
         remoteLibraryId: operation.remoteLibraryId ?? '',
