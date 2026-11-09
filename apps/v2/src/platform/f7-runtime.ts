@@ -7,15 +7,17 @@ import { resolveV2RemoteConfig, V2_APP_NAME, type V2RemoteConfig } from './fireb
 import { createFirebaseGoogleAuthPort } from './firebase/auth';
 import { LocalProfileRepository } from './local-profile-repository';
 import {
+  getConflicts,
   getPendingOutbox,
   openV2Database,
   requestResult,
   STORES,
   transactionDone,
+  type PersistedConflict,
 } from './indexeddb';
 import { collectF7Backup } from './backup/collect';
-import { encryptSnapshot } from './backup/crypto';
-import { createKvBackupPort } from './backup/kv-client';
+import { decryptBackup, encryptSnapshot } from './backup/crypto';
+import { createKvBackupPort, type BackupRemotePort } from './backup/kv-client';
 import { PersonalBackupScheduler, type BackupSchedulerState } from './backup/scheduler';
 import {
   commitF7Restore,
@@ -28,6 +30,10 @@ import { createFirestorePort, FirebaseRemotePort } from './sync/firebase-remote'
 import { SyncCoordinator } from './sync/sync-coordinator';
 import { AdaptiveSyncScheduler } from './sync/scheduler';
 import type { SyncUsage, SyncUsageLimits } from './sync/budget';
+import {
+  resolveRemoteConflict,
+  type ConflictChoice,
+} from './sync/conflict-reconciliation';
 
 const REMOTE_LIBRARY = 'library-main';
 const RECOVERY_SECRET_KEY = 'estudo-organizado:v2:recovery-secret';
@@ -47,6 +53,9 @@ export type F7RuntimeState = {
   backupHealth: BackupHealth;
   googleStatus: F7GoogleStatus;
   email: string | null;
+  linkReview: LinkReview | null;
+  conflicts: PersistedConflict[];
+  cloudBackups: Array<{ id: string; createdAt: string; size: number }>;
   cloudAvailable: boolean;
   syncAvailable: boolean;
   backupAvailable: boolean;
@@ -80,6 +89,9 @@ function initialState(): F7RuntimeState {
     backupHealth: localBackupHealth(),
     googleStatus: 'LOCAL_ONLY',
     email: null,
+    linkReview: null,
+    conflicts: [],
+    cloudBackups: [],
     cloudAvailable: false,
     syncAvailable: false,
     backupAvailable: false,
@@ -109,9 +121,11 @@ export class F7Runtime {
   private coordinator: SyncCoordinator | null = null;
   private syncScheduler: AdaptiveSyncScheduler | null = null;
   private backupScheduler: PersonalBackupScheduler | null = null;
+  private backupRemote: BackupRemotePort | null = null;
   private recoverySecret: string | null = null;
   private unsubAuth: (() => void) | null = null;
   private lastHealth: SyncHealth | null = null;
+  private previewSeq = 0;
   private disposed = false;
 
   constructor(
@@ -149,14 +163,39 @@ export class F7Runtime {
       void this.refresh();
     });
     await this.refresh();
+    this.syncScheduler?.request(this.profileId, 'OPEN');
+    if (this.backupScheduler) {
+      void this.backupScheduler
+        .request(this.profileId, 'OPEN')
+        .then(() => this.refresh())
+        .catch(() => undefined);
+    }
   }
 
   async refresh(): Promise<void> {
     if (this.disposed) return;
     try {
       const profile = await this.profiles.getProfile(this.profileId);
-      const pending = (await getPendingOutbox(this.profileId)).length;
-      if (this.config && profile.uid && profile.remoteLibraryId) {
+      const [pendingRows, savedConflicts] = await Promise.all([
+        getPendingOutbox(this.profileId),
+        getConflicts(this.profileId).catch(() => [] as PersistedConflict[]),
+      ]);
+      const openConflicts = savedConflicts.filter((conflict) => conflict.status === 'OPEN');
+      const pending = pendingRows.length + openConflicts.length;
+      const identity = await this.currentIdentity();
+      this.identity = identity;
+      const identityMismatch = Boolean(profile.uid && identity && identity.uid !== profile.uid);
+      const identityMissing = Boolean(profile.uid && !identity);
+      if (identityMismatch || identityMissing) {
+        this.linkReview = null;
+        this.remote = null;
+        this.coordinator = null;
+        this.syncScheduler?.dispose();
+        this.syncScheduler = null;
+        this.backupScheduler = null;
+        this.backupRemote = null;
+      }
+      if (!identityMismatch && !identityMissing && this.config && profile.uid && profile.remoteLibraryId) {
         await this.ensureRemote(profile.uid, profile.remoteLibraryId);
       }
       const health = assessSyncHealth({
@@ -164,7 +203,15 @@ export class F7Runtime {
         remoteCommitted: this.lastHealth?.remoteCommitted ?? false,
         verifiedCursor: this.lastHealth?.lastVerifiedCursor ?? null,
         pendingCount: pending,
-        mode: this.lastHealth?.mode ?? profile.state,
+        mode:
+          identityMismatch || identityMissing
+            ? 'PAUSED_AUTH'
+            : openConflicts.length > 0 &&
+                this.lastHealth?.mode !== 'RECOVERY_REQUIRED' &&
+                this.lastHealth?.mode !== 'PAUSED_QUOTA'
+              ? 'CONFLICT'
+              : this.lastHealth?.mode ?? profile.state,
+        conflictCount: openConflicts.length,
       });
       const backup = this.backupScheduler?.state(this.profileId) ?? null;
       const backupHealth: BackupHealth = backup
@@ -176,7 +223,9 @@ export class F7Runtime {
             versions: backup.versions.length,
           }
         : localBackupHealth();
-      const googleStatus: F7GoogleStatus = this.linkReview
+      const googleStatus: F7GoogleStatus = identityMismatch || identityMissing
+        ? 'PAUSED_AUTH'
+        : this.linkReview
         ? 'LINKING'
         : profile.state === 'PAUSED_AUTH'
           ? 'PAUSED_AUTH'
@@ -185,15 +234,22 @@ export class F7Runtime {
             : 'LOCAL_ONLY';
       this.state = {
         ready: true,
-        health: { ...health, pendingCount: pending },
+        health,
         backupHealth,
         googleStatus,
-        email: this.identity?.email ?? null,
+        email: identityMismatch ? null : this.identity?.email ?? null,
+        linkReview: this.linkReview,
+        conflicts: openConflicts,
+        cloudBackups: backup?.versions ?? [],
         cloudAvailable: this.config !== null,
-        syncAvailable: this.coordinator !== null,
-        backupAvailable: this.backupScheduler !== null,
+        syncAvailable: this.coordinator !== null && !identityMismatch && !identityMissing,
+        backupAvailable: this.backupScheduler !== null && !identityMismatch && !identityMissing,
         recoverySecretConfigured: this.recoverySecret !== null,
-        lastError: null,
+        lastError: identityMismatch
+          ? 'IDENTITY_MISMATCH'
+          : identityMissing
+            ? 'AUTH_REQUIRED'
+            : null,
       };
       this.emit();
     } catch (error) {
@@ -207,6 +263,11 @@ export class F7Runtime {
   }
 
   async syncNow(): Promise<SyncHealth> {
+    const profile = await this.profiles.getProfile(this.profileId);
+    const identity = await this.currentIdentity();
+    if (profile.uid && identity?.uid !== profile.uid) {
+      return { ...this.state.health, mode: 'PAUSED_AUTH' };
+    }
     if (!this.coordinator) return this.state.health;
     this.lastHealth = await this.coordinator.requestFlush(this.profileId, 'MANUAL').catch(() => null);
     await this.refresh();
@@ -215,6 +276,12 @@ export class F7Runtime {
 
   notifyLocalCommit(): void {
     this.syncScheduler?.request(this.profileId, 'COMMIT');
+    if (this.backupScheduler) {
+      void this.backupScheduler
+        .request(this.profileId, 'CHANGE')
+        .then(() => this.refresh())
+        .catch(() => undefined);
+    }
     void this.refresh();
   }
 
@@ -222,13 +289,27 @@ export class F7Runtime {
     if (!this.auth || !this.linkService || !this.config) {
       throw new Error('A nuvem não está configurada neste ambiente.');
     }
+    const profile = await this.profiles.getProfile(this.profileId);
+    const generation = this.previewSeq + 1;
+    this.previewSeq = generation;
     const identity = await this.auth.signIn();
+    if (generation !== this.previewSeq) {
+      throw new Error('A prévia de vínculo foi cancelada por outra sessão.');
+    }
+    if (profile.uid && identity.uid !== profile.uid) {
+      this.linkReview = null;
+      await this.refresh();
+      throw new Error('A conta Google é diferente da conta já vinculada. Saia desta conta antes.');
+    }
     this.identity = identity;
     const review = await this.linkService.previewGoogleLink(this.profileId, identity, {
-      remoteLibraryId: REMOTE_LIBRARY,
+      remoteLibraryId: profile.remoteLibraryId ?? REMOTE_LIBRARY,
       remoteCount: 0,
       conflictCount: 0,
     });
+    if (generation !== this.previewSeq) {
+      throw new Error('A prévia de vínculo expirou; tente novamente.');
+    }
     this.linkReview = review;
     await this.refresh();
     return review;
@@ -238,22 +319,28 @@ export class F7Runtime {
     if (!this.linkService || !this.linkReview) {
       throw new Error('Nenhuma prévia de vínculo está pendente.');
     }
-    const identity = await this.auth?.current().catch(() => null);
+    const identity = await this.currentIdentity();
     if (!identity || identity.uid !== this.linkReview.uid) {
       this.linkReview = null;
       throw new Error('A conta Google mudou desde a prévia; refaça o vínculo.');
     }
     await this.linkService.confirmGoogleLink(this.linkReview, true);
     this.linkReview = null;
+    this.previewSeq += 1;
     this.remote = null;
     this.coordinator = null;
     this.syncScheduler?.dispose();
     this.syncScheduler = null;
+    this.backupScheduler?.dispose();
+    this.backupScheduler = null;
+    this.backupRemote = null;
     await this.refresh();
   }
 
   async logout(): Promise<void> {
     if (!this.auth || !this.linkService) return;
+    this.previewSeq += 1;
+    this.linkReview = null;
     this.coordinator?.stop(this.profileId);
     const profile = await this.profiles.getProfile(this.profileId);
     if (profile.uid) await this.linkService.invalidateRemoteBinding(this.profileId, profile.uid);
@@ -263,8 +350,32 @@ export class F7Runtime {
     this.coordinator = null;
     this.syncScheduler?.dispose();
     this.syncScheduler = null;
+    this.backupScheduler?.dispose();
+    this.backupScheduler = null;
+    this.backupRemote = null;
     this.lastHealth = null;
     await this.refresh();
+  }
+
+  async resolveConflict(
+    conflictId: string,
+    choice: ConflictChoice,
+  ): Promise<'LOCAL_COMMITTED' | 'STALE' | 'FAILED'> {
+    const conflict = this.state.conflicts.find(
+      (candidate) => candidate.conflictId === conflictId && candidate.status === 'OPEN',
+    );
+    if (!conflict) return 'STALE';
+    const result = await resolveRemoteConflict(
+      conflictId,
+      choice,
+      conflict.remoteRevision,
+    );
+    if (result === 'LOCAL_COMMITTED') {
+      this.syncScheduler?.resume(this.profileId);
+      this.notifyLocalCommit();
+    }
+    await this.refresh();
+    return result;
   }
 
   setRecoverySecret(secret: string): void {
@@ -295,13 +406,56 @@ export class F7Runtime {
     return prepareF7Restore(input as F7BackupSnapshot, this.profileId);
   }
 
+  async prepareCloudRestore(
+    backupId: string,
+  ): Promise<
+    { kind: 'PREVIEW'; preview: RestorePreviewF7 } | { kind: 'INVALID'; reason: string }
+  > {
+    if (!this.backupRemote) return { kind: 'INVALID', reason: 'CLOUD_BACKUP_UNAVAILABLE' };
+    if (!this.recoverySecret) return { kind: 'INVALID', reason: 'RECOVERY_SECRET_REQUIRED' };
+    const envelope = await this.backupRemote.get(backupId).catch(() => null);
+    if (!envelope) return { kind: 'INVALID', reason: 'BACKUP_NOT_FOUND' };
+    let snapshot: F7BackupSnapshot;
+    try {
+      snapshot = await decryptBackup(envelope, this.recoverySecret);
+    } catch (error) {
+      return {
+        kind: 'INVALID',
+        reason: error instanceof Error ? error.message : 'BACKUP_DECRYPT_FAILED',
+      };
+    }
+    return prepareF7Restore(snapshot, this.profileId);
+  }
+
   async commitRestore(previewId: string): Promise<string> {
     const result = await commitF7Restore(previewId, true);
+    if (result === 'LOCAL_COMMITTED') {
+      // The restored snapshot no longer matches the old cursor/outbox. Drop
+      // remote authority objects so the persisted recovery gate is consulted
+      // before any new flush.
+      this.coordinator?.stop(this.profileId);
+      this.coordinator = null;
+      this.remote = null;
+      this.lastHealth = null;
+      this.syncScheduler?.dispose();
+      this.syncScheduler = null;
+      this.backupScheduler = null;
+      this.backupRemote = null;
+    }
     await this.refresh();
+    if (result === 'LOCAL_COMMITTED' && this.backupScheduler) {
+      void this.backupScheduler
+        .request(this.profileId, 'CHANGE')
+        .then(() => this.refresh())
+        .catch(() => undefined);
+    }
     return result;
   }
 
   async createBackup(): Promise<string> {
+    const profile = await this.profiles.getProfile(this.profileId);
+    const identity = await this.currentIdentity();
+    if (profile.uid && identity?.uid !== profile.uid) return 'FAILED';
     if (!this.backupScheduler) return 'FAILED';
     if (!this.recoverySecret) return 'FAILED';
     const result = await this.backupScheduler.request(this.profileId, 'MANUAL');
@@ -321,9 +475,16 @@ export class F7Runtime {
     for (const listener of [...this.listeners]) listener(this.state);
   }
 
+  private async currentIdentity(): Promise<GoogleIdentity | null> {
+    if (!this.auth) return null;
+    return this.auth.current().catch(() => null);
+  }
+
   private async ensureRemote(uid: string, remoteLibraryId: string): Promise<void> {
     if (this.remote && this.coordinator) return;
     if (!this.config) return;
+    const identity = await this.currentIdentity();
+    if (!identity || identity.uid !== uid) return;
     const [appModule, firestore] = await Promise.all([
       import('firebase/app'),
       import('firebase/firestore'),
@@ -381,17 +542,27 @@ export class F7Runtime {
     if (endpoint) {
       const remote = createKvBackupPort(endpoint, () => this.auth?.getIdToken() ?? Promise.resolve(null), {
         expectedUid: uid,
+        getCurrentUid: async () => (await this.currentIdentity())?.uid ?? null,
       });
+      this.backupRemote = remote;
       this.backupScheduler = new PersonalBackupScheduler({
         collect: collectF7Backup,
         encrypt: encryptSnapshot,
         remote,
         getRecoverySecret: async () => this.recoverySecret,
         getUid: async () => (await this.profiles.getProfile(this.profileId)).uid,
+        verifyIdentity: async (profileId, expectedUid) => {
+          const [current, bound] = await Promise.all([
+            this.currentIdentity(),
+            this.profiles.getProfile(profileId),
+          ]);
+          return current?.uid === expectedUid && bound.uid === expectedUid && bound.syncEnabled;
+        },
         now: this.now,
         loadState: loadBackupState,
         saveState: saveBackupState,
       });
+      await this.backupScheduler.hydrate(this.profileId);
     }
   }
 }

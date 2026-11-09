@@ -25,6 +25,8 @@ export type PersonalBackupSchedulerOptions = {
   remote: BackupRemotePort;
   getRecoverySecret: (profileId: string) => Promise<string | null>;
   getUid: (profileId: string) => Promise<string | null>;
+  /** Last check before an upload: the live session must still own the profile. */
+  verifyIdentity?: (profileId: string, uid: string) => Promise<boolean>;
   now?: () => number;
   policy?: Partial<BackupPolicy>;
   loadState?: (profileId: string) => Promise<BackupSchedulerState | null>;
@@ -47,6 +49,7 @@ export class PersonalBackupScheduler {
   private readonly remote: BackupRemotePort;
   private readonly getRecoverySecret: PersonalBackupSchedulerOptions['getRecoverySecret'];
   private readonly getUid: PersonalBackupSchedulerOptions['getUid'];
+  private readonly verifyIdentity: PersonalBackupSchedulerOptions['verifyIdentity'];
   private readonly now: () => number;
   private readonly policy: BackupPolicy;
   private readonly loadState: PersonalBackupSchedulerOptions['loadState'];
@@ -60,6 +63,7 @@ export class PersonalBackupScheduler {
     this.remote = options.remote;
     this.getRecoverySecret = options.getRecoverySecret;
     this.getUid = options.getUid;
+    this.verifyIdentity = options.verifyIdentity;
     this.now = options.now ?? (() => Date.now());
     this.policy = { ...DEFAULT_BACKUP_POLICY, ...options.policy };
     this.loadState = options.loadState;
@@ -81,24 +85,28 @@ export class PersonalBackupScheduler {
     this.disposed = true;
   }
 
+  /** Loads the persisted state and remote versions without uploading anything. */
+  async hydrate(profileId: string): Promise<void> {
+    if (this.states.has(profileId)) return;
+    const loaded = this.loadState ? await this.loadState(profileId).catch(() => null) : null;
+    const initial = loaded ?? {
+      lastVerifiedAt: null,
+      lastDigest: null,
+      versions: [],
+      paused: false,
+    };
+    const remoteVersions = await this.remote.list().catch(() => []);
+    const byId = new Map(initial.versions.map((version) => [version.id, version]));
+    for (const version of remoteVersions) byId.set(version.id, version);
+    initial.versions = [...byId.values()].sort((left, right) =>
+      left.createdAt.localeCompare(right.createdAt),
+    );
+    this.states.set(profileId, initial);
+  }
+
   async request(profileId: string, reason: BackupReason): Promise<BackupResult> {
     if (this.disposed) return 'FAILED';
-    if (!this.states.has(profileId)) {
-      const loaded = this.loadState ? await this.loadState(profileId).catch(() => null) : null;
-      const initial = loaded ?? {
-        lastVerifiedAt: null,
-        lastDigest: null,
-        versions: [],
-        paused: false,
-      };
-      const remoteVersions = await this.remote.list().catch(() => []);
-      const byId = new Map(initial.versions.map((version) => [version.id, version]));
-      for (const version of remoteVersions) byId.set(version.id, version);
-      initial.versions = [...byId.values()].sort((left, right) =>
-        left.createdAt.localeCompare(right.createdAt),
-      );
-      this.states.set(profileId, initial);
-    }
+    await this.hydrate(profileId);
     const state = this.state(profileId);
     this.states.set(profileId, state);
     const now = this.now();
@@ -131,6 +139,10 @@ export class PersonalBackupScheduler {
       return 'FAILED';
     }
     const id = `backup-${digest.slice(0, 16)}-${now}`;
+    if (this.verifyIdentity) {
+      const stillOwned = await this.verifyIdentity(profileId, uid).catch(() => false);
+      if (!stillOwned) return 'FAILED';
+    }
     const result = await this.remote.put({ uid, id, encrypted }).catch(() => 'FAILED' as const);
     if (result === 'QUOTA' || result === 'PENDING') {
       state.paused = true;

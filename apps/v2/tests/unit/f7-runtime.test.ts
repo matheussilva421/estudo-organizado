@@ -1,8 +1,67 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { deleteV2DatabaseForTests } from '../../src/platform/indexeddb';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ProfileRecord } from '../../src/application/profile-service';
+import type { GoogleAuthPort, GoogleIdentity } from '../../src/application/google-auth-types';
+import {
+  deleteV2DatabaseForTests,
+  openV2Database,
+  STORES,
+  transactionDone,
+} from '../../src/platform/indexeddb';
 import { F7Runtime } from '../../src/platform/f7-runtime';
+import { collectF7Backup } from '../../src/platform/backup/collect';
+import { encryptSnapshot } from '../../src/platform/backup/crypto';
 
 const profileId = 'profile-runtime';
+const identityA: GoogleIdentity = { uid: 'uid-a', email: 'a@example.com' };
+const identityB: GoogleIdentity = { uid: 'uid-b', email: 'b@example.com' };
+const emulatorEnv = {
+  VITE_V2_REMOTE_ENABLED: 'true',
+  VITE_V2_FIREBASE_PROJECT_ID: 'demo-estudo-v2',
+  VITE_V2_FIREBASE_AUTH_DOMAIN: 'demo-estudo-v2.firebaseapp.com',
+  VITE_V2_FIREBASE_APP_ID: '1:demo:web:demo',
+  VITE_V2_FIRESTORE_EMULATOR_HOST: '127.0.0.1',
+  VITE_V2_FIRESTORE_EMULATOR_PORT: '8080',
+  VITE_V2_AUTH_EMULATOR_URL: 'http://127.0.0.1:9099',
+};
+
+function fakeAuth(initial: GoogleIdentity | null, next = initial): GoogleAuthPort {
+  let current = initial;
+  return {
+    async signIn() {
+      if (!next) throw new Error('sem conta');
+      current = next;
+      return next;
+    },
+    async signOut() {
+      current = null;
+    },
+    async current() {
+      return current;
+    },
+    async getIdToken() {
+      return current ? 'token' : null;
+    },
+    subscribe() {
+      return () => undefined;
+    },
+  };
+}
+
+async function seedProfile(record: Partial<ProfileRecord> = {}): Promise<void> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction(STORES.profiles, 'readwrite');
+  tx.objectStore(STORES.profiles).put({
+    profileId,
+    uid: identityA.uid,
+    remoteLibraryId: 'library-a',
+    syncEnabled: true,
+    state: 'READY',
+    primaryEditalId: null,
+    localRevision: 1,
+    ...record,
+  });
+  await transactionDone(tx);
+}
 
 beforeEach(async () => {
   await deleteV2DatabaseForTests();
@@ -43,5 +102,87 @@ describe('F7 runtime composition', () => {
     expect(runtime.getState().recoverySecretConfigured).toBe(true);
     await expect(runtime.createBackup()).resolves.toBe('FAILED');
     runtime.dispose();
+  });
+
+  it('f7_runtime_pauses_when_the_google_account_differs_from_the_bound_profile', async () => {
+    await seedProfile();
+    const runtime = new F7Runtime(profileId, emulatorEnv, { auth: fakeAuth(identityB) });
+    await runtime.init();
+    expect(runtime.getState()).toMatchObject({
+      googleStatus: 'PAUSED_AUTH',
+      syncAvailable: false,
+      backupAvailable: false,
+      email: null,
+      lastError: 'IDENTITY_MISMATCH',
+    });
+    await expect(runtime.syncNow()).resolves.toMatchObject({ mode: 'PAUSED_AUTH' });
+    await expect(runtime.createBackup()).resolves.toBe('FAILED');
+    await expect(runtime.previewGoogleLink()).rejects.toThrow('diferente da conta já vinculada');
+    runtime.dispose();
+  });
+
+  it('f7_runtime_requires_auth_when_the_bound_profile_has_no_session', async () => {
+    await seedProfile();
+    const runtime = new F7Runtime(profileId, emulatorEnv, { auth: fakeAuth(null) });
+    await runtime.init();
+    expect(runtime.getState()).toMatchObject({
+      googleStatus: 'PAUSED_AUTH',
+      lastError: 'AUTH_REQUIRED',
+    });
+    await expect(runtime.syncNow()).resolves.toMatchObject({ mode: 'PAUSED_AUTH' });
+    runtime.dispose();
+  });
+
+  it('f7_runtime_allows_relinking_the_same_bound_account', async () => {
+    await seedProfile();
+    const runtime = new F7Runtime(profileId, emulatorEnv, {
+      auth: fakeAuth(identityB, identityA),
+    });
+    await runtime.init();
+    const review = await runtime.previewGoogleLink();
+    expect(review).toMatchObject({
+      uid: identityA.uid,
+      remoteLibraryId: 'library-a',
+    });
+    expect(runtime.getState().linkReview?.uid).toBe(identityA.uid);
+    runtime.dispose();
+  });
+
+  it('f7_runtime_lists_and_decrypts_a_cloud_backup_for_restore', async () => {
+    await seedProfile();
+    const secret = 'uma-chave-de-recuperacao-longa';
+    const snapshot = await collectF7Backup(profileId);
+    const envelope = await encryptSnapshot(snapshot, secret);
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/backups')) {
+        return new Response(
+          JSON.stringify({ items: [{ id: 'v1', createdAt: '2026-11-09T00:00:00.000Z', size: 10 }] }),
+          { status: 200 },
+        );
+      }
+      if (url.endsWith('/backups/v1')) {
+        return new Response(JSON.stringify(envelope), { status: 200 });
+      }
+      return new Response('{}', { status: 404 });
+    });
+    try {
+      const runtime = new F7Runtime(
+        profileId,
+        { ...emulatorEnv, VITE_V2_BACKUP_ENDPOINT: 'https://worker.example' },
+        { auth: fakeAuth(identityA) },
+      );
+      await runtime.init();
+      expect(runtime.getState().cloudBackups).toHaveLength(1);
+      runtime.setRecoverySecret(secret);
+      const prepared = await runtime.prepareCloudRestore('v1');
+      expect(prepared.kind).toBe('PREVIEW');
+      if (prepared.kind === 'PREVIEW') {
+        expect(prepared.preview.profileId).toBe(profileId);
+      }
+      runtime.dispose();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 });

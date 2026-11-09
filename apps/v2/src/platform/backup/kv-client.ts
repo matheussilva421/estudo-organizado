@@ -15,6 +15,8 @@ export type KvBackupPortOptions = {
   fetch?: KvFetch;
   maxBytes?: number;
   expectedUid?: string;
+  /** Re-read the live auth UID immediately before and after obtaining a token. */
+  getCurrentUid?: () => Promise<string | null>;
   now?: () => string;
 };
 
@@ -42,9 +44,21 @@ export function createKvBackupPort(
   const fetchImpl = options.fetch ?? ((input, init) => fetch(input, init));
   const maxBytes = options.maxBytes ?? KV_MAX_VALUE_BYTES;
 
-  async function request(path: string, init: RequestInit = {}): Promise<Response | null> {
+  async function request(
+    path: string,
+    init: RequestInit = {},
+    expectedUid?: string,
+  ): Promise<Response | null> {
+    if (expectedUid && options.getCurrentUid) {
+      const before = await options.getCurrentUid().catch(() => null);
+      if (before !== expectedUid) return null;
+    }
     const token = await getIdToken().catch(() => null);
     if (!token) return null;
+    if (expectedUid && options.getCurrentUid) {
+      const after = await options.getCurrentUid().catch(() => null);
+      if (after !== expectedUid) return null;
+    }
     const headers = new Headers(init.headers);
     headers.set('Authorization', `Bearer ${token}`);
     if (init.body) headers.set('Content-Type', 'application/json');
@@ -65,12 +79,16 @@ export function createKvBackupPort(
       const created = await request('/backups', {
         method: 'POST',
         body: JSON.stringify({ id: input.id, encrypted: input.encrypted }),
-      });
+      }, input.uid);
       if (!created) return 'FAILED';
       if (created.status === 413 || created.status === 429) return 'QUOTA';
       if (!created.ok && created.status !== 409) return 'FAILED';
 
-      const readback = await request(`/backups/${encodeURIComponent(input.id)}`);
+      const readback = await request(
+        `/backups/${encodeURIComponent(input.id)}`,
+        {},
+        input.uid,
+      );
       if (!readback) return 'FAILED';
       if (readback.status === 404) return 'PENDING';
       if (!readback.ok) return 'FAILED';
