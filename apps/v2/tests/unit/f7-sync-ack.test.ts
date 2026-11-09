@@ -85,6 +85,19 @@ describe('F7 sync ACK', () => {
     expect((await read())?.status).toBe('PENDING');
   });
 
+  it('f7_ack_rejects_remote_library_mismatch', async () => {
+    const record = operation();
+    await seed(record);
+    await expect(
+      confirmRemoteOperation(
+        profileId,
+        record.operationId,
+        await proofFor(record, { remoteLibraryId: 'library-b' }),
+      ),
+    ).resolves.toBe('MISMATCH');
+    expect((await read())?.status).toBe('PENDING');
+  });
+
   it('f7_ack_rejects_future_or_unproven_revision', async () => {
     const record = operation();
     await seed(record);

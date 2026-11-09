@@ -7,8 +7,7 @@ import {
   encryptBackup,
   wrapBackupKey,
 } from '../../src/platform/backup/crypto';
-import type { F7BackupSnapshot } from '../../src/platform/backup/f7-format';
-import { digestPayload } from '../../src/platform/sync/firebase-remote';
+import { snapshotChecksum, type F7BackupSnapshot } from '../../src/platform/backup/f7-format';
 
 async function snapshot(): Promise<F7BackupSnapshot> {
   const payload = {
@@ -19,7 +18,10 @@ async function snapshot(): Promise<F7BackupSnapshot> {
       formatVersion: 3,
       profileId: 'profile-crypto',
       recordCount: 1,
-      checksum: await digestPayload(payload),
+      checksum: await snapshotChecksum(
+        { formatVersion: 3, profileId: 'profile-crypto', recordCount: 1, epoch: 1, deletionHistoryComplete: true },
+        payload,
+      ),
       epoch: 1,
       deletionHistoryComplete: true,
     },
@@ -32,6 +34,39 @@ describe('F7 backup crypto', () => {
     const original = await snapshot();
     const envelope = await encryptSnapshot(original, 'senha-de-recuperacao');
     await expect(decryptBackup(envelope, 'senha-de-recuperacao')).resolves.toEqual(original);
+  });
+
+  it('f7_encrypt_decrypt_roundtrip_with_undefined_optional_fields', async () => {
+    const payload = {
+      sessionAudit: [
+        {
+          id: 'audit-1',
+          profileId: 'profile-crypto',
+          reason: undefined,
+          before: { note: undefined },
+          after: { note: 'preservada' },
+        },
+      ],
+    };
+    const original: F7BackupSnapshot = {
+      manifest: {
+        formatVersion: 3,
+        profileId: 'profile-crypto',
+        recordCount: 1,
+        checksum: await snapshotChecksum(
+          { formatVersion: 3, profileId: 'profile-crypto', recordCount: 1, epoch: 1, deletionHistoryComplete: true },
+          payload,
+        ),
+        epoch: 1,
+        deletionHistoryComplete: true,
+      },
+      payload,
+    };
+    const envelope = await encryptSnapshot(original, 'senha-de-recuperacao');
+    await expect(decryptBackup(envelope, 'senha-de-recuperacao')).resolves.toEqual({
+      ...original,
+      payload: JSON.parse(JSON.stringify(payload)),
+    });
   });
 
   it('f7_ciphertext_contains_no_plain_academic_data', async () => {

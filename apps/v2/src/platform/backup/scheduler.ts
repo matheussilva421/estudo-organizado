@@ -27,6 +27,8 @@ export type PersonalBackupSchedulerOptions = {
   getUid: (profileId: string) => Promise<string | null>;
   now?: () => number;
   policy?: Partial<BackupPolicy>;
+  loadState?: (profileId: string) => Promise<BackupSchedulerState | null>;
+  saveState?: (profileId: string, state: BackupSchedulerState) => Promise<void>;
 };
 
 export const DEFAULT_BACKUP_POLICY: BackupPolicy = {
@@ -47,6 +49,8 @@ export class PersonalBackupScheduler {
   private readonly getUid: PersonalBackupSchedulerOptions['getUid'];
   private readonly now: () => number;
   private readonly policy: BackupPolicy;
+  private readonly loadState: PersonalBackupSchedulerOptions['loadState'];
+  private readonly saveState: PersonalBackupSchedulerOptions['saveState'];
   private readonly states = new Map<string, BackupSchedulerState>();
   private disposed = false;
 
@@ -58,6 +62,8 @@ export class PersonalBackupScheduler {
     this.getUid = options.getUid;
     this.now = options.now ?? (() => Date.now());
     this.policy = { ...DEFAULT_BACKUP_POLICY, ...options.policy };
+    this.loadState = options.loadState;
+    this.saveState = options.saveState;
   }
 
   state(profileId: string): BackupSchedulerState {
@@ -77,6 +83,10 @@ export class PersonalBackupScheduler {
 
   async request(profileId: string, reason: BackupReason): Promise<BackupResult> {
     if (this.disposed) return 'FAILED';
+    if (!this.states.has(profileId) && this.loadState) {
+      const loaded = await this.loadState(profileId).catch(() => null);
+      if (loaded) this.states.set(profileId, loaded);
+    }
     const state = this.state(profileId);
     this.states.set(profileId, state);
     const now = this.now();
@@ -112,6 +122,7 @@ export class PersonalBackupScheduler {
     const result = await this.remote.put({ uid, id, encrypted }).catch(() => 'FAILED' as const);
     if (result === 'QUOTA' || result === 'PENDING') {
       state.paused = true;
+      await this.save(profileId, state);
       return 'DEFERRED';
     }
     if (result !== 'VERIFIED') return 'FAILED';
@@ -132,6 +143,12 @@ export class PersonalBackupScheduler {
       if (!deleted) break;
       state.versions.shift();
     }
+    await this.save(profileId, state);
     return 'VERIFIED';
+  }
+
+  private async save(profileId: string, state: BackupSchedulerState): Promise<void> {
+    if (!this.saveState) return;
+    await this.saveState(profileId, state).catch(() => undefined);
   }
 }

@@ -11,6 +11,7 @@ import {
   getConflicts,
   markConflict,
   openV2Database,
+  requestResult,
   STORES,
   transactionDone,
 } from '../../src/platform/indexeddb';
@@ -92,6 +93,34 @@ describe('F7 sync conflicts', () => {
     });
   });
 
+  it('f7_local_revision_is_not_a_domain_conflict', () => {
+    const local = {
+      id: 'edital-1',
+      profileId,
+      title: 'A',
+      status: 'ACTIVE',
+      localRevision: 1,
+    } as OutboxPayload;
+    const result = reconcileRemoteEntity(
+      local,
+      remote({
+        payload: {
+          id: 'edital-1',
+          profileId,
+          title: 'A',
+          status: 'ACTIVE',
+          note: 'nova',
+          localRevision: 2,
+        },
+      }),
+      [],
+    );
+    expect(result).toMatchObject({
+      kind: 'APPLY',
+      next: { title: 'A', status: 'ACTIVE', localRevision: 1, note: 'nova' },
+    });
+  });
+
   it('f7_same_field_offline_conflict_retains_both_versions', () => {
     const local = { id: 'edital-1', profileId, title: 'A', localRevision: 1 } as OutboxPayload;
     const result = reconcileRemoteEntity(local, remote(), []);
@@ -137,5 +166,36 @@ describe('F7 sync conflicts', () => {
     expect(conflicts).toHaveLength(2);
     await resolveRemoteConflict(conflicts[0]!.conflictId, 'REMOTE', 2);
     expect((await getConflicts(profileId)).filter((item) => item.status === 'OPEN')).toHaveLength(1);
+  });
+
+  it('f7_remote_resolution_applies_the_remote_payload', async () => {
+    const record = operation();
+    await seed(record);
+    await markConflict(profileId, record, 2, { payload: remote().payload, deleted: false });
+    const [conflict] = await getConflicts(profileId);
+    await expect(resolveRemoteConflict(conflict!.conflictId, 'REMOTE', 2)).resolves.toBe(
+      'LOCAL_COMMITTED',
+    );
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(STORES.editais, 'readonly');
+    const row = await requestResult(tx.objectStore(STORES.editais).get([profileId, 'edital-1']));
+    expect(row).toMatchObject({ title: 'B', localRevision: 2 });
+  });
+
+  it('f7_remote_delete_resolution_records_a_tombstone', async () => {
+    const record = operation();
+    await seed(record);
+    await markConflict(profileId, record, 2, { payload: null, deleted: true });
+    const [conflict] = await getConflicts(profileId);
+    await expect(resolveRemoteConflict(conflict!.conflictId, 'REMOTE', 2)).resolves.toBe(
+      'LOCAL_COMMITTED',
+    );
+    const db = await openV2Database(profileId);
+    const tx = db.transaction([STORES.editais, STORES.tombstones], 'readonly');
+    await expect(
+      requestResult(tx.objectStore(STORES.editais).get([profileId, 'edital-1'])),
+    ).resolves.toBeUndefined();
+    const tombstones = await requestResult(tx.objectStore(STORES.tombstones).getAll());
+    expect(tombstones).toHaveLength(1);
   });
 });

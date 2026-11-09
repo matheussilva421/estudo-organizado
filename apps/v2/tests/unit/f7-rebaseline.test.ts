@@ -137,4 +137,16 @@ describe('F7 rebaseline', () => {
     if (preview.kind === 'PREVIEW') await commitRebaseline(profileId, preview.previewId);
     expect((await tombstones()).some((row) => row.entityId === 'edital-1')).toBe(true);
   });
+
+  it('f7_rebaseline_applies_live_entities_to_the_store', async () => {
+    await seed();
+    const preview = await prepareRebaseline(profileId, [entity()]);
+    expect(preview.kind).toBe('PREVIEW');
+    if (preview.kind !== 'PREVIEW') return;
+    await expect(commitRebaseline(profileId, preview.previewId)).resolves.toBe('LOCAL_COMMITTED');
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(STORES.editais, 'readonly');
+    const row = await requestResult(tx.objectStore(STORES.editais).get([profileId, 'edital-1']));
+    expect(row).toMatchObject({ title: 'TJPB' });
+  });
 });

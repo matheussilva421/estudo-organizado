@@ -5,11 +5,13 @@ import {
   RETRY_MAX_MS,
   type FailureClass,
 } from './retry-policy';
+import { digestPayload } from './firebase-remote';
 
 export type FlushResult = {
   confirmedIds: string[];
   conflicts: string[];
   conflictRevisions: Record<string, number>;
+  conflictRemotes: Record<string, { payload: unknown | null; deleted: boolean }>;
   pending: string[];
   proof: Record<string, number>;
   failures: FlushFailure[];
@@ -43,13 +45,19 @@ export async function flushPending(
   const confirmedIds: string[] = [];
   const conflicts: string[] = [];
   const conflictRevisions: Record<string, number> = {};
+  const conflictRemotes: Record<string, { payload: unknown | null; deleted: boolean }> = {};
   const pending: string[] = [];
   const proof: Record<string, number> = {};
   const failures: FlushFailure[] = [];
   const blocked: string[] = [];
   const now = options.now ?? Date.now();
+  const blockedEntities = new Set<string>();
 
   for (const operation of operations) {
+    if (blockedEntities.has(operation.entityId)) {
+      blocked.push(operation.operationId);
+      continue;
+    }
     // Fail closed: no explicit authorization means no send.
     if (typeof options.canSend !== 'function' || !options.canSend(operation)) {
       blocked.push(operation.operationId);
@@ -60,17 +68,25 @@ export async function flushPending(
       if (result.kind === 'CONFLICT') {
         conflicts.push(operation.operationId);
         conflictRevisions[operation.operationId] = result.remoteRevision;
+        if (result.remote) conflictRemotes[operation.operationId] = result.remote;
+        blockedEntities.add(operation.entityId);
         continue;
       }
       confirmedIds.push(operation.operationId);
       proof[operation.operationId] = result.remoteRevision;
     } catch (error) {
+      const expectedDigest = await digestPayload(operation.payload).catch(() => null);
+      if (expectedDigest === null) {
+        pending.push(operation.operationId);
+        continue;
+      }
       const lookup = await remote
-        .lookup(operation.operationId, operation.entityId)
+        .lookup(operation.operationId, operation.entityId, expectedDigest)
         .catch(() => 'UNKNOWN' as const);
       if (lookup !== 'APPLIED') {
         pending.push(operation.operationId);
         const reason = classifyFailure(error);
+        if (reason !== 'TRANSIENT') blockedEntities.add(operation.entityId);
         const attempts = (options.attemptOf?.(operation) ?? operation.attempts ?? 0) + 1;
         if (reason === 'TRANSIENT') {
           const plan = planRetry(attempts, now, options.jitter?.() ?? 0);
@@ -105,5 +121,14 @@ export async function flushPending(
     }
   }
 
-  return { confirmedIds, conflicts, conflictRevisions, pending, proof, failures, blocked };
+  return {
+    confirmedIds,
+    conflicts,
+    conflictRevisions,
+    conflictRemotes,
+    pending,
+    proof,
+    failures,
+    blocked,
+  };
 }

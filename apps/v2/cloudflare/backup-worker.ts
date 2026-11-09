@@ -1,4 +1,4 @@
-import { verifyFirebaseIdToken, type JwksPort } from './token-verifier';
+import { createGoogleJwksPort, verifyFirebaseIdToken, type JwksPort } from './token-verifier';
 
 export type KVNamespaceLike = {
   get(key: string): Promise<string | null>;
@@ -15,6 +15,7 @@ export type BackupWorkerBindings = {
 };
 
 export const MAX_BACKUP_BYTES = 25 * 1024 * 1024;
+const defaultJwks = createGoogleJwksPort();
 
 function json(status: number, body: unknown, origin: string): Response {
   return new Response(JSON.stringify(body), {
@@ -55,12 +56,12 @@ function validEncrypted(value: unknown): boolean {
 async function identity(request: Request, bindings: BackupWorkerBindings): Promise<string | null> {
   const authorization = request.headers.get('Authorization') ?? '';
   if (!authorization.startsWith('Bearer ')) return null;
-  if (!bindings.JWKS) return null;
+  const jwks = bindings.JWKS ?? defaultJwks;
   const issuer = `https://securetoken.google.com/${bindings.FIREBASE_PROJECT_ID}`;
   const verified = await verifyFirebaseIdToken(authorization.slice('Bearer '.length), {
     projectId: bindings.FIREBASE_PROJECT_ID,
     issuer,
-  }, bindings.JWKS);
+  }, jwks);
   return verified?.uid ?? null;
 }
 
@@ -109,7 +110,13 @@ export async function handleBackupRequest(
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(id) || !validEncrypted(record.encrypted)) {
       return json(400, { error: 'INVALID_BACKUP' }, bindings.ALLOWED_ORIGIN);
     }
-    await bindings.BACKUPS.put(`${prefix}${id}`, JSON.stringify(record.encrypted));
+    const key = `${prefix}${id}`;
+    const serialized = JSON.stringify(record.encrypted);
+    const existing = await bindings.BACKUPS.get(key);
+    if (existing !== null && existing !== serialized) {
+      return json(409, { error: 'IMMUTABLE' }, bindings.ALLOWED_ORIGIN);
+    }
+    await bindings.BACKUPS.put(key, serialized);
     return json(201, { id }, bindings.ALLOWED_ORIGIN);
   }
 
@@ -134,6 +141,10 @@ export async function handleBackupRequest(
       return json(200, JSON.parse(stored), bindings.ALLOWED_ORIGIN);
     }
     if (request.method === 'DELETE') {
+      const listed = await bindings.BACKUPS.list(prefix);
+      if (listed.keys.length <= 1) {
+        return json(409, { error: 'LAST_COPY' }, bindings.ALLOWED_ORIGIN);
+      }
       await bindings.BACKUPS.delete(key);
       return new Response(null, { status: 204, headers: corsHeaders(bindings.ALLOWED_ORIGIN) });
     }
@@ -141,3 +152,9 @@ export async function handleBackupRequest(
 
   return json(404, { error: 'ROUTE' }, bindings.ALLOWED_ORIGIN);
 }
+
+export default {
+  async fetch(request: Request, bindings: BackupWorkerBindings): Promise<Response> {
+    return handleBackupRequest(request, bindings);
+  },
+};

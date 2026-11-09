@@ -1,6 +1,5 @@
 import { openV2Database, requestResult, STORES } from '../indexeddb';
-import { digestPayload } from '../sync/firebase-remote';
-import type { F7BackupSnapshot } from './f7-format';
+import { snapshotChecksum, type F7BackupSnapshot } from './f7-format';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -64,16 +63,28 @@ export async function collectF7Backup(profileId: string): Promise<F7BackupSnapsh
     epochRow && typeof epochRow.epoch === 'number' && Number.isInteger(epochRow.epoch)
       ? epochRow.epoch
       : 0;
-  const checksum = await digestPayload(payload);
+  const tombstones = (payload[STORES.tombstones] ?? []).filter(isRecord);
+  const maxTombstoneEpoch = tombstones.reduce(
+    (latest, row) =>
+      typeof row.epoch === 'number' && Number.isInteger(row.epoch)
+        ? Math.max(latest, row.epoch)
+        : latest,
+    0,
+  );
+  // A backup only proves complete deletion history when the persisted epoch
+  // covers every tombstone it contains.
+  const deletionHistoryComplete =
+    tombstones.length === 0 || (epochRow !== undefined && maxTombstoneEpoch <= epoch);
+  const manifestFields = {
+    formatVersion: 3 as const,
+    profileId,
+    recordCount,
+    epoch,
+    deletionHistoryComplete,
+  };
+  const checksum = await snapshotChecksum(manifestFields, payload);
   return {
-    manifest: {
-      formatVersion: 3,
-      profileId,
-      recordCount,
-      checksum,
-      epoch,
-      deletionHistoryComplete: true,
-    },
+    manifest: { ...manifestFields, checksum },
     payload,
   };
 }

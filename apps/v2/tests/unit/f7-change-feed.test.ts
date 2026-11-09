@@ -7,6 +7,7 @@ import {
   getPendingOutbox,
   getSyncCursor,
   openV2Database,
+  requestResult,
   STORES,
   transactionDone,
 } from '../../src/platform/indexeddb';
@@ -56,6 +57,33 @@ async function seedProfile(record: ProfileRecord): Promise<void> {
   const tx = db.transaction(STORES.profiles, 'readwrite');
   tx.objectStore(STORES.profiles).put(record);
   await transactionDone(tx);
+}
+
+async function editalRow(id = 'edital-1'): Promise<Record<string, unknown> | undefined> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction(STORES.editais, 'readonly');
+  return (await requestResult(tx.objectStore(STORES.editais).get([profileId, id]))) as
+    | Record<string, unknown>
+    | undefined;
+}
+
+async function seedEdital(title: string, id = 'edital-1'): Promise<void> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction(STORES.editais, 'readwrite');
+  tx.objectStore(STORES.editais).put({
+    profileId,
+    id,
+    title,
+    status: 'ACTIVE',
+    localRevision: 1,
+  });
+  await transactionDone(tx);
+}
+
+async function rows(storeName: string): Promise<Record<string, unknown>[]> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction(storeName, 'readonly');
+  return (await requestResult(tx.objectStore(storeName).getAll())) as Record<string, unknown>[];
 }
 
 class FakeFeed implements RemoteChangePort {
@@ -148,6 +176,34 @@ describe('F7 change feed', () => {
     expect(await getSyncCursor(profileId)).toBeNull();
   });
 
+  it('f7_uid_switch_during_entity_read_write_is_dropped', async () => {
+    await seedProfile(profile());
+    let release = () => undefined as void;
+    let started = () => undefined as void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const reading = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const feed: RemoteChangePort = {
+      async listAfter() {
+        return { changes: [change(1)], head: 1, epoch: 1 };
+      },
+      async readEntity() {
+        started();
+        await gate;
+        return entity(1);
+      },
+    };
+    const pending = pullRemoteChanges(profileId, feed, 2);
+    await reading;
+    await seedProfile(profile({ uid: 'uid-b', remoteLibraryId: 'library-b' }));
+    release();
+    await expect(pending).resolves.toBe('FAILED');
+    expect(await getSyncCursor(profileId)).toBeNull();
+  });
+
   it('f7_deleted_record_stays_deleted', async () => {
     await seedProfile(profile());
     const feed = new FakeFeed([change(1, { deleted: true })]);
@@ -160,5 +216,120 @@ describe('F7 change feed', () => {
     expect(observed.value?.deleted).toBe(true);
     expect(observed.value?.payload).toBeNull();
     expect((await getSyncCursor(profileId))?.cursor).toBe(1);
+  });
+
+  it('f7_default_apply_writes_the_remote_entity_and_cursor', async () => {
+    await seedProfile(profile());
+    const feed = new FakeFeed([change(1)]);
+    await expect(pullRemoteChanges(profileId, feed, 2)).resolves.toBe('CONVERGED');
+    await expect(editalRow()).resolves.toMatchObject({
+      id: 'edital-1',
+      title: 'Edital 1',
+      profileId,
+    });
+    await expect(getSyncCursor(profileId)).resolves.toMatchObject({
+      uid,
+      libraryId,
+      cursor: 1,
+    });
+  });
+
+  it('f7_default_apply_records_a_tombstone_for_a_remote_delete', async () => {
+    await seedProfile(profile());
+    const feed = new FakeFeed([change(1, { deleted: true })]);
+    await expect(pullRemoteChanges(profileId, feed, 2)).resolves.toBe('CONVERGED');
+    await expect(editalRow()).resolves.toBeUndefined();
+    const tombstones = await rows(STORES.tombstones);
+    expect(tombstones).toHaveLength(1);
+    expect(tombstones[0]).toMatchObject({
+      profileId,
+      entityType: 'edital',
+      entityId: 'edital-1',
+      epoch: 1,
+    });
+  });
+
+  it('f7_default_apply_preserves_local_data_on_a_conflict', async () => {
+    await seedProfile(profile());
+    await seedEdital('LOCAL');
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(STORES.outbox, 'readwrite');
+    tx.objectStore(STORES.outbox).put({
+      operationId: 'op-local',
+      profileId,
+      entityType: 'edital',
+      entityId: 'edital-1',
+      kind: 'upsert',
+      baseRevision: 0,
+      payload: { id: 'edital-1', profileId, title: 'LOCAL', status: 'ACTIVE', localRevision: 1 },
+      schemaVersion: 1,
+      status: 'PENDING',
+      deliveryUid: uid,
+      remoteLibraryId: libraryId,
+    });
+    await transactionDone(tx);
+
+    const feed = new FakeFeed([change(1)]);
+    await expect(pullRemoteChanges(profileId, feed, 2)).resolves.toBe('CONVERGED');
+    await expect(editalRow()).resolves.toMatchObject({ title: 'LOCAL' });
+    const conflicts = await rows(STORES.conflicts);
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]).toMatchObject({
+      profileId,
+      entityType: 'edital',
+      entityId: 'edital-1',
+      localPayload: expect.objectContaining({ title: 'LOCAL' }),
+      remotePayload: expect.objectContaining({ title: 'Edital 1' }),
+      status: 'OPEN',
+    });
+  });
+
+  it('f7_default_apply_rejects_an_entity_from_another_profile', async () => {
+    await seedProfile(profile());
+    const feed = new FakeFeed([change(1)]);
+    feed.entities.set('edital-1', {
+      ...entity(1),
+      payload: {
+        id: 'edital-1',
+        profileId: 'other-profile',
+        title: 'OTHER',
+        status: 'ACTIVE',
+        localRevision: 1,
+      },
+    });
+    await expect(pullRemoteChanges(profileId, feed, 2)).resolves.toBe('FAILED');
+    await expect(editalRow()).resolves.toBeUndefined();
+    await expect(getSyncCursor(profileId)).resolves.toBeNull();
+  });
+
+  it('f7_pull_returns_more_when_the_head_is_ahead', async () => {
+    await seedProfile(profile());
+    const feed: RemoteChangePort = {
+      async listAfter() {
+        return { changes: [change(1)], head: 5, epoch: 1 };
+      },
+      async readEntity() {
+        return entity(1);
+      },
+    };
+    await expect(pullRemoteChanges(profileId, feed, 10)).resolves.toBe('MORE');
+    await expect(getSyncCursor(profileId)).resolves.toMatchObject({ cursor: 1 });
+  });
+
+  it('f7_pull_rejects_a_sequence_gap_before_applying', async () => {
+    await seedProfile(profile());
+    const feed = new FakeFeed([change(1), change(3)]);
+    await expect(pullRemoteChanges(profileId, feed, 10)).resolves.toBe('RECOVERY_REQUIRED');
+    await expect(editalRow('edital-1')).resolves.toBeUndefined();
+    await expect(getSyncCursor(profileId)).resolves.toBeNull();
+  });
+
+  it('f7_pull_rejects_an_entity_that_does_not_match_the_change', async () => {
+    await seedProfile(profile());
+    const feed = new FakeFeed([change(1)]);
+    feed.entities.set('edital-1', entity(1, { entityId: 'edital-2' }));
+    await expect(pullRemoteChanges(profileId, feed, 10)).resolves.toBe('FAILED');
+    await expect(editalRow('edital-1')).resolves.toBeUndefined();
+    await expect(getSyncCursor(profileId)).resolves.toBeNull();
   });
 });

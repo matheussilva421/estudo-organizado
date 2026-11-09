@@ -10,6 +10,8 @@ import {
   type RemoteEntity,
   type RemoteReceipt,
 } from './remote-schema';
+import { validateRemoteChange } from './remote-schema';
+import type { RemoteChangePage, RemoteChangePort } from './change-feed';
 
 export type RemoteHead = { epoch: number; changeSequence: number };
 
@@ -29,7 +31,7 @@ export type RemoteMutationPlan =
       head: RemoteHead;
     }
   | { kind: 'ALREADY_APPLIED'; remoteRevision: number }
-  | { kind: 'CONFLICT'; remoteRevision: number }
+  | { kind: 'CONFLICT'; remoteRevision: number; remote: RemoteEntity | null }
   | { kind: 'INVALID'; reason: string };
 
 export class RemoteOperationError extends Error {
@@ -49,6 +51,10 @@ export type FirestoreTransactionPort = {
 export type FirestorePort = {
   runTransaction<T>(task: (transaction: FirestoreTransactionPort) => Promise<T>): Promise<T>;
   get(path: string): Promise<unknown | null>;
+  query?(
+    path: string,
+    options: { field: string; operator: '>'; value: number; orderBy: string; limit: number },
+  ): Promise<unknown[]>;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -56,10 +62,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value === null) return 'null';
+  const type = typeof value;
+  if (type === 'number') return Number.isFinite(value) ? JSON.stringify(value) : 'null';
+  if (type === 'boolean') return value ? 'true' : 'false';
+  if (type === 'string') return JSON.stringify(value);
+  // JSON.stringify drops undefined object properties and turns undefined array
+  // slots into null. The canonical form must do the same so a checksum of the
+  // live snapshot survives encrypt/JSON.stringify/parse/decrypt.
+  if (type === 'undefined' || type === 'function' || type === 'symbol') return 'null';
+  if (type === 'bigint') throw new RemoteOperationError('BigInt is not JSON-serializable');
+  if (value instanceof Date) return JSON.stringify(value.toISOString());
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(',')}]`;
   const record = value as Record<string, unknown>;
   return `{${Object.keys(record)
+    .filter((key) => {
+      const item = record[key];
+      return item !== undefined && typeof item !== 'function' && typeof item !== 'symbol';
+    })
     .sort()
     .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
     .join(',')}}`;
@@ -140,7 +160,7 @@ export async function planRemoteMutation(
     return { kind: 'INVALID', reason: 'baseRevision must be a non-negative integer' };
   }
   if (baseRevision !== currentRevision) {
-    return { kind: 'CONFLICT', remoteRevision: currentRevision };
+    return { kind: 'CONFLICT', remoteRevision: currentRevision, remote: entity };
   }
 
   const head = asHead(snapshot.head);
@@ -203,7 +223,7 @@ export type FirebaseRemotePortOptions = {
 };
 
 /** Firestore adapter for one authenticated uid/library scope. */
-export class FirebaseRemotePort implements RemoteMutationPort {
+export class FirebaseRemotePort implements RemoteMutationPort, RemoteChangePort {
   private readonly uid: string;
   private readonly libraryId: string;
   private readonly profileId: string;
@@ -218,6 +238,10 @@ export class FirebaseRemotePort implements RemoteMutationPort {
 
   private path(collection: string, id: string): string {
     return `users/${this.uid}/libraries/${this.libraryId}/${collection}/${id}`;
+  }
+
+  private collectionPath(collection: string): string {
+    return `users/${this.uid}/libraries/${this.libraryId}/${collection}`;
   }
 
   private assertScope(operation: OutboxOperation): void {
@@ -254,7 +278,15 @@ export class FirebaseRemotePort implements RemoteMutationPort {
     });
 
     if (plan.kind === 'INVALID') throw new RemoteOperationError(plan.reason);
-    if (plan.kind === 'CONFLICT') return { kind: 'CONFLICT', remoteRevision: plan.remoteRevision };
+    if (plan.kind === 'CONFLICT') {
+      return {
+        kind: 'CONFLICT',
+        remoteRevision: plan.remoteRevision,
+        ...(plan.remote
+          ? { remote: { payload: plan.remote.payload, deleted: plan.remote.deleted } }
+          : {}),
+      };
+    }
     if (plan.kind === 'ALREADY_APPLIED') {
       return { kind: 'ALREADY_APPLIED', remoteRevision: plan.remoteRevision };
     }
@@ -264,11 +296,18 @@ export class FirebaseRemotePort implements RemoteMutationPort {
   async lookup(
     operationId: string,
     entityId?: string,
+    payloadDigest?: string,
   ): Promise<'APPLIED' | 'MISSING' | 'UNKNOWN' | 'MISMATCH'> {
     try {
       const receipt = asReceipt(await this.store.get(this.path('operations', operationId)));
       if (!receipt) return 'MISSING';
       if (entityId !== undefined && receipt.entityId !== entityId) return 'MISMATCH';
+      if (
+        payloadDigest !== undefined &&
+        receipt.payloadDigest.toLowerCase() !== payloadDigest.toLowerCase()
+      ) {
+        return 'MISMATCH';
+      }
       return 'APPLIED';
     } catch {
       return 'UNKNOWN';
@@ -283,11 +322,75 @@ export class FirebaseRemotePort implements RemoteMutationPort {
       return null;
     }
   }
+
+  async listAfter(
+    uid: string,
+    libraryId: string,
+    epoch: number,
+    cursor: number,
+    limit: number,
+  ): Promise<RemoteChangePage> {
+    if (uid !== this.uid || libraryId !== this.libraryId) {
+      return { changes: [], head: 0, epoch };
+    }
+    if (!Number.isInteger(limit) || limit < 1 || limit > 200) {
+      throw new RemoteOperationError('change limit must be between 1 and 200');
+    }
+    const head = asHead(await this.store.get(this.path('meta', 'head')));
+    const pageEpoch = head?.epoch ?? 0;
+    if (epoch !== pageEpoch) return { changes: [], head: head?.changeSequence ?? 0, epoch: pageEpoch };
+    if (!this.store.query) throw new RemoteOperationError('change queries are unavailable');
+    const rows = await this.store.query(this.collectionPath('changes'), {
+      field: 'sequence',
+      operator: '>',
+      value: cursor,
+      orderBy: 'sequence',
+      limit,
+    });
+    const changes: RemoteChange[] = [];
+    for (const row of rows) {
+      if (!isRecord(row)) throw new RemoteOperationError('invalid remote change document');
+      const change: RemoteChange = {
+        sequence: row.sequence as number,
+        entityId: row.entityId as string,
+        revision: row.revision as number,
+        deleted: row.deleted as boolean,
+        epoch: row.epoch as number,
+      };
+      const validation = validateRemoteChange(change);
+      if (!validation.ok || change.epoch !== pageEpoch) {
+        throw new RemoteOperationError('remote change is outside the current epoch');
+      }
+      changes.push(change);
+    }
+    return { changes, head: head?.changeSequence ?? 0, epoch: pageEpoch };
+  }
+
+  async readEntity(uid: string, libraryId: string, id: string): Promise<RemoteEntity | null> {
+    if (uid !== this.uid || libraryId !== this.libraryId) return null;
+    const value = asEntity(await this.store.get(this.path('entities', id)));
+    if (!value) return null;
+    // Firestore Rules require the owner uid in the document, while the local
+    // schema deliberately validates only the canonical envelope fields.
+    const entity = { ...value } as RemoteEntity & { uid?: string };
+    delete entity.uid;
+    return entity;
+  }
 }
 
 /** Creates the production Firestore transaction port for an injected database. */
 export async function createFirestorePort(db: Firestore): Promise<FirestorePort> {
-  const { doc, getDoc, runTransaction } = await import('firebase/firestore');
+  const {
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    limit,
+    orderBy,
+    query,
+    runTransaction,
+    where,
+  } = await import('firebase/firestore');
   return {
     async runTransaction<T>(task: (transaction: FirestoreTransactionPort) => Promise<T>): Promise<T> {
       return runTransaction(db, async (transaction) =>
@@ -305,6 +408,16 @@ export async function createFirestorePort(db: Firestore): Promise<FirestorePort>
     async get(path) {
       const snapshot = await getDoc(doc(db, path));
       return snapshot.exists() ? snapshot.data() : null;
+    },
+    async query(path, options) {
+      const target = query(
+        collection(db, path),
+        where(options.field, options.operator, options.value),
+        orderBy(options.orderBy),
+        limit(options.limit),
+      );
+      const snapshot = await getDocs(target);
+      return snapshot.docs.map((item) => item.data());
     },
   };
 }

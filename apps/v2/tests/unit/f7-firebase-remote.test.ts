@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { OutboxOperation } from '../../src/application/sync-types';
 import {
+  digestPayload,
   FirebaseRemotePort,
   RemoteOperationError,
   type FirestorePort,
@@ -85,9 +86,10 @@ describe('F7 Firebase remote adapter', () => {
     const store = new MemoryStore();
     const remote = port(store);
     await remote.apply(operation());
-    await expect(remote.apply(operation({ operationId: 'op-2' }))).resolves.toEqual({
+    await expect(remote.apply(operation({ operationId: 'op-2' }))).resolves.toMatchObject({
       kind: 'CONFLICT',
       remoteRevision: 1,
+      remote: expect.objectContaining({ deleted: false }),
     });
   });
 
@@ -113,5 +115,85 @@ describe('F7 Firebase remote adapter', () => {
       RemoteOperationError,
     );
     expect(store.docs.size).toBe(0);
+  });
+
+  it('f7_lookup_rejects_a_different_payload_digest', async () => {
+    const store = new MemoryStore();
+    const remote = port(store);
+    await remote.apply(operation());
+    const changedDigest = await digestPayload({
+      ...operation().payload,
+      title: 'OUTRO',
+    });
+    await expect(remote.lookup('op-1', 'edital-1', changedDigest)).resolves.toBe('MISMATCH');
+  });
+
+  it('f7_change_feed_lists_only_after_the_cursor', async () => {
+    const store = new MemoryStore();
+    store.docs.set(`users/${uid}/libraries/${libraryId}/meta/head`, {
+      epoch: 1,
+      changeSequence: 2,
+    });
+    const query = vi.fn(async () => [
+      { sequence: 2, entityId: 'edital-1', revision: 2, deleted: false, epoch: 1 },
+    ]);
+    const remote = port({
+      get: (path) => store.get(path),
+      runTransaction: (task) => store.runTransaction(task),
+      query,
+    });
+    await expect(remote.listAfter(uid, libraryId, 1, 1, 10)).resolves.toEqual({
+      changes: [{ sequence: 2, entityId: 'edital-1', revision: 2, deleted: false, epoch: 1 }],
+      head: 2,
+      epoch: 1,
+    });
+    expect(query).toHaveBeenCalledWith(`users/${uid}/libraries/${libraryId}/changes`, {
+      field: 'sequence',
+      operator: '>',
+      value: 1,
+      orderBy: 'sequence',
+      limit: 10,
+    });
+  });
+
+  it('f7_change_feed_rejects_cross_scope_and_stale_epoch', async () => {
+    const store = new MemoryStore();
+    store.docs.set(`users/${uid}/libraries/${libraryId}/meta/head`, {
+      epoch: 2,
+      changeSequence: 4,
+    });
+    const remote = port(store);
+    await expect(remote.listAfter('uid-b', libraryId, 1, 0, 10)).resolves.toEqual({
+      changes: [],
+      head: 0,
+      epoch: 1,
+    });
+    await expect(remote.listAfter(uid, libraryId, 1, 0, 10)).resolves.toEqual({
+      changes: [],
+      head: 4,
+      epoch: 2,
+    });
+  });
+
+  it('f7_change_feed_reads_only_the_owned_entity', async () => {
+    const store = new MemoryStore();
+    store.docs.set(`users/${uid}/libraries/${libraryId}/entities/edital-1`, {
+      entityId: 'edital-1',
+      entityType: 'edital',
+      schemaVersion: 1,
+      revision: 1,
+      deleted: false,
+      payload: { id: 'edital-1', profileId, title: 'TJPB' },
+      epoch: 1,
+      uid,
+    });
+    const remote = port(store);
+    const entity = await remote.readEntity(uid, libraryId, 'edital-1');
+    expect(entity).toMatchObject({
+      entityId: 'edital-1',
+      revision: 1,
+    });
+    expect(entity).not.toHaveProperty('uid');
+    await expect(remote.readEntity('uid-b', libraryId, 'edital-1')).resolves.toBeNull();
   });
 });

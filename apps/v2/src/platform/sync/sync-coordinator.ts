@@ -8,6 +8,13 @@ import { flushPending, type FlushResult } from './flush';
 import { withSafeFlushLock, type LockPort } from './coordination';
 import { confirmRemoteOperation } from './ack';
 import { digestPayload } from './firebase-remote';
+import type { PullResult } from './change-feed';
+import { canDeliver, type DeliveryBinding } from './delivery-policy';
+import {
+  assessSyncBudgetDetailed,
+  type SyncUsage,
+  type SyncUsageLimits,
+} from './budget';
 import {
   applyRetryPlan,
   getEligibleOutbox,
@@ -27,6 +34,9 @@ export type SyncCoordinatorOptions = {
   applyRetry?: typeof applyRetryPlan;
   persistConflict?: typeof markConflict;
   digest?: (payload: unknown) => Promise<string>;
+  pull?: (profileId: string) => Promise<PullResult>;
+  budget?: { usage: SyncUsage; limits: SyncUsageLimits };
+  persistBudget?: (usage: SyncUsage) => Promise<void>;
 };
 
 function health(
@@ -34,13 +44,12 @@ function health(
   remoteCommitted: boolean,
   pendingCount: number,
   mode: string,
+  converged = false,
 ): SyncHealth {
   return {
     localCommitted,
     remoteCommitted,
-    // A verified pull cursor is required before claiming convergence; T09 owns
-    // that proof, so a flush alone never turns this into true.
-    converged: false,
+    converged,
     pendingCount: Math.max(0, pendingCount),
     mode,
   };
@@ -60,6 +69,9 @@ export class SyncCoordinator {
   private readonly applyRetry: typeof applyRetryPlan;
   private readonly persistConflict: typeof markConflict;
   private readonly digest: (payload: unknown) => Promise<string>;
+  private readonly pull: ((profileId: string) => Promise<PullResult>) | null;
+  private readonly budget: SyncCoordinatorOptions['budget'];
+  private readonly persistBudget: SyncCoordinatorOptions['persistBudget'];
   private readonly stopped = new Set<string>();
 
   constructor(options: SyncCoordinatorOptions) {
@@ -72,6 +84,9 @@ export class SyncCoordinator {
     this.applyRetry = options.applyRetry ?? applyRetryPlan;
     this.persistConflict = options.persistConflict ?? markConflict;
     this.digest = options.digest ?? digestPayload;
+    this.pull = options.pull ?? null;
+    this.budget = options.budget;
+    this.persistBudget = options.persistBudget;
   }
 
   stop(profileId: string): void {
@@ -80,12 +95,18 @@ export class SyncCoordinator {
 
   async requestFlush(profileId: string, reason: FlushReason): Promise<SyncHealth> {
     if (this.stopped.has(profileId)) {
-      return health(true, false, await this.pendingCount(profileId), 'STOPPED');
+      const pending = await this.pendingCount(profileId);
+      return pending < 0
+        ? health(true, false, 0, 'FAILED')
+        : health(true, false, pending, 'STOPPED');
     }
     const lockName = `estudo-organizado-v2:flush:${profileId}`;
     const outcome = await withSafeFlushLock(lockName, () => this.run(profileId, reason), this.locks);
     if (outcome.kind === 'BLOCKED') {
-      return health(true, false, await this.pendingCount(profileId), 'PAUSED_LOCK');
+      const pending = await this.pendingCount(profileId);
+      return pending < 0
+        ? health(true, false, 0, 'FAILED')
+        : health(true, false, pending, 'PAUSED_LOCK');
     }
     return outcome.value;
   }
@@ -94,21 +115,56 @@ export class SyncCoordinator {
     try {
       return (await this.getEligible(profileId, this.now())).length;
     } catch {
-      return 0;
+      return -1;
     }
   }
 
   private async run(profileId: string, _reason: FlushReason): Promise<SyncHealth> {
-    const operations = await this.getEligible(profileId, this.now());
-    if (operations.length === 0) return health(true, false, 0, 'READY');
+    const operations = await this.getEligible(profileId, this.now()).catch(() => null);
+    if (operations === null) return health(true, false, 0, 'FAILED');
+    if (operations.length === 0) {
+      const pull = this.pull ? await this.pull(profileId).catch(() => 'FAILED' as const) : null;
+      return health(
+        true,
+        false,
+        0,
+        pull === 'RECOVERY_REQUIRED' ? 'RECOVERY_REQUIRED' : 'READY',
+        pull === 'CONVERGED',
+      );
+    }
 
+    const profile = await this.getProfile(profileId).catch(() => null);
+    if (!profile) {
+      return health(true, false, operations.length, 'PAUSED_AUTH');
+    }
+    if (this.budget) {
+      const assessment = assessSyncBudgetDetailed(this.budget.usage, this.budget.limits, {
+        reads: operations.length * 3,
+        writes: operations.filter((operation) => operation.kind === 'upsert').length,
+        deletes: operations.filter((operation) => operation.kind === 'delete').length,
+      });
+      if (assessment.kind === 'PAUSE') {
+        return health(true, false, operations.length, 'PAUSED_QUOTA');
+      }
+    }
     const result: FlushResult = await flushPending(operations, this.remote, {
       now: this.now(),
-      canSend: () => true,
+      canSend: (operation) => {
+        const binding: DeliveryBinding = {
+          operationId: operation.operationId,
+          profileId: operation.profileId,
+          deliveryUid: operation.deliveryUid ?? null,
+          remoteLibraryId: operation.remoteLibraryId ?? null,
+          attempts: operation.attempts ?? 0,
+          nextRetryAt: operation.nextRetryAt ?? null,
+        };
+        return canDeliver(operation, binding, profile);
+      },
     });
 
     let confirmed = 0;
     let conflicts = 0;
+    let ackFailures = 0;
     for (const operationId of result.confirmedIds) {
       const operation = operations.find((candidate) => candidate.operationId === operationId);
       if (!operation) continue;
@@ -134,6 +190,7 @@ export class SyncCoordinator {
         operationDigest: digest,
       });
       if (ack === 'CONFIRMED' || ack === 'ALREADY_CONFIRMED') confirmed += 1;
+      else ackFailures += 1;
     }
 
     for (const operationId of result.conflicts) {
@@ -141,7 +198,12 @@ export class SyncCoordinator {
       if (!operation) continue;
       const remoteRevision = result.conflictRevisions[operationId] ?? 0;
       if (remoteRevision >= 1) {
-        await this.persistConflict(profileId, operation, remoteRevision);
+        await this.persistConflict(
+          profileId,
+          operation,
+          remoteRevision,
+          result.conflictRemotes[operationId],
+        );
         conflicts += 1;
       }
     }
@@ -150,8 +212,28 @@ export class SyncCoordinator {
       await this.applyRetry(profileId, result.failures);
     }
 
-    const pendingCount = result.pending.length + result.blocked.length + conflicts;
+    const pendingCount = result.pending.length + result.blocked.length + conflicts + ackFailures;
     const remoteCommitted = confirmed > 0;
-    return health(true, remoteCommitted, pendingCount, pendingCount > 0 ? 'SYNCING' : 'READY');
+    if (this.budget) {
+      this.budget.usage.reads += operations.length * 3;
+      this.budget.usage.writes += confirmed;
+      this.budget.usage.deletes += operations.filter(
+        (operation) => operation.kind === 'delete' && result.confirmedIds.includes(operation.operationId),
+      ).length;
+      this.budget.usage.bytesOut += operations.reduce(
+        (total, operation) =>
+          total + new TextEncoder().encode(JSON.stringify(operation.payload)).length,
+        0,
+      );
+      await this.persistBudget?.(this.budget.usage);
+    }
+    const pull = this.pull ? await this.pull(profileId).catch(() => 'FAILED' as const) : null;
+    return health(
+      true,
+      remoteCommitted,
+      pendingCount,
+      pull === 'RECOVERY_REQUIRED' ? 'RECOVERY_REQUIRED' : pendingCount > 0 ? 'SYNCING' : 'READY',
+      pull === 'CONVERGED' && pendingCount === 0,
+    );
   }
 }

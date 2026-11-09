@@ -9,6 +9,16 @@ export type F7BackupManifest = {
   deletionHistoryComplete: boolean;
 };
 
+export type F7BackupManifestFields = Omit<F7BackupManifest, 'checksum'>;
+
+/** The checksum authenticates the manifest and the payload together. */
+export async function snapshotChecksum(
+  manifest: F7BackupManifestFields,
+  payload: Record<string, unknown[]>,
+): Promise<string> {
+  return digestPayload({ manifest, payload });
+}
+
 export type F7BackupSnapshot = {
   manifest: F7BackupManifest;
   payload: Record<string, unknown[]>;
@@ -53,7 +63,14 @@ export async function inspectF7Backup(input: unknown): Promise<InspectResult> {
     count += records.length;
   }
   if (count !== manifest.recordCount) return { kind: 'INVALID', reason: 'RECORD_COUNT_MISMATCH' };
-  const checksum = await digestPayload(payload);
+  const manifestFields: F7BackupManifestFields = {
+    formatVersion: 3,
+    profileId: manifest.profileId as string,
+    recordCount: manifest.recordCount as number,
+    epoch: manifest.epoch as number,
+    deletionHistoryComplete: manifest.deletionHistoryComplete as boolean,
+  };
+  const checksum = await snapshotChecksum(manifestFields, payload);
   if (checksum.toLowerCase() !== manifest.checksum.toLowerCase()) {
     return { kind: 'INVALID', reason: 'CHECKSUM_MISMATCH' };
   }
@@ -64,12 +81,8 @@ export async function inspectF7Backup(input: unknown): Promise<InspectResult> {
     kind: 'VALID',
     snapshot: {
       manifest: {
-        formatVersion: 3,
-        profileId: manifest.profileId as string,
-        recordCount: manifest.recordCount as number,
+        ...manifestFields,
         checksum,
-        epoch: manifest.epoch as number,
-        deletionHistoryComplete: true,
       },
       payload,
     },

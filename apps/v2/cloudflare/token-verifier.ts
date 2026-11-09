@@ -2,6 +2,35 @@ export type JwksPort = {
   getKey(kid: string): Promise<JsonWebKey | null>;
 };
 
+export function createGoogleJwksPort(
+  fetchImpl: (input: string) => Promise<Response> = (input) => fetch(input),
+  now = () => Date.now(),
+): JwksPort {
+  let cache: { keys: Map<string, JsonWebKey>; expiresAt: number } | null = null;
+  return {
+    async getKey(kid: string): Promise<JsonWebKey | null> {
+      if (!cache || now() >= cache.expiresAt) {
+        const response = await fetchImpl(
+          'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
+        );
+        if (!response.ok) throw new Error('JWKS_UNAVAILABLE');
+        const body = (await response.json()) as { keys?: unknown };
+        const keys = new Map<string, JsonWebKey>();
+        if (Array.isArray(body.keys)) {
+          for (const value of body.keys) {
+            if (!isRecord(value)) continue;
+            if (typeof value.kid !== 'string' || value.kty !== 'RSA') continue;
+            if (typeof value.n !== 'string' || typeof value.e !== 'string') continue;
+            keys.set(value.kid, value as JsonWebKey);
+          }
+        }
+        cache = { keys, expiresAt: now() + 60 * 60_000 };
+      }
+      return cache.keys.get(kid) ?? null;
+    },
+  };
+}
+
 export type VerifiedIdentity = { uid: string };
 
 function base64UrlToBytes(value: string): Uint8Array {

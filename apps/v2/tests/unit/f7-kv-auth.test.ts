@@ -145,4 +145,73 @@ describe('F7 backup worker auth', () => {
     );
     expect(response.status).toBe(413);
   });
+
+  it('f7_worker_does_not_overwrite_an_immutable_backup', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: new MemoryKV(),
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      JWKS: jwks,
+    };
+    const token = await jwt('uid-a', {}, privateKey);
+    const encrypted = {
+      format: 'eo-v2-encrypted-v1',
+      iv: 'a',
+      ciphertext: 'b',
+      wrappedKey: 'c',
+      kdf: { name: 'PBKDF2' },
+    };
+    const first = await handleBackupRequest(
+      request('POST', '/backups', token, JSON.stringify({ id: 'v1', encrypted }), {
+        'Content-Type': 'application/json',
+      }),
+      bindings,
+    );
+    expect(first.status).toBe(201);
+    const changed = await handleBackupRequest(
+      request(
+        'POST',
+        '/backups',
+        token,
+        JSON.stringify({ id: 'v1', encrypted: { ...encrypted, ciphertext: 'different' } }),
+        { 'Content-Type': 'application/json' },
+      ),
+      bindings,
+    );
+    expect(changed.status).toBe(409);
+  });
+
+  it('f7_worker_does_not_delete_the_last_copy', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: new MemoryKV(),
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      JWKS: jwks,
+    };
+    const token = await jwt('uid-a', {}, privateKey);
+    const encrypted = {
+      format: 'eo-v2-encrypted-v1',
+      iv: 'a',
+      ciphertext: 'b',
+      wrappedKey: 'c',
+      kdf: { name: 'PBKDF2' },
+    };
+    const post = (id: string) =>
+      handleBackupRequest(
+        request('POST', '/backups', token, JSON.stringify({ id, encrypted }), {
+          'Content-Type': 'application/json',
+        }),
+        bindings,
+      );
+    expect((await post('v1')).status).toBe(201);
+    expect((await handleBackupRequest(request('DELETE', '/backups/v1', token), bindings)).status).toBe(
+      409,
+    );
+    expect((await post('v2')).status).toBe(201);
+    expect((await handleBackupRequest(request('DELETE', '/backups/v1', token), bindings)).status).toBe(
+      204,
+    );
+  });
 });

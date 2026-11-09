@@ -515,7 +515,7 @@ export type SyncCursor = {
   updatedAt: string;
 };
 
-function cursorKey(profileId: string): string {
+export function cursorKey(profileId: string): string {
   return `sync-cursor:${profileId}`;
 }
 
@@ -545,7 +545,35 @@ export async function setSyncCursor(
   const database = await openV2Database(profileId);
   const transaction = database.transaction(STORES.meta, 'readwrite');
   try {
-    transaction.objectStore(STORES.meta).put({
+    const store = transaction.objectStore(STORES.meta);
+    const stored = (await requestResult(store.get(cursorKey(profileId)))) as
+      | { value?: SyncCursor }
+      | undefined;
+    const current = stored?.value;
+    if (current) {
+      if (current.uid !== cursor.uid || current.libraryId !== cursor.libraryId) {
+        transaction.abort();
+        throw new LocalPersistenceError(
+          'UNAVAILABLE',
+          'cursor binding does not match the current account',
+          false,
+        );
+      }
+      if (cursor.epoch < current.epoch) {
+        transaction.abort();
+        throw new LocalPersistenceError(
+          'UNAVAILABLE',
+          'cursor epoch cannot move backwards',
+          false,
+        );
+      }
+      if (cursor.epoch === current.epoch && cursor.cursor <= current.cursor) {
+        // Idempotent replay or a late response; never regress the cursor.
+        await transactionDone(transaction);
+        return;
+      }
+    }
+    store.put({
       key: cursorKey(profileId),
       value: {
         profileId,

@@ -6,6 +6,7 @@ import {
   transactionDone,
 } from '../indexeddb';
 import { validateRemoteEnvelope, type RemoteEntity } from './remote-schema';
+import { STORE_BY_ENTITY_TYPE } from './entity-stores';
 
 export type CursorSafety = 'SAFE' | 'REBASELINE_REQUIRED';
 
@@ -125,7 +126,17 @@ export async function commitRebaseline(
 
   const database = await openV2Database(profileId).catch(() => null);
   if (!database) return 'FAILED';
-  const transaction = database.transaction([STORES.meta, STORES.tombstones], 'readwrite');
+  const storeNames = [
+    ...new Set(
+      stored.snapshot
+        .map((entity) => STORE_BY_ENTITY_TYPE[entity.entityType])
+        .filter((name): name is string => typeof name === 'string'),
+    ),
+  ];
+  const transaction = database.transaction(
+    [STORES.meta, STORES.tombstones, STORES.outbox, ...storeNames],
+    'readwrite',
+  );
   try {
     const meta = transaction.objectStore(STORES.meta);
     const already = await requestResult(meta.get(`rebaseline-committed:${acceptedPreviewId}`));
@@ -136,9 +147,32 @@ export async function commitRebaseline(
       return 'LOCAL_COMMITTED';
     }
 
+    const pending = (await requestResult(
+      transaction
+        .objectStore(STORES.outbox)
+        .index('by_profile_status')
+        .getAll([profileId, 'PENDING']),
+    )) as Array<{ entityType: string; entityId: string }>;
+    const pendingKeys = new Set(pending.map((row) => `${row.entityType}:${row.entityId}`));
     const tombstones = transaction.objectStore(STORES.tombstones);
+    let applied = 0;
+    let preserved = 0;
     for (const entity of stored.snapshot) {
-      if (!entity.deleted) continue;
+      if (pendingKeys.has(`${entity.entityType}:${entity.entityId}`)) {
+        preserved += 1;
+        continue;
+      }
+      const storeName = STORE_BY_ENTITY_TYPE[entity.entityType];
+      if (!entity.deleted) {
+        if (!storeName || !entity.payload) continue;
+        transaction.objectStore(storeName).put({
+          ...entity.payload,
+          profileId,
+          id: entity.entityId,
+        });
+        applied += 1;
+        continue;
+      }
       tombstones.put({
         profileId,
         entityType: entity.entityType,
@@ -150,13 +184,16 @@ export async function commitRebaseline(
         deletedAt: new Date().toISOString(),
         snapshot: entity.payload ?? {},
       });
+      if (storeName) transaction.objectStore(storeName).delete([profileId, entity.entityId]);
+      applied += 1;
     }
     meta.put({
       key: `rebaseline:${profileId}`,
       value: {
         previewId: acceptedPreviewId,
         counts: stored.counts,
-        snapshot: stored.snapshot,
+        applied,
+        preserved,
         committedAt: new Date().toISOString(),
       },
     });

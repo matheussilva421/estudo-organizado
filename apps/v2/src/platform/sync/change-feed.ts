@@ -5,7 +5,6 @@ import {
   requestResult,
   setSyncCursor,
   STORES,
-  transactionDone,
 } from '../indexeddb';
 import {
   compareRemoteChanges,
@@ -14,6 +13,7 @@ import {
   type RemoteChange,
   type RemoteEntity,
 } from './remote-schema';
+import { applyRemoteChange } from './apply-remote';
 
 export type RemoteChangePage = {
   changes: RemoteChange[];
@@ -51,30 +51,6 @@ async function readProfile(profileId: string): Promise<ProfileRecord | null> {
     transaction.objectStore(STORES.profiles).get(profileId),
   )) as ProfileRecord | undefined;
   return profile ?? null;
-}
-
-/** Conservative local staging; T10 owns domain merge semantics. */
-async function stageRemoteChange(
-  profileId: string,
-  change: RemoteChange,
-  entity: RemoteEntity | null,
-): Promise<void> {
-  const database = await openV2Database(profileId);
-  const transaction = database.transaction(STORES.meta, 'readwrite');
-  try {
-    transaction.objectStore(STORES.meta).put({
-      key: `remote-change:${change.sequence}:${change.entityId}`,
-      value: { profileId, change, entity },
-    });
-    await transactionDone(transaction);
-  } catch (error) {
-    try {
-      transaction.abort();
-    } catch {
-      // already aborted
-    }
-    throw error;
-  }
 }
 
 /**
@@ -122,6 +98,14 @@ export async function pullRemoteChanges(
     .sort(compareRemoteChanges)
     .slice(0, limit);
 
+  if (changes.length === 0 && page.head > from) return 'RECOVERY_REQUIRED';
+
+  let expectedSequence = from;
+  for (const change of changes) {
+    if (change.sequence !== expectedSequence + 1) return 'RECOVERY_REQUIRED';
+    expectedSequence = change.sequence;
+  }
+
   let appliedCursor = from;
   for (const change of changes) {
     const validation = validateRemoteChange(change);
@@ -135,24 +119,43 @@ export async function pullRemoteChanges(
     if (entity) {
       const entityValidation = validateRemoteEnvelope(entity);
       if (!entityValidation.ok) return 'FAILED';
+      if (
+        entity.entityId !== change.entityId ||
+        entity.epoch !== effectiveEpoch ||
+        entity.revision < change.revision ||
+        (entity.revision === change.revision && entity.deleted !== change.deleted)
+      ) {
+        return 'FAILED';
+      }
+    }
+    const currentProfile = await (options.getProfile ?? readProfile)(profileId).catch(() => null);
+    if (
+      !currentProfile ||
+      currentProfile.uid !== binding.uid ||
+      currentProfile.remoteLibraryId !== binding.libraryId
+    ) {
+      return 'FAILED';
     }
     try {
-      await (options.apply ?? ((next, value) => stageRemoteChange(profileId, next, value)))(
-        change,
-        entity,
-      );
-      await setSyncCursor(profileId, {
-        uid: binding.uid,
-        libraryId: binding.libraryId,
-        epoch: effectiveEpoch,
-        cursor: change.sequence,
-      });
+      if (options.apply) {
+        await options.apply(change, entity);
+        await setSyncCursor(profileId, {
+          uid: binding.uid,
+          libraryId: binding.libraryId,
+          epoch: effectiveEpoch,
+          cursor: change.sequence,
+        });
+      } else {
+        const outcome = await applyRemoteChange(profileId, binding, change, entity);
+        if (outcome === 'FAILED') return 'FAILED';
+        if (outcome === 'RECOVERY_REQUIRED') return 'RECOVERY_REQUIRED';
+      }
       appliedCursor = change.sequence;
     } catch {
       return 'FAILED';
     }
   }
 
-  const hasMore = changes.length >= limit && page.head > appliedCursor;
+  const hasMore = page.head > appliedCursor;
   return hasMore ? 'MORE' : 'CONVERGED';
 }

@@ -39,6 +39,9 @@ function validateProof(
 ): AckResult | null {
   if (operation.profileId !== profile.profileId) return mismatch();
   if (!profile.uid || profile.uid !== proof.uid) return mismatch();
+  if (!profile.remoteLibraryId || profile.remoteLibraryId !== proof.remoteLibraryId) {
+    return mismatch();
+  }
   if (operation.deliveryUid !== proof.uid) return mismatch();
   if (operation.remoteLibraryId !== proof.remoteLibraryId) return mismatch();
   if (operation.entityId !== proof.entityId) return mismatch();

@@ -1,12 +1,10 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { F7BackupSnapshot } from '../../src/platform/backup/f7-format';
-import { inspectF7Backup } from '../../src/platform/backup/f7-format';
+import { inspectF7Backup, snapshotChecksum, type F7BackupSnapshot } from '../../src/platform/backup/f7-format';
 import { collectF7Backup } from '../../src/platform/backup/collect';
 import { decryptBackup, encryptSnapshot, type EncryptedBackup } from '../../src/platform/backup/crypto';
 import { createKvBackupPort, KV_MAX_VALUE_BYTES } from '../../src/platform/backup/kv-client';
 import { PersonalBackupScheduler } from '../../src/platform/backup/scheduler';
-import { digestPayload } from '../../src/platform/sync/firebase-remote';
 import {
   deleteV2DatabaseForTests,
   openV2Database,
@@ -27,7 +25,10 @@ async function largeSnapshot(): Promise<F7BackupSnapshot> {
       formatVersion: 3,
       profileId,
       recordCount: 1,
-      checksum: await digestPayload(payload),
+      checksum: await snapshotChecksum(
+        { formatVersion: 3, profileId, recordCount: 1, epoch: 1, deletionHistoryComplete: true },
+        payload,
+      ),
       epoch: 1,
       deletionHistoryComplete: true,
     },

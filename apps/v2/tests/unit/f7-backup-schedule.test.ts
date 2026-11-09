@@ -135,4 +135,30 @@ describe('F7 backup scheduler', () => {
     expect(backup.state(profileId).paused).toBe(true);
     await expect(backup.request(profileId, 'CHANGE')).resolves.toBe('DEFERRED');
   });
+
+  it('f7_scheduler_state_survives_reload', async () => {
+    const remote = new MemoryRemote();
+    let now = 0;
+    let stored: ReturnType<PersonalBackupScheduler['state']> | null = null;
+    const make = () =>
+      new PersonalBackupScheduler({
+        remote,
+        now: () => now,
+        getRecoverySecret: async () => 'secret',
+        getUid: async () => uid,
+        collect: async () => snapshot('a'.repeat(64)),
+        encrypt: async () => encrypted,
+        loadState: async () => stored,
+        saveState: async (_profile, state) => {
+          stored = state;
+        },
+      });
+    const first = make();
+    await expect(first.request(profileId, 'OPEN')).resolves.toBe('VERIFIED');
+    expect(remote.puts).toHaveLength(1);
+    now += 60 * 60_000;
+    const reloaded = make();
+    await expect(reloaded.request(profileId, 'CHANGE')).resolves.toBe('SKIPPED');
+    expect(remote.puts).toHaveLength(1);
+  });
 });

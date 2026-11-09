@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OutboxOperation } from '../../src/application/sync-types';
 import type { ProfileRecord } from '../../src/application/profile-service';
-import type { F7BackupSnapshot } from '../../src/platform/backup/f7-format';
+import { snapshotChecksum, type F7BackupSnapshot } from '../../src/platform/backup/f7-format';
 import { commitF7Restore, prepareF7Restore } from '../../src/platform/backup/restore-commit';
-import { digestPayload } from '../../src/platform/sync/firebase-remote';
 import {
   deleteV2DatabaseForTests,
   openV2Database,
@@ -18,16 +17,28 @@ const libraryId = 'library-a';
 
 async function snapshot(overrides: Partial<F7BackupSnapshot['manifest']> = {}): Promise<F7BackupSnapshot> {
   const payload = { editais: [{ profileId, id: 'edital-1', title: 'TJPB' }] };
+  const manifest = {
+    formatVersion: 3 as const,
+    profileId,
+    recordCount: 1,
+    epoch: 1,
+    deletionHistoryComplete: true,
+    ...overrides,
+  };
+  const checksum =
+    overrides.checksum ??
+    (await snapshotChecksum(
+      {
+        formatVersion: manifest.formatVersion,
+        profileId: manifest.profileId,
+        recordCount: manifest.recordCount,
+        epoch: manifest.epoch,
+        deletionHistoryComplete: manifest.deletionHistoryComplete,
+      },
+      payload,
+    ));
   return {
-    manifest: {
-      formatVersion: 3,
-      profileId,
-      recordCount: 1,
-      checksum: await digestPayload(payload),
-      epoch: 1,
-      deletionHistoryComplete: true,
-      ...overrides,
-    },
+    manifest: { ...manifest, checksum },
     payload,
   };
 }
@@ -55,6 +66,14 @@ async function metaKeys(): Promise<string[]> {
   const tx = db.transaction(STORES.meta, 'readonly');
   const rows = (await requestResult(tx.objectStore(STORES.meta).getAll())) as Array<{ key: string }>;
   return rows.map((row) => row.key);
+}
+
+async function editalRow(): Promise<Record<string, unknown> | undefined> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction(STORES.editais, 'readonly');
+  return (await requestResult(
+    tx.objectStore(STORES.editais).get([profileId, 'edital-1']),
+  )) as Record<string, unknown> | undefined;
 }
 
 beforeEach(async () => {
@@ -158,5 +177,36 @@ describe('F7 restore', () => {
     await expect(commitF7Restore(prepared.preview.id, true)).resolves.toBe('LOCAL_COMMITTED');
     await expect(commitF7Restore(prepared.preview.id, true)).resolves.toBe('LOCAL_COMMITTED');
     expect((await metaKeys()).filter((key) => key === `restore:${profileId}`)).toHaveLength(1);
+  });
+
+  it('f7_restore_applies_entities_to_the_target_stores', async () => {
+    await seed();
+    const prepared = await prepareF7Restore(await snapshot(), profileId);
+    expect(prepared.kind).toBe('PREVIEW');
+    if (prepared.kind !== 'PREVIEW') return;
+    await expect(commitF7Restore(prepared.preview.id, true)).resolves.toBe('LOCAL_COMMITTED');
+    await expect(editalRow()).resolves.toMatchObject({ title: 'TJPB' });
+  });
+
+  it('f7_restore_preview_counts_existing_rows_as_updates', async () => {
+    await seed();
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(STORES.editais, 'readwrite');
+    tx.objectStore(STORES.editais).put({
+      profileId,
+      id: 'edital-1',
+      title: 'OLD',
+      status: 'ACTIVE',
+      localRevision: 1,
+    });
+    await transactionDone(tx);
+
+    const prepared = await prepareF7Restore(await snapshot(), profileId);
+    expect(prepared.kind).toBe('PREVIEW');
+    if (prepared.kind !== 'PREVIEW') return;
+    expect(prepared.preview.toUpdate).toBe(1);
+    expect(prepared.preview.toCreate).toBe(0);
+    await expect(commitF7Restore(prepared.preview.id, true)).resolves.toBe('LOCAL_COMMITTED');
+    await expect(editalRow()).resolves.toMatchObject({ title: 'TJPB' });
   });
 });

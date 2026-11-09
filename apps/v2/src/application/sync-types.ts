@@ -104,7 +104,11 @@ export type ProfileBinding = {
 export type RemoteMutationResult =
   | { kind: 'APPLIED'; remoteRevision: number }
   | { kind: 'ALREADY_APPLIED'; remoteRevision: number }
-  | { kind: 'CONFLICT'; remoteRevision: number };
+  | {
+      kind: 'CONFLICT';
+      remoteRevision: number;
+      remote?: { payload: unknown | null; deleted: boolean };
+    };
 
 export type RemoteMutationPort = {
   apply(operation: OutboxOperation): Promise<RemoteMutationResult>;
@@ -112,6 +116,7 @@ export type RemoteMutationPort = {
   lookup(
     operationId: string,
     entityId?: string,
+    payloadDigest?: string,
   ): Promise<'APPLIED' | 'MISSING' | 'UNKNOWN' | 'MISMATCH'>;
   lookupRevision?(operationId: string): Promise<number | null>;
 };

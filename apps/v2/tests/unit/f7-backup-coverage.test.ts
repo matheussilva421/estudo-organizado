@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { collectF7Backup } from '../../src/platform/backup/collect';
-import { inspectF7Backup } from '../../src/platform/backup/f7-format';
-import { digestPayload } from '../../src/platform/sync/firebase-remote';
+import { inspectF7Backup, snapshotChecksum } from '../../src/platform/backup/f7-format';
 import {
   deleteV2DatabaseForTests,
   openV2Database,
@@ -140,6 +139,19 @@ describe('F7 backup coverage', () => {
     await expect(inspectF7Backup(tampered)).resolves.toMatchObject({ kind: 'INVALID' });
   });
 
+  it('f7_tombstones_without_epoch_force_rebaseline', async () => {
+    await seed();
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(STORES.meta, 'readwrite');
+    tx.objectStore(STORES.meta).delete(`epoch:${profileId}`);
+    await transactionDone(tx);
+    const snapshot = await collectF7Backup(profileId);
+    expect(snapshot.manifest.deletionHistoryComplete).toBe(false);
+    await expect(inspectF7Backup(snapshot)).resolves.toMatchObject({
+      kind: 'REBASELINE_REQUIRED',
+    });
+  });
+
   it('f7_unknown_schema_preserved_or_rejected_without_loss', async () => {
     await seed();
     const snapshot = await collectF7Backup(profileId);
@@ -147,10 +159,16 @@ describe('F7 backup coverage', () => {
       ...snapshot.payload,
       future_store: [{ profileId, id: 'future-1', value: 'preservado' }],
     };
-    const manifest = {
-      ...snapshot.manifest,
+    const manifestFields = {
+      formatVersion: snapshot.manifest.formatVersion,
+      profileId: snapshot.manifest.profileId,
       recordCount: snapshot.manifest.recordCount + 1,
-      checksum: await digestPayload(payload),
+      epoch: snapshot.manifest.epoch,
+      deletionHistoryComplete: snapshot.manifest.deletionHistoryComplete,
+    };
+    const manifest = {
+      ...manifestFields,
+      checksum: await snapshotChecksum(manifestFields, payload),
     };
     const result = await inspectF7Backup({ manifest, payload });
     expect(result.kind).toBe('VALID');

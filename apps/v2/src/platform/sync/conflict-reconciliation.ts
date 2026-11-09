@@ -8,6 +8,7 @@ import {
   type PersistedConflict,
 } from '../indexeddb';
 import type { RemoteEntity } from './remote-schema';
+import { STORE_BY_ENTITY_TYPE } from './entity-stores';
 
 export type ReconcileResult =
   | { kind: 'APPLY'; next: OutboxPayload }
@@ -18,8 +19,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+const SYNC_METADATA = new Set(['localRevision']);
+
+function comparable(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  const copy = { ...value };
+  for (const key of SYNC_METADATA) delete copy[key];
+  return copy;
+}
+
 function sameValue(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return JSON.stringify(comparable(left)) === JSON.stringify(comparable(right));
 }
 
 function conflict(local: unknown, remote: unknown, reason: string): ReconcileResult {
@@ -61,6 +71,7 @@ export function reconcileRemoteEntity(
   const next: Record<string, unknown> = { ...localRecord };
   const divergent: string[] = [];
   for (const [key, value] of Object.entries(remoteRecord)) {
+    if (SYNC_METADATA.has(key)) continue;
     if (!(key in localRecord)) {
       next[key] = value;
       continue;
@@ -73,12 +84,19 @@ export function reconcileRemoteEntity(
   return { kind: 'APPLY', next: next as OutboxPayload };
 }
 
-export type ConflictChoice = 'LOCAL' | 'REMOTE' | 'MANUAL';
+export type ConflictChoice = 'LOCAL' | 'REMOTE';
 
 function newOperationId(): string {
   const cryptoApi = globalThis.crypto;
   if (cryptoApi && typeof cryptoApi.randomUUID === 'function') return cryptoApi.randomUUID();
   return `conflict-op-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function revisionOf(value: unknown): number | null {
+  if (!isRecord(value)) return null;
+  return typeof value.localRevision === 'number' && Number.isInteger(value.localRevision)
+    ? value.localRevision
+    : null;
 }
 
 /**
@@ -107,7 +125,12 @@ export async function resolveRemoteConflict(
   )) as ProfileRecord | undefined;
   if (!profile) return 'STALE';
 
-  const transaction = database.transaction([STORES.conflicts, STORES.outbox], 'readwrite');
+  const storeName = STORE_BY_ENTITY_TYPE[conflict.entityType];
+  if (!storeName) return 'FAILED';
+  const transaction = database.transaction(
+    [STORES.conflicts, STORES.outbox, STORES.tombstones, storeName],
+    'readwrite',
+  );
   try {
     const current = (await requestResult(
       transaction.objectStore(STORES.conflicts).get(conflictId),
@@ -118,6 +141,15 @@ export async function resolveRemoteConflict(
     }
 
     if (choice === 'LOCAL') {
+      const localRow = await requestResult(
+        transaction.objectStore(storeName).get([current.profileId, current.entityId]),
+      );
+      const expected = revisionOf(current.localPayload);
+      const currentRevision = revisionOf(localRow);
+      if (localRow !== undefined && expected !== null && currentRevision !== expected) {
+        transaction.abort();
+        return 'STALE';
+      }
       const operationId = newOperationId();
       const operation: OutboxOperation = {
         operationId,
@@ -140,17 +172,34 @@ export async function resolveRemoteConflict(
         resolution: 'LOCAL',
         resolvedByOperationId: operationId,
       });
-    } else if (choice === 'REMOTE') {
+    } else {
+      if (current.deleted) {
+        transaction.objectStore(STORES.tombstones).put({
+          profileId: current.profileId,
+          entityType: current.entityType,
+          entityId: current.entityId,
+          operationId: `conflict:${current.conflictId}`,
+          baseRevision: current.remoteRevision,
+          epoch: 0,
+          deleted: true,
+          deletedAt: new Date().toISOString(),
+          snapshot: current.localPayload ?? {},
+        });
+        transaction.objectStore(storeName).delete([current.profileId, current.entityId]);
+      } else if (isRecord(current.remotePayload)) {
+        transaction.objectStore(storeName).put({
+          ...current.remotePayload,
+          profileId: current.profileId,
+          id: current.entityId,
+        });
+      } else {
+        transaction.abort();
+        return 'STALE';
+      }
       transaction.objectStore(STORES.conflicts).put({
         ...current,
         status: 'RESOLVED',
         resolution: 'REMOTE',
-      });
-    } else {
-      transaction.objectStore(STORES.conflicts).put({
-        ...current,
-        status: 'RESOLVED',
-        resolution: 'MANUAL',
       });
     }
     await transactionDone(transaction);

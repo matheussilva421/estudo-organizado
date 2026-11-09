@@ -7,6 +7,7 @@ import type { LockPort } from '../../src/platform/sync/coordination';
 import { LocalProfileRepository } from '../../src/platform/local-profile-repository';
 import {
   deleteV2DatabaseForTests,
+  getConflicts,
   openV2Database,
   requestResult,
   STORES,
@@ -138,5 +139,148 @@ describe('F7 sync coordinator', () => {
     await coordinator(remote).requestFlush(profileId, 'RESUME');
     expect(remote.readEntity('edital-1')).toBeNull();
     expect((await read('op-del'))?.status).toBe('CONFIRMED');
+  });
+
+  it('f7_pull_after_flush_marks_converged_only_when_cursor_is_verified', async () => {
+    await seed(operation());
+    const remote = new FakeRemotePort({ uid, profileId });
+    let pulls = 0;
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      pull: async () => {
+        pulls += 1;
+        return 'CONVERGED';
+      },
+    });
+    const health = await subject.requestFlush(profileId, 'MANUAL');
+    expect(pulls).toBe(1);
+    expect(health.converged).toBe(true);
+  });
+
+  it('f7_conflict_keeps_the_remote_payload_in_the_store', async () => {
+    await seed(operation());
+    const remotePayload = {
+      id: 'edital-1',
+      profileId,
+      title: 'REMOTE',
+      status: 'ACTIVE',
+      localRevision: 2,
+    };
+    const remote: RemoteMutationPort = {
+      async apply() {
+        return {
+          kind: 'CONFLICT',
+          remoteRevision: 2,
+          remote: { payload: remotePayload, deleted: false },
+        };
+      },
+      async lookup() {
+        return 'MISSING';
+      },
+    };
+    await coordinator(remote).requestFlush(profileId, 'MANUAL');
+    const [conflict] = await getConflicts(profileId);
+    expect(conflict).toMatchObject({
+      remotePayload: remotePayload,
+      deleted: false,
+      remoteRevision: 2,
+    });
+  });
+
+  it('f7_flush_stops_later_operations_of_an_entity_after_conflict', async () => {
+    await seed(operation());
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(STORES.outbox, 'readwrite');
+    tx.objectStore(STORES.outbox).put(operation({ operationId: 'op-2', baseRevision: 1 }));
+    await transactionDone(tx);
+    let calls = 0;
+    const remote: RemoteMutationPort = {
+      async apply() {
+        calls += 1;
+        return { kind: 'CONFLICT', remoteRevision: 1 };
+      },
+      async lookup() {
+        return 'MISSING';
+      },
+    };
+    await coordinator(remote).requestFlush(profileId, 'MANUAL');
+    expect(calls).toBe(1);
+  });
+
+  it('f7_ack_failure_remains_visible_as_pending', async () => {
+    await seed(operation());
+    const remote = new FakeRemotePort({ uid, profileId });
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      confirm: async () => 'FAILED',
+    });
+    const health = await subject.requestFlush(profileId, 'MANUAL');
+    expect(health.pendingCount).toBe(1);
+    expect((await read())?.status).toBe('PENDING');
+  });
+
+  it('f7_missing_delivery_binding_blocks_the_send', async () => {
+    const missingBinding = operation({ deliveryUid: null });
+    await seed(missingBinding);
+    const remote = new FakeRemotePort({ uid, profileId });
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      getEligible: async () => [missingBinding],
+    });
+    const health = await subject.requestFlush(profileId, 'MANUAL');
+    expect(remote.appliedCount()).toBe(0);
+    expect(health.pendingCount).toBeGreaterThan(0);
+  });
+
+  it('f7_outbox_read_failure_is_not_reported_as_zero_pending', async () => {
+    const remote = new FakeRemotePort({ uid, profileId });
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      getEligible: async () => {
+        throw new Error('indexeddb unavailable');
+      },
+    });
+    await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'FAILED',
+      pendingCount: 0,
+    });
+  });
+
+  it('f7_budget_pauses_before_sending', async () => {
+    await seed(operation());
+    const remote = new FakeRemotePort({ uid, profileId });
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      budget: {
+        usage: {
+          reads: 0,
+          writes: 20,
+          deletes: 0,
+          bytesOut: 0,
+          windowStart: new Date(0).toISOString(),
+        },
+        limits: {
+          reads: 50_000,
+          writes: 20,
+          deletes: 20_000,
+          bytesOut: 10 * 1024 * 1024 * 1024,
+          periodMs: 24 * 60 * 60_000,
+        },
+      },
+    });
+    await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'PAUSED_QUOTA',
+    });
+    expect(remote.appliedCount()).toBe(0);
   });
 });
