@@ -45,12 +45,12 @@ Os pareceres completos estão no pacote de evidências. Todos observaram que o c
 | Runtime | composition root liga Auth, Firestore, pull, coordinator, backup, restore e painel local; modo local não importa Firebase | `f7-runtime.test.ts` 3 PASS |
 | Estados | `CONFLICT`, `RECOVERY_REQUIRED`, `PAUSED_QUOTA`, `PAUSED_AUTH`, `PENDING_OFFLINE`, `SYNCING` têm rótulos próprios; saúde local reflete conteúdo real | `f7-sync-view.test.ts` 9 PASS |
 | PWA | assets de build entram no precache; `ignoreVary` no cache; primeira visita sobrevive offline; update só retorna APPLIED após `controllerchange`; rascunhos sujos bloqueiam update | `pwa-offline` 4 PASS, `f7-sw-update` 7 PASS |
+| Delivery F3/F5/F4 | writers deixam de marcar `deliveryMode:'BLOCKED'`; gate aceita todos os tipos; consentimento limpa o bloqueio legado; coordinator entrega planejamento | `f7-delivery-types` 4 PASS, `f7-sync-coordinator` 13 PASS |
 
 ### Pendentes, parciais ou deliberadamente bloqueados
 
 | Item | Estado | Motivo |
 |---|---|---|
-| Planning/review remotos | `BLOCKED_DELIVERY_CONTRACT` | `canDeliver` mantém F3/F5 locais; falta contrato remoto específico e roundtrip real. Não declarar S24 PASS. |
 | Regras atômicas com `getAfter` | `PARTIAL` | tombstone e `changeId` corrigidos; vínculo atômico entidade/recibo/change/head ainda não provado. |
 | Rebaseline cursor/epoch | `PARTIAL` | entidades e tombstones aplicados; cursor/epoch completos dependem de contrato de `historyFloor` no T09. |
 | Previews em memória | `PARTIAL` | preview de restore/rebaseline expira com reload; UI refaz a prévia. |
@@ -69,7 +69,7 @@ Os pareceres completos estão no pacote de evidências. Todos observaram que o c
 |---|---|
 | `npm run typecheck` | PASS |
 | `npm run lint` | PASS |
-| `npm run test:unit` | **755 PASS / 111 arquivos** |
+| `npm run test:unit` | **760 PASS / 112 arquivos** |
 | `npm run build` | PASS (Vite 8.3.5; chunks Firebase lazy) |
 | `npm run test:e2e` | **162 PASS + 2 skips / 164** |
 | Firebase Emulator (`demo-estudo-v2`) | **9 PASS** (Rules + transação) |

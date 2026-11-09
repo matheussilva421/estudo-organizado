@@ -106,7 +106,7 @@ VITE_V2_BACKUP_ENDPOINT=https://<worker-v2>.<account>.workers.dev
 | S21 | senha/chave/arquivo inválido | falha fechada |
 | S22 | URL V2 isolada | V1 intocada |
 | S23 | backup >25 MiB | exportação local, sem truncar |
-| S24 | todos os tipos F2–F6 | roundtrip/relações; F3/F5 remotos bloqueados hoje |
+| S24 | todos os tipos F2–F6 | roundtrip/relações locais; serviços reais NOT_RUN |
 | S25 | aparelhos disponíveis | PASS real ou NOT_RUN |
 
 Estados permitidos: `PASS_REAL_ISOLATED`, `FAIL`, `NOT_RUN`, `INCONCLUSIVE`, `BLOCKED`. Nunca converter mock em PASS real.
