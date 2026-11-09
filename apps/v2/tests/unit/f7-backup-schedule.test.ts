@@ -42,7 +42,7 @@ class MemoryRemote implements BackupRemotePort {
   async get() {
     return null;
   }
-  async list() {
+  async list(): Promise<Array<{ id: string; createdAt: string; size: number }>> {
     return [];
   }
   async deleteVerifiedOldVersion(id: string) {
@@ -160,5 +160,26 @@ describe('F7 backup scheduler', () => {
     const reloaded = make();
     await expect(reloaded.request(profileId, 'CHANGE')).resolves.toBe('SKIPPED');
     expect(remote.puts).toHaveLength(1);
+  });
+
+  it('f7_scheduler_hydrates_remote_versions_for_multi_device_retention', async () => {
+    const remote = new MemoryRemote();
+    remote.list = async () =>
+      Array.from({ length: 8 }, (_, index) => ({
+        id: `old-${index}`,
+        createdAt: new Date(index * 1000).toISOString(),
+        size: 1,
+      }));
+    const backup = new PersonalBackupScheduler({
+      remote,
+      now: () => 10 * day,
+      getRecoverySecret: async () => 'secret',
+      getUid: async () => uid,
+      collect: async () => snapshot('b'.repeat(64)),
+      encrypt: async () => encrypted,
+    });
+    await expect(backup.request(profileId, 'MANUAL')).resolves.toBe('VERIFIED');
+    expect(backup.state(profileId).versions).toHaveLength(7);
+    expect(remote.deletes.length).toBeGreaterThan(0);
   });
 });

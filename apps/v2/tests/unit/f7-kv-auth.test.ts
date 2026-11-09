@@ -214,4 +214,43 @@ describe('F7 backup worker auth', () => {
       204,
     );
   });
+
+  it('f7_worker_lists_backup_timestamps', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: new MemoryKV(),
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      JWKS: jwks,
+    };
+    const token = await jwt('uid-a', {}, privateKey);
+    const createdAt = 1_700_000_000_000;
+    const id = `backup-aaaaaaaaaaaaaaaa-${createdAt}`;
+    const post = await handleBackupRequest(
+      request(
+        'POST',
+        '/backups',
+        token,
+        JSON.stringify({
+          id,
+          encrypted: {
+            format: 'eo-v2-encrypted-v1',
+            iv: 'a',
+            ciphertext: 'b',
+            wrappedKey: 'c',
+            kdf: { name: 'PBKDF2' },
+          },
+        }),
+        { 'Content-Type': 'application/json' },
+      ),
+      bindings,
+    );
+    expect(post.status).toBe(201);
+    const listed = await handleBackupRequest(request('GET', '/backups', token), bindings);
+    const body = (await listed.json()) as { items: Array<{ id: string; createdAt: string }> };
+    expect(body.items[0]).toMatchObject({
+      id,
+      createdAt: new Date(createdAt).toISOString(),
+    });
+  });
 });

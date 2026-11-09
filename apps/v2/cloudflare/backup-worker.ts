@@ -124,7 +124,19 @@ export async function handleBackupRequest(
     const listed = await bindings.BACKUPS.list(prefix);
     return json(
       200,
-      { items: listed.keys.map((key) => ({ id: key.slice(prefix.length) })) },
+      {
+        items: listed.keys.map((key) => {
+          const id = key.slice(prefix.length);
+          const timestamp = Number(id.split('-').at(-1));
+          return {
+            id,
+            createdAt: Number.isFinite(timestamp) && timestamp > 0
+              ? new Date(timestamp).toISOString()
+              : '',
+            size: 0,
+          };
+        }),
+      },
       bindings.ALLOWED_ORIGIN,
     );
   }

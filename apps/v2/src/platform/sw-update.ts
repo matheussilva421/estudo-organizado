@@ -1,3 +1,5 @@
+import { V1_HOSTS } from './firebase/config';
+
 export type ServiceWorkerState = 'UNSUPPORTED' | 'REGISTERED' | 'IDLE';
 
 export type UpdateSafety = {
@@ -95,9 +97,11 @@ export async function applyWaitingUpdate(
 }
 
 export async function registerV2ServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (!('serviceWorker' in navigator)) return null;
+  if (!('serviceWorker' in navigator) || typeof location === 'undefined') return null;
+  if ((V1_HOSTS as readonly string[]).includes(location.hostname.toLowerCase())) return null;
+  const scope = new URL('.', location.href).pathname;
   try {
-    return await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    return await navigator.serviceWorker.register(`${scope}sw.js`, { scope });
   } catch {
     return null;
   }

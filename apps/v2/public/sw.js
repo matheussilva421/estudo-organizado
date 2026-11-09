@@ -1,4 +1,4 @@
-const CACHE_NAME = 'estudo-organizado-v2-shell-v1';
+const CACHE_NAME = 'estudo-organizado-v2-shell-__V2_BUILD__';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
 const PRECACHE = Array.isArray(self.__PRECACHE__) ? self.__PRECACHE__ : SHELL;
 

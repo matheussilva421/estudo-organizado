@@ -19,6 +19,7 @@ describe('F7 staging readiness', () => {
   it('f7_staging_url_must_differ_from_v1', () => {
     expect(verifyStagingReadiness({ ...ready, url: 'https://estudo-organizado.matheussilva421.workers.dev' })).toBe('BLOCKED');
     expect(verifyStagingReadiness({ ...ready, url: 'https://app-de-estudos-14564.web.app' })).toBe('BLOCKED');
+    expect(verifyStagingReadiness({ ...ready, url: 'http://127.0.0.1:18431' })).toBe('BLOCKED');
   });
 
   it('f7_staging_does_not_touch_v1_sw_idb_or_firebase', () => {

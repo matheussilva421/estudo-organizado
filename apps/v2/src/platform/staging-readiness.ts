@@ -32,6 +32,16 @@ function isV1Url(value: string): boolean {
   }
 }
 
+function isSecureHostedUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return false;
+    return !['localhost', '127.0.0.1', '::1', '[::1]'].includes(url.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
 /**
  * A local configuration can prove isolation, but only a real HTTP read-back
  * after G-STAGING can prove the URL is reachable. Missing proof is BLOCKED.
@@ -40,6 +50,7 @@ export function verifyStagingReadiness(input: StagingReadiness): StagingDecision
   if (!input || typeof input !== 'object') return 'BLOCKED';
   if (!input.buildSha.trim() || !input.url.trim()) return 'BLOCKED';
   if (isV1Url(input.url)) return 'BLOCKED';
+  if (!isSecureHostedUrl(input.url)) return 'BLOCKED';
   if (!input.isolatedOrigin || !input.isolatedFirebase || !input.v1Unaffected) return 'BLOCKED';
   if (!input.criticalTestsPassed || !input.liveReadback) return 'BLOCKED';
   if (!input.testDataOnly || input.usesPaidServices) return 'BLOCKED';

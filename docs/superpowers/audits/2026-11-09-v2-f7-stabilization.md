@@ -44,7 +44,7 @@ Os pareceres completos estão no pacote de evidências. Todos observaram que o c
 | Rules | tombstone sem payload, `changeId` ligado a `sequence` e `getAfter` de entidade/change/head no recibo | 10 testes Firebase PASS |
 | Runtime | composition root liga Auth, Firestore, pull, coordinator, backup, restore e painel local; modo local não importa Firebase | `f7-runtime.test.ts` 3 PASS |
 | Estados | `CONFLICT`, `RECOVERY_REQUIRED`, `PAUSED_QUOTA`, `PAUSED_AUTH`, `PENDING_OFFLINE`, `SYNCING` têm rótulos próprios; saúde local reflete conteúdo real | `f7-sync-view.test.ts` 9 PASS |
-| PWA | assets de build entram no precache; `ignoreVary` no cache; primeira visita sobrevive offline; update só retorna APPLIED após `controllerchange`; rascunhos sujos bloqueiam update | `pwa-offline` 4 PASS, `f7-sw-update` 7 PASS |
+| PWA | precache de assets com `ignoreVary`; `CACHE_NAME` versionado por build; primeira visita offline; update só APPLIED após `controllerchange`; staging exige HTTPS/host não-loopback e o SW recusa origem V1 | `pwa-offline` 4 PASS, `f7-sw-update` 7 PASS, staging 6 PASS |
 | Delivery F3/F5/F4 | writers deixam de marcar `deliveryMode:'BLOCKED'`; gate aceita todos os tipos; consentimento limpa o bloqueio legado; coordinator entrega planejamento | `f7-delivery-types` 4 PASS, `f7-sync-coordinator` 13 PASS |
 
 ### Pendentes, parciais ou deliberadamente bloqueados
@@ -57,8 +57,6 @@ Os pareceres completos estão no pacote de evidências. Todos observaram que o c
 | Migração V1 real | `BLOCKED_MAPPING` | dados não vazios falham fechados; falta mapeamento semântico por schema e fixtures não vazias. |
 | Concorrência real de Rules/CAS | `NOT_RUN` | testes unitários usam fake; emulador cobre forma/ownership, não corrida multi-cliente. |
 | Budget em serviço real | `PARTIAL` | orçamento aplicado antes do flush com uso persistido; números reais de quota só em T26. |
-| SW cache versionado por build | `PARTIAL` | precache por assets; `CACHE_NAME` ainda é fixo. |
-| Staging localhost/SW scope | `PARTIAL` | `verifyStagingReadiness` não exige HTTPS/host não-loopback; registro usa `/`. |
 | `otherTabsReady` sem resposta | `PARTIAL` | sem resposta após 300 ms ainda é tratado como seguro. |
 | Quatro HIGH F0 | `MITIGADO_LOCAL` | ver seção 5; nenhuma prova real. |
 

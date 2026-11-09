@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 
 function swPrecache(): Plugin {
   return {
@@ -25,7 +26,14 @@ function swPrecache(): Plugin {
       try {
         walk(dist);
         const source = readFileSync(sw, 'utf8');
-        writeFileSync(sw, `self.__PRECACHE__ = ${JSON.stringify(files.sort())};\n${source}`);
+        const buildId = createHash('sha256')
+          .update(files.sort().join('|'))
+          .digest('hex')
+          .slice(0, 12);
+        writeFileSync(
+          sw,
+          `self.__PRECACHE__ = ${JSON.stringify(files)};\n${source.replace('__V2_BUILD__', buildId)}`,
+        );
       } catch {
         // The SW is optional in non-browser/test builds.
       }

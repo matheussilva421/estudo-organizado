@@ -83,9 +83,21 @@ export class PersonalBackupScheduler {
 
   async request(profileId: string, reason: BackupReason): Promise<BackupResult> {
     if (this.disposed) return 'FAILED';
-    if (!this.states.has(profileId) && this.loadState) {
-      const loaded = await this.loadState(profileId).catch(() => null);
-      if (loaded) this.states.set(profileId, loaded);
+    if (!this.states.has(profileId)) {
+      const loaded = this.loadState ? await this.loadState(profileId).catch(() => null) : null;
+      const initial = loaded ?? {
+        lastVerifiedAt: null,
+        lastDigest: null,
+        versions: [],
+        paused: false,
+      };
+      const remoteVersions = await this.remote.list().catch(() => []);
+      const byId = new Map(initial.versions.map((version) => [version.id, version]));
+      for (const version of remoteVersions) byId.set(version.id, version);
+      initial.versions = [...byId.values()].sort((left, right) =>
+        left.createdAt.localeCompare(right.createdAt),
+      );
+      this.states.set(profileId, initial);
     }
     const state = this.state(profileId);
     this.states.set(profileId, state);
