@@ -6,7 +6,7 @@ afterEach(() => {
 });
 
 describe('F7 tab presence', () => {
-  it('f7_presence_counts_only_other_shared_tabs', async () => {
+  it('f7_presence_without_a_held_lock_counts_all_shared_tabs', async () => {
     vi.stubGlobal('navigator', {
       locks: {
         query: async () => ({
@@ -18,7 +18,25 @@ describe('F7 tab presence', () => {
         }),
       },
     });
+    await expect(countOtherTabs()).resolves.toBe(2);
+  });
+
+  it('f7_presence_counts_only_other_shared_tabs', async () => {
+    vi.stubGlobal('navigator', {
+      locks: {
+        request: (_name: string, _options: unknown, task: () => Promise<void>) => task(),
+        query: async () => ({
+          held: [
+            { name: TAB_PRESENCE_LOCK, mode: 'shared' },
+            { name: TAB_PRESENCE_LOCK, mode: 'shared' },
+            { name: 'another-lock', mode: 'exclusive' },
+          ],
+        }),
+      },
+    });
+    const cleanup = holdTabPresence();
     await expect(countOtherTabs()).resolves.toBe(1);
+    cleanup();
   });
 
   it('f7_presence_without_query_fails_closed', async () => {
