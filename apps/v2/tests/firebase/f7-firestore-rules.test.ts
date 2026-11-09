@@ -157,4 +157,23 @@ describe('F7 Firestore rules', () => {
 
     await assertSucceeds(getDoc(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`)));
   });
+
+  it('f7_rules_require_entity_change_and_head_in_the_receipt_transaction', async () => {
+    const db = testEnv.authenticatedContext('uid-a').firestore();
+    const missingEntity = writeBatch(db);
+    missingEntity.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), operation('uid-a'));
+    missingEntity.set(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a'));
+    missingEntity.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
+    await assertFails(missingEntity.commit());
+
+    const mismatchedRevision = writeBatch(db);
+    mismatchedRevision.set(
+      doc(db, `users/uid-a/libraries/${library}/entities/edital-1`),
+      { ...entity('uid-a'), revision: 2 },
+    );
+    mismatchedRevision.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), operation('uid-a'));
+    mismatchedRevision.set(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a'));
+    mismatchedRevision.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
+    await assertFails(mismatchedRevision.commit());
+  });
 });

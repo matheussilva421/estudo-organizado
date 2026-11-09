@@ -41,7 +41,7 @@ Os pareceres completos estão no pacote de evidências. Todos observaram que o c
 | Scheduler | estado de 24 h/7 versões/pausa persistido em `meta` | `f7-backup-schedule` 8 PASS |
 | Worker | POST imutável por ID e DELETE recusa a última cópia; JWKS padrão e entrypoint `fetch` | `f7-kv-auth` 8 PASS |
 | V1 | migração não mapeada falha fechada (`AMBIGUOUS`, sem snapshot) em vez de cópia rasa SAFE | `f7-v1-migration.test.ts` 7 PASS |
-| Rules | tombstone sem payload e `changeId` ligado a `sequence`; testes negativos no emulador | 9 testes Firebase PASS |
+| Rules | tombstone sem payload, `changeId` ligado a `sequence` e `getAfter` de entidade/change/head no recibo | 10 testes Firebase PASS |
 | Runtime | composition root liga Auth, Firestore, pull, coordinator, backup, restore e painel local; modo local não importa Firebase | `f7-runtime.test.ts` 3 PASS |
 | Estados | `CONFLICT`, `RECOVERY_REQUIRED`, `PAUSED_QUOTA`, `PAUSED_AUTH`, `PENDING_OFFLINE`, `SYNCING` têm rótulos próprios; saúde local reflete conteúdo real | `f7-sync-view.test.ts` 9 PASS |
 | PWA | assets de build entram no precache; `ignoreVary` no cache; primeira visita sobrevive offline; update só retorna APPLIED após `controllerchange`; rascunhos sujos bloqueiam update | `pwa-offline` 4 PASS, `f7-sw-update` 7 PASS |
@@ -51,7 +51,6 @@ Os pareceres completos estão no pacote de evidências. Todos observaram que o c
 
 | Item | Estado | Motivo |
 |---|---|---|
-| Regras atômicas com `getAfter` | `PARTIAL` | tombstone e `changeId` corrigidos; vínculo atômico entidade/recibo/change/head ainda não provado. |
 | Rebaseline cursor/epoch | `PARTIAL` | entidades e tombstones aplicados; cursor/epoch completos dependem de contrato de `historyFloor` no T09. |
 | Previews em memória | `PARTIAL` | preview de restore/rebaseline expira com reload; UI refaz a prévia. |
 | Retenção multi-dispositivo | `PARTIAL` | estado do scheduler persiste neste dispositivo; `remote.list()` ainda não hidrata versões de outro dispositivo. |
@@ -72,7 +71,7 @@ Os pareceres completos estão no pacote de evidências. Todos observaram que o c
 | `npm run test:unit` | **760 PASS / 112 arquivos** |
 | `npm run build` | PASS (Vite 8.3.5; chunks Firebase lazy) |
 | `npm run test:e2e` | **162 PASS + 2 skips / 164** |
-| Firebase Emulator (`demo-estudo-v2`) | **9 PASS** (Rules + transação) |
+| Firebase Emulator (`demo-estudo-v2`) | **10 PASS** (Rules + transação) |
 
 Os 2 skips são os históricos. As imagens F4 regravadas pelo E2E foram revertidas para os blobs versionados; as cópias externas em `estudo-organizado-preservacao-20261104` permanecem intactas.
 

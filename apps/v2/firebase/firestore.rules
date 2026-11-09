@@ -113,7 +113,10 @@ service cloud.firestore {
           allow create: if owns(uid)
             && validLibrary(remoteLibraryId)
             && operationId == request.resource.data.operationId
-            && validOperation(request.resource.data);
+            && validOperation(request.resource.data)
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.revision == request.resource.data.revision
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.entityId == request.resource.data.entityId
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.changeSequence == request.resource.data.changeSequence;
           allow update, delete: if false;
         }
 
