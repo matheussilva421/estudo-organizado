@@ -66,7 +66,7 @@ Os pareceres completos estão no pacote de evidências. Todos observaram que o c
 |---|---|
 | `npm run typecheck` | PASS |
 | `npm run lint` | PASS |
-| `npm run test:unit` | **760 PASS / 112 arquivos** |
+| `npm run test:unit` | **762 PASS / 112 arquivos** |
 | `npm run build` | PASS (Vite 8.3.5; chunks Firebase lazy) |
 | `npm run test:e2e` | **162 PASS + 2 skips / 164** |
 | Firebase Emulator (`demo-estudo-v2`) | **10 PASS** (Rules + transação) |
