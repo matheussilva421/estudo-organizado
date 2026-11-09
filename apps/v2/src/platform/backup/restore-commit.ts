@@ -134,6 +134,74 @@ function snapshotTombstones(snapshot: F7BackupSnapshot): Record<string, unknown>
   return rows.filter(isRecord);
 }
 
+type SnapshotIds = {
+  editais: Set<string>;
+  subjects: Set<string>;
+  links: Set<string>;
+  assuntos: Set<string>;
+  aulas: Set<string>;
+  scenarios: Set<string>;
+};
+
+function idsOf(snapshot: F7BackupSnapshot, store: string): Set<string> {
+  const rows = snapshot.payload[store];
+  if (!Array.isArray(rows)) return new Set();
+  return new Set(
+    rows
+      .filter(isRecord)
+      .map((row) => (typeof row.id === 'string' ? row.id : ''))
+      .filter((id) => id.length > 0),
+  );
+}
+
+function snapshotIds(snapshot: F7BackupSnapshot): SnapshotIds {
+  return {
+    editais: idsOf(snapshot, STORES.editais),
+    subjects: idsOf(snapshot, STORES.subjects),
+    links: idsOf(snapshot, STORES.editalDisciplines),
+    assuntos: idsOf(snapshot, STORES.assuntos),
+    aulas: idsOf(snapshot, STORES.aulas),
+    scenarios: idsOf(snapshot, STORES.planningScenarios),
+  };
+}
+
+function missingReference(value: unknown, ids: Set<string>): boolean {
+  return typeof value !== 'string' || !ids.has(value);
+}
+
+/** Conservative referential integrity for the F2/F3 academic hierarchy. */
+function referentialConflict(
+  store: string,
+  row: Record<string, unknown>,
+  ids: SnapshotIds,
+): boolean {
+  if (store === STORES.editalDisciplines) {
+    return missingReference(row.editalId, ids.editais) ||
+      missingReference(row.subjectId, ids.subjects);
+  }
+  if (store === STORES.assuntos) {
+    if (missingReference(row.editalDisciplineId, ids.links)) return true;
+    return row.parentId !== null && row.parentId !== undefined &&
+      missingReference(row.parentId, ids.assuntos);
+  }
+  if (store === STORES.aulas) {
+    return missingReference(row.editalDisciplineId, ids.links);
+  }
+  if (store === STORES.lessonTopicLinks) {
+    return missingReference(row.aulaId, ids.aulas) ||
+      missingReference(row.assuntoId, ids.assuntos);
+  }
+  if (store === STORES.planningScenarios) {
+    return missingReference(row.editalId, ids.editais);
+  }
+  if (store === STORES.planningBlocks) {
+    if (missingReference(row.scenarioId, ids.scenarios)) return true;
+    return row.editalDisciplineId !== 'unmapped' &&
+      missingReference(row.editalDisciplineId, ids.links);
+  }
+  return false;
+}
+
 async function currentTombstones(
   database: IDBDatabase,
   profileId: string,
@@ -168,6 +236,7 @@ export async function prepareF7Restore(
   const database = await openV2Database(targetProfileId);
   const tombstones = await currentTombstones(database, targetProfileId).catch(() => new Map());
   for (const row of snapshotTombstones(snapshot)) addTombstone(tombstones, row);
+  const ids = snapshotIds(snapshot);
 
   const stores = RESTORABLE_STORES.filter(
     (name) => name !== STORES.tombstones && database.objectStoreNames.contains(name),
@@ -188,6 +257,10 @@ export async function prepareF7Restore(
       if (key === null) continue;
       const entityId = typeof row.id === 'string' ? row.id : '';
       if (entityType && entityId && tombstones.has(`${entityType}:${entityId}`)) {
+        conflicts += 1;
+        continue;
+      }
+      if (referentialConflict(name, row, ids)) {
         conflicts += 1;
         continue;
       }
@@ -228,6 +301,7 @@ export async function commitF7Restore(
       (Array.isArray(stored.snapshot.payload[name]) && database.objectStoreNames.contains(name)),
   );
   const transaction = database.transaction([STORES.meta, ...stores], 'readwrite');
+  const ids = snapshotIds(stored.snapshot);
 
   try {
     const meta = transaction.objectStore(STORES.meta);
@@ -271,6 +345,7 @@ export async function commitF7Restore(
         if (key === null) continue;
         const entityId = typeof row.id === 'string' ? row.id : '';
         if (entityType && entityId && tombstones.has(`${entityType}:${entityId}`)) continue;
+        if (referentialConflict(name, row, ids)) continue;
         store.put({ ...row, profileId: stored.targetProfileId });
         applied += 1;
       }

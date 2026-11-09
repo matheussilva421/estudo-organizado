@@ -209,4 +209,38 @@ describe('F7 restore', () => {
     await expect(commitF7Restore(prepared.preview.id, true)).resolves.toBe('LOCAL_COMMITTED');
     await expect(editalRow()).resolves.toMatchObject({ title: 'TJPB' });
   });
+
+  it('f7_restore_does_not_write_an_orphan_reference', async () => {
+    await seed();
+    const payload = {
+      [STORES.subjects]: [{ profileId, id: 'subject-1', title: 'Disciplina' }],
+      [STORES.editalDisciplines]: [
+        { profileId, id: 'link-1', editalId: 'missing-edital', subjectId: 'subject-1' },
+      ],
+    };
+    const manifestFields = {
+      formatVersion: 3 as const,
+      profileId,
+      recordCount: 2,
+      epoch: 1,
+      deletionHistoryComplete: true,
+    };
+    const snapshot = {
+      manifest: { ...manifestFields, checksum: await snapshotChecksum(manifestFields, payload) },
+      payload,
+    };
+    const prepared = await prepareF7Restore(snapshot, profileId);
+    expect(prepared.kind).toBe('PREVIEW');
+    if (prepared.kind !== 'PREVIEW') return;
+    expect(prepared.preview.conflicts).toBe(1);
+    await expect(commitF7Restore(prepared.preview.id, true)).resolves.toBe('LOCAL_COMMITTED');
+    const db = await openV2Database(profileId);
+    const tx = db.transaction([STORES.subjects, STORES.editalDisciplines], 'readonly');
+    await expect(
+      requestResult(tx.objectStore(STORES.subjects).get([profileId, 'subject-1'])),
+    ).resolves.toBeDefined();
+    await expect(
+      requestResult(tx.objectStore(STORES.editalDisciplines).get([profileId, 'link-1'])),
+    ).resolves.toBeUndefined();
+  });
 });
