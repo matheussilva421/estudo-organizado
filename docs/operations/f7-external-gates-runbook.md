@@ -5,6 +5,8 @@
 **V1/main:** `9046cfa`, intocada.  
 **Regra:** este runbook não autoriza nada por si só. G-EXT e G-STAGING exigem consentimento expresso e separado.
 
+**Estabilização de 09/11/2026:** revisão independente, restore/feed/rebaseline aplicados aos stores, checksum/manifesto, Worker imutável/JWKS, PWA precache e runtime local. O checklist detalhado está em [f7-g-ext-staging-prep.md](f7-g-ext-staging-prep.md); a auditoria em [2026-11-09-v2-f7-stabilization.md](../superpowers/audits/2026-11-09-v2-f7-stabilization.md).
+
 ## 1. G-EXT — Firebase Spark e Cloudflare Free isolados
 
 ### Pré-condições humanas
@@ -18,8 +20,8 @@
 
 1. Criar o projeto Spark isolado e anotar `projectId`, `authDomain`, `appId` e a API key pública.
 2. Habilitar Google Auth e Firestore Standard; publicar `apps/v2/firebase/firestore.rules` e os índices.
-3. Configurar as variáveis públicas V2 no ambiente de homologação; nunca usar as da V1.
-4. Criar o Worker `apps/v2/cloudflare/backup-worker.ts` com binding KV Free e `FIREBASE_PROJECT_ID` isolado.
+3. Configurar as variáveis públicas V2 no ambiente de homologação, incluindo `VITE_V2_FIREBASE_API_KEY` e `VITE_V2_BACKUP_ENDPOINT`; nunca usar as da V1.
+4. Criar o Worker `apps/v2/cloudflare/backup-worker.ts` com binding KV Free, `FIREBASE_PROJECT_ID` isolado e `ALLOWED_ORIGIN`; o JWKS público do Google é o padrão e o arquivo exporta o entrypoint `fetch`. O modelo está em `apps/v2/cloudflare/wrangler.toml.example`.
 5. Executar primeiro os testes de emulador e depois o piloto real com dados sintéticos.
 6. Provar: login Google real; vínculo consentido; UID A não lê UID B; CAS/deduplicação; timeout/read-back; tombstone; backup criptografado e read-back; quota; dois clientes.
 
@@ -33,8 +35,8 @@ npm run test:unit
 npm run build
 npm run test:e2e
 
-# Rules no emulador (JRE 21+)
-$env:JAVA_HOME='C:\Users\slvma\.codex\tools\temurin21-jre\jdk-21.0.13+9-jre'
+# Rules no emulador (JRE 21+; use o caminho local do seu JRE)
+$env:JAVA_HOME='<caminho-do-jdk-21>'
 $env:PATH=($env:JAVA_HOME + '\bin;' + $env:PATH)
 npx firebase emulators:exec --config firebase/firebase.json --project demo-estudo-v2 --only firestore "npm run test:firebase"
 ```

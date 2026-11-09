@@ -1,0 +1,12 @@
+# Copie para wrangler.toml apenas sob G-EXT. Não versione IDs reais.
+name = "estudo-organizado-v2-backup"
+main = "backup-worker.ts"
+compatibility_date = "2026-11-09"
+
+[vars]
+FIREBASE_PROJECT_ID = "demo-estudo-v2"
+ALLOWED_ORIGIN = "https://v2.example.invalid"
+
+[[kv_namespaces]]
+binding = "BACKUPS"
+id = "REPLACE_WITH_FREE_KV_NAMESPACE_ID"
