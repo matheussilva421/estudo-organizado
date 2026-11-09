@@ -116,6 +116,9 @@ service cloud.firestore {
             && validOperation(request.resource.data)
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.revision == request.resource.data.revision
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.entityId == request.resource.data.entityId
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.revision == request.resource.data.revision
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.deleted == getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.deleted
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.epoch == getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.epoch
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.changeSequence == request.resource.data.changeSequence;
           allow update, delete: if false;
         }
@@ -134,7 +137,19 @@ service cloud.firestore {
           allow write: if metaId == 'head'
             && owns(uid)
             && validLibrary(remoteLibraryId)
-            && validHead(request.resource.data);
+            && validHead(request.resource.data)
+            && (
+              request.method == 'create'
+              || request.resource.data.changeSequence >= resource.data.changeSequence
+            )
+            && (
+              request.method == 'create'
+              || request.resource.data.epoch >= resource.data.epoch
+            )
+            && (
+              request.resource.data.changeSequence == 0
+              || existsAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence)))
+            );
         }
       }
     }

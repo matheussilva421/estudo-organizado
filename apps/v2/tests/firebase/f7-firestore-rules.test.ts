@@ -176,4 +176,62 @@ describe('F7 Firestore rules', () => {
     mismatchedRevision.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
     await assertFails(mismatchedRevision.commit());
   });
+
+  it('f7_rules_bind_change_fields_to_the_entity_head_and_receipt', async () => {
+    const db = testEnv.authenticatedContext('uid-a').firestore();
+    const mismatchedChange = writeBatch(db);
+    mismatchedChange.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), entity('uid-a'));
+    mismatchedChange.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), operation('uid-a'));
+    mismatchedChange.set(
+      doc(db, `users/uid-a/libraries/${library}/changes/1`),
+      { ...change('uid-a'), revision: 2 },
+    );
+    mismatchedChange.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
+    await assertFails(mismatchedChange.commit());
+
+    const mismatchedDeletion = writeBatch(db);
+    mismatchedDeletion.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), entity('uid-a'));
+    mismatchedDeletion.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), operation('uid-a'));
+    mismatchedDeletion.set(
+      doc(db, `users/uid-a/libraries/${library}/changes/1`),
+      { ...change('uid-a'), deleted: true },
+    );
+    mismatchedDeletion.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
+    await assertFails(mismatchedDeletion.commit());
+
+    const mismatchedEpoch = writeBatch(db);
+    mismatchedEpoch.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), entity('uid-a'));
+    mismatchedEpoch.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), operation('uid-a'));
+    mismatchedEpoch.set(
+      doc(db, `users/uid-a/libraries/${library}/changes/1`),
+      { ...change('uid-a'), epoch: 2 },
+    );
+    mismatchedEpoch.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
+    await assertFails(mismatchedEpoch.commit());
+  });
+
+  it('f7_rules_reject_a_head_that_jumps_without_its_change', async () => {
+    const db = testEnv.authenticatedContext('uid-a').firestore();
+    const initial = writeBatch(db);
+    initial.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), entity('uid-a'));
+    initial.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), operation('uid-a'));
+    initial.set(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a'));
+    initial.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
+    await assertSucceeds(initial.commit());
+
+    await assertFails(
+      setDoc(doc(db, `users/uid-a/libraries/${library}/meta/head`), {
+        ...head('uid-a'),
+        changeSequence: 5,
+      }),
+    );
+
+    const next = writeBatch(db);
+    next.set(doc(db, `users/uid-a/libraries/${library}/changes/5`), change('uid-a', 5));
+    next.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), {
+      ...head('uid-a'),
+      changeSequence: 5,
+    });
+    await assertSucceeds(next.commit());
+  });
 });
