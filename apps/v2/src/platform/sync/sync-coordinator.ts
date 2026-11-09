@@ -73,6 +73,7 @@ export class SyncCoordinator {
   private readonly budget: SyncCoordinatorOptions['budget'];
   private readonly persistBudget: SyncCoordinatorOptions['persistBudget'];
   private readonly stopped = new Set<string>();
+  private readonly recoveryRequired = new Set<string>();
 
   constructor(options: SyncCoordinatorOptions) {
     this.remote = options.remote;
@@ -93,12 +94,20 @@ export class SyncCoordinator {
     this.stopped.add(profileId);
   }
 
+  clearRecovery(profileId: string): void {
+    this.recoveryRequired.delete(profileId);
+  }
+
   async requestFlush(profileId: string, reason: FlushReason): Promise<SyncHealth> {
     if (this.stopped.has(profileId)) {
       const pending = await this.pendingCount(profileId);
       return pending < 0
         ? health(true, false, 0, 'FAILED')
         : health(true, false, pending, 'STOPPED');
+    }
+    if (this.recoveryRequired.has(profileId)) {
+      const pending = await this.pendingCount(profileId);
+      return health(true, false, pending < 0 ? 0 : pending, 'RECOVERY_REQUIRED');
     }
     const lockName = `estudo-organizado-v2:flush:${profileId}`;
     const outcome = await withSafeFlushLock(lockName, () => this.run(profileId, reason), this.locks);
@@ -124,6 +133,7 @@ export class SyncCoordinator {
     if (operations === null) return health(true, false, 0, 'FAILED');
     if (operations.length === 0) {
       const pull = this.pull ? await this.pull(profileId).catch(() => 'FAILED' as const) : null;
+      if (pull === 'RECOVERY_REQUIRED') this.recoveryRequired.add(profileId);
       return health(
         true,
         false,
@@ -228,6 +238,7 @@ export class SyncCoordinator {
       await this.persistBudget?.(this.budget.usage);
     }
     const pull = this.pull ? await this.pull(profileId).catch(() => 'FAILED' as const) : null;
+    if (pull === 'RECOVERY_REQUIRED') this.recoveryRequired.add(profileId);
     return health(
       true,
       remoteCommitted,

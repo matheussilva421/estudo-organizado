@@ -332,4 +332,30 @@ describe('F7 change feed', () => {
     await expect(editalRow('edital-1')).resolves.toBeUndefined();
     await expect(getSyncCursor(profileId)).resolves.toBeNull();
   });
+
+  it('f7_epoch_change_forces_recovery', async () => {
+    await seedProfile(profile());
+    await pullRemoteChanges(profileId, new FakeFeed([change(1)]), 2);
+    const changedEpoch: RemoteChangePort = {
+      async listAfter() {
+        return { changes: [], head: 2, epoch: 2 };
+      },
+      async readEntity() {
+        return null;
+      },
+    };
+    await expect(pullRemoteChanges(profileId, changedEpoch, 2)).resolves.toBe(
+      'RECOVERY_REQUIRED',
+    );
+    await expect(getSyncCursor(profileId)).resolves.toMatchObject({ epoch: 1, cursor: 1 });
+  });
+
+  it('f7_replaying_the_same_page_is_idempotent', async () => {
+    await seedProfile(profile());
+    const feed = new FakeFeed([change(1)]);
+    await expect(pullRemoteChanges(profileId, feed, 2)).resolves.toBe('CONVERGED');
+    await expect(pullRemoteChanges(profileId, feed, 2)).resolves.toBe('CONVERGED');
+    await expect(editalRow()).resolves.toMatchObject({ title: 'Edital 1' });
+    await expect(getSyncCursor(profileId)).resolves.toMatchObject({ cursor: 1 });
+  });
 });

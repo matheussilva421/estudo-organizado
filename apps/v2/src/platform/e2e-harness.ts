@@ -1,5 +1,9 @@
 import type { SubjectCommand, StudySubject } from '../domain/subject';
-import type { OutboxOperation } from '../application/sync-types';
+import type {
+  OutboxOperation,
+  RemoteMutationPort,
+  RemoteMutationResult,
+} from '../application/sync-types';
 import type { CommitResult, ContentCommand } from '../application/content-commands';
 import type { ContentSnapshot } from '../application/content-service';
 import type {
@@ -38,6 +42,7 @@ import { flushPending } from './sync/flush';
 import { FakeRemotePort } from './sync/fake-remote';
 import { previewLink } from '../application/sync-policy';
 import { canDeliver } from './sync/delivery-policy';
+import { SyncCoordinator } from './sync/sync-coordinator';
 import { setE2EFault, type E2EFault } from './e2e-fault';
 import { LocalPlanningRepository } from './local-planning-repository';
 import type {
@@ -130,6 +135,17 @@ export type V2E2EHarness = {
     profileId: string,
     operationId: string,
   ) => Promise<{ kind: 'EXECUTED' | 'BLOCKED' }>;
+  seedDeliverableOutbox: (
+    profileId: string,
+    operationId: string,
+    entityId: string,
+    title: string,
+  ) => Promise<void>;
+  flushReal: (
+    profileId: string,
+    timeoutAfterApply?: boolean,
+  ) => Promise<{ mode: string; pending: number; effects: number }>;
+  outboxStatus: (profileId: string, operationId: string) => Promise<string | null>;
   clearRemote: (profileId: string) => void;
   readRemote: (profileId: string) => { applied: string[]; effects: number };
   planningCommit: (
@@ -179,6 +195,37 @@ function readSharedRemote(profileId: string): SharedRemoteState {
   if (!raw) return { applied: [], effects: 0 };
   const parsed = JSON.parse(raw) as SharedRemoteState;
   return { applied: parsed.applied, effects: parsed.effects };
+}
+
+class CoordinatorSharedRemote implements RemoteMutationPort {
+  private readonly profileId: string;
+  private readonly timeoutAfterApply: boolean;
+
+  constructor(profileId: string, timeoutAfterApply = false) {
+    this.profileId = profileId;
+    this.timeoutAfterApply = timeoutAfterApply;
+  }
+
+  async apply(operation: OutboxOperation): Promise<RemoteMutationResult> {
+    const state = readSharedRemote(this.profileId);
+    if (!state.applied.includes(operation.operationId)) {
+      state.applied.push(operation.operationId);
+      state.effects += 1;
+      localStorage.setItem(remoteKey(this.profileId), JSON.stringify(state));
+    }
+    if (this.timeoutAfterApply) throw new Error('e2e timeout after remote apply');
+    return { kind: 'APPLIED', remoteRevision: 1 };
+  }
+
+  async lookup(operationId: string): Promise<'APPLIED' | 'MISSING'> {
+    return readSharedRemote(this.profileId).applied.includes(operationId)
+      ? 'APPLIED'
+      : 'MISSING';
+  }
+
+  async lookupRevision(operationId: string): Promise<number | null> {
+    return readSharedRemote(this.profileId).applied.includes(operationId) ? 1 : null;
+  }
 }
 
 export function installE2EHarness(): void {
@@ -447,6 +494,64 @@ export function installE2EHarness(): void {
         browserLockPort(),
       );
       return result.kind === 'EXECUTED' ? { kind: 'EXECUTED' } : { kind: 'BLOCKED' };
+    },
+    seedDeliverableOutbox: async (profileId, operationId, entityId, title) => {
+      const database = await openV2Database(profileId);
+      const transaction = database.transaction(
+        [STORES.profiles, STORES.outbox],
+        'readwrite',
+      );
+      transaction.objectStore(STORES.profiles).put({
+        profileId,
+        uid: 'uid-e2e',
+        remoteLibraryId: 'library-e2e',
+        syncEnabled: true,
+        state: 'READY',
+        primaryEditalId: null,
+        localRevision: 1,
+      });
+      transaction.objectStore(STORES.outbox).put({
+        operationId,
+        profileId,
+        entityType: 'subject',
+        entityId,
+        kind: 'upsert',
+        baseRevision: 0,
+        payload: {
+          id: entityId,
+          profileId,
+          title,
+          status: 'ACTIVE',
+          localRevision: 1,
+        },
+        schemaVersion: 1,
+        status: 'PENDING',
+        deliveryUid: 'uid-e2e',
+        remoteLibraryId: 'library-e2e',
+      });
+      await transactionDone(transaction);
+    },
+    flushReal: async (profileId, timeoutAfterApply = false) => {
+      const remote = new CoordinatorSharedRemote(profileId, timeoutAfterApply);
+      const coordinator = new SyncCoordinator({
+        remote,
+        locks: browserLockPort(),
+        now: () => Date.now(),
+      });
+      const health = await coordinator.requestFlush(profileId, 'MANUAL');
+      return {
+        mode: health.mode,
+        pending: health.pendingCount,
+        effects: readSharedRemote(profileId).effects,
+      };
+    },
+    outboxStatus: async (profileId, operationId) => {
+      const database = await openV2Database(profileId);
+      const transaction = database.transaction(STORES.outbox, 'readonly');
+      const row = (await requestResult(
+        transaction.objectStore(STORES.outbox).get(operationId),
+      )) as OutboxOperation | undefined;
+      return row?.status ?? null;
     },
     clearRemote: (profileId) => localStorage.removeItem(remoteKey(profileId)),
     readRemote: (profileId) => readSharedRemote(profileId),

@@ -305,4 +305,31 @@ describe('F7 sync coordinator', () => {
     expect((await read('op-planning'))?.status).toBe('CONFIRMED');
     expect(health.remoteCommitted).toBe(true);
   });
+
+  it('f7_recovery_required_blocks_later_flushes_until_clear', async () => {
+    const remote = new FakeRemotePort({ uid, profileId });
+    let pulls = 0;
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      pull: async () => {
+        pulls += 1;
+        return pulls === 1 ? 'RECOVERY_REQUIRED' : 'CONVERGED';
+      },
+    });
+    await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'RECOVERY_REQUIRED',
+    });
+    await seed(operation());
+    await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'RECOVERY_REQUIRED',
+    });
+    expect(remote.appliedCount()).toBe(0);
+    subject.clearRecovery(profileId);
+    await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'READY',
+    });
+    expect(remote.appliedCount()).toBe(1);
+  });
 });
