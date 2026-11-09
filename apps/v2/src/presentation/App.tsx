@@ -32,6 +32,7 @@ import { GoogleLink } from './components/GoogleLink';
 import { BackupControls, type BackupHealth } from './components/BackupControls';
 import { LocalBackupPanel } from './components/LocalBackupPanel';
 import { F7Runtime, type F7RuntimeState } from '../platform/f7-runtime';
+import { holdTabPresence } from '../platform/tab-presence';
 import { PlanningWorkspace } from './PlanningWorkspace';
 import { SessionWorkspace } from './SessionWorkspace';
 import { ReviewWorkspace } from './ReviewWorkspace';
@@ -326,6 +327,8 @@ export function App() {
       runtimeRef.current = null;
     };
   }, []);
+
+  useEffect(() => holdTabPresence(), []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

@@ -38,6 +38,7 @@ import {
 } from '../platform/indexeddb';
 import { applyWaitingUpdate } from '../platform/sw-update';
 import { hasDirtyDrafts } from './draft-guard';
+import { countOtherTabs } from '../platform/tab-presence';
 import {
   LocalSessionCoordinator,
   type SessionAuthority,
@@ -78,6 +79,8 @@ function conflictResolutionLabel(conflict: SessionConflict): string {
 }
 
 async function queryOtherTabsReady(holderId: string): Promise<boolean> {
+  const otherTabs = await countOtherTabs();
+  if (otherTabs === 0) return true;
   if (typeof BroadcastChannel !== 'function') return false;
   const channel = new BroadcastChannel(UPDATE_CHANNEL);
   let responses = 0;
@@ -96,7 +99,8 @@ async function queryOtherTabsReady(holderId: string): Promise<boolean> {
   channel.postMessage({ type: 'UPDATE_QUERY', from: holderId });
   await new Promise((resolve) => setTimeout(resolve, 300));
   channel.close();
-  return responses === 0 ? true : allReady;
+  if (otherTabs === null) return responses > 0 && allReady;
+  return responses >= otherTabs && allReady;
 }
 
 type Props = {
