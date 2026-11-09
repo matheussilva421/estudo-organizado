@@ -32,8 +32,12 @@ function conflictFor(
   const operation = pending[0];
   const conflictId = operation?.operationId ??
     `remote:${entity.entityType}:${entity.entityId}:${entity.revision}`;
-  if (operation) {
-    transaction.objectStore(STORES.outbox).put({ ...operation, status: 'CONFLICT' });
+  // Every pending operation of this entity is superseded by the decision. If a
+  // later operation stayed PENDING, the next flush could overwrite the remote
+  // revision silently (last-writer-wins) without user consent.
+  const outbox = transaction.objectStore(STORES.outbox);
+  for (const queued of pending) {
+    outbox.put({ ...queued, status: 'CONFLICT' });
   }
   transaction.objectStore(STORES.conflicts).put({
     conflictId,

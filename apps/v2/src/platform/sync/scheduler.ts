@@ -138,6 +138,12 @@ export class AdaptiveSyncScheduler {
       this.pause(profileId);
       return;
     }
+    // A conflict or recovery gate needs a human decision; retrying would only
+    // spin without making progress.
+    if (health.mode === 'CONFLICT' || health.mode === 'RECOVERY_REQUIRED') {
+      this.pause(profileId);
+      return;
+    }
     if (health.pendingCount > 0) {
       const attempt = (this.attempts.get(profileId) ?? 0) + 1;
       this.attempts.set(profileId, attempt);

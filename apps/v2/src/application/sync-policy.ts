@@ -135,6 +135,7 @@ export type SyncHealthInput = {
   verifiedCursor: string | null;
   pendingCount: number;
   mode: string;
+  conflictCount?: number;
 };
 
 export function assessSyncHealth(input: SyncHealthInput): SyncHealth {
@@ -147,5 +148,8 @@ export function assessSyncHealth(input: SyncHealthInput): SyncHealth {
     pendingCount: Math.max(0, input.pendingCount),
     mode: input.mode,
     ...(verified ? { lastVerifiedCursor: input.verifiedCursor ?? undefined } : {}),
+    ...(typeof input.conflictCount === 'number' && input.conflictCount > 0
+      ? { conflictCount: input.conflictCount }
+      : {}),
   };
 }

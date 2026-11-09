@@ -151,15 +151,18 @@ export async function resolveRemoteConflict(
         return 'STALE';
       }
       const operationId = newOperationId();
+      const deleting = current.localPayload === null;
       const operation: OutboxOperation = {
         operationId,
         profileId: current.profileId,
         entityType: current.entityType as OutboxOperation['entityType'],
         entityId: current.entityId,
-        kind: 'upsert',
+        kind: deleting ? 'delete' : 'upsert',
         baseRevision: current.remoteRevision,
         remoteBaseRevision: current.remoteRevision,
-        payload: current.localPayload as OutboxPayload,
+        payload: deleting
+          ? ({ id: current.entityId, profileId: current.profileId } as OutboxPayload)
+          : (current.localPayload as OutboxPayload),
         schemaVersion: 1,
         status: 'PENDING',
         deliveryUid: profile.uid,

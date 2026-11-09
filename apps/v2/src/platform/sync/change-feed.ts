@@ -139,6 +139,16 @@ export async function pullRemoteChanges(
     try {
       if (options.apply) {
         await options.apply(change, entity);
+        // A custom apply may suspend; never advance the cursor for a profile
+        // that no longer points to this uid/library.
+        const afterApply = await (options.getProfile ?? readProfile)(profileId).catch(() => null);
+        if (
+          !afterApply ||
+          afterApply.uid !== binding.uid ||
+          afterApply.remoteLibraryId !== binding.libraryId
+        ) {
+          return 'FAILED';
+        }
         await setSyncCursor(profileId, {
           uid: binding.uid,
           libraryId: binding.libraryId,

@@ -125,4 +125,6 @@ export type SyncHealth = {
   pendingCount: number;
   mode: string;
   lastVerifiedCursor?: string;
+  /** Open remote conflicts that require an explicit local/remote decision. */
+  conflictCount?: number;
 };

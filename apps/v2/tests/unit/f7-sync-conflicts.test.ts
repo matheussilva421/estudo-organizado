@@ -9,12 +9,14 @@ import type { RemoteEntity } from '../../src/platform/sync/remote-schema';
 import {
   deleteV2DatabaseForTests,
   getConflicts,
+  getEligibleOutbox,
   markConflict,
   openV2Database,
   requestResult,
   STORES,
   transactionDone,
 } from '../../src/platform/indexeddb';
+import { applyRemoteChange } from '../../src/platform/sync/apply-remote';
 
 const profileId = 'profile-conflict';
 const uid = 'uid-a';
@@ -65,6 +67,19 @@ async function seed(record: OutboxOperation): Promise<void> {
   tx.objectStore(STORES.profiles).put(profile);
   tx.objectStore(STORES.outbox).put(record);
   await transactionDone(tx);
+}
+
+async function seedLocalRow(row: Record<string, unknown>): Promise<void> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction(STORES.editais, 'readwrite');
+  tx.objectStore(STORES.editais).put(row);
+  await transactionDone(tx);
+}
+
+async function readOutbox(): Promise<OutboxOperation[]> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction(STORES.outbox, 'readonly');
+  return requestResult(tx.objectStore(STORES.outbox).getAll()) as Promise<OutboxOperation[]>;
 }
 
 beforeEach(async () => {
@@ -197,5 +212,92 @@ describe('F7 sync conflicts', () => {
     ).resolves.toBeUndefined();
     const tombstones = await requestResult(tx.objectStore(STORES.tombstones).getAll());
     expect(tombstones).toHaveLength(1);
+  });
+
+  it('f7_pull_conflict_blocks_every_pending_operation_of_the_entity', async () => {
+    const first = operation({ operationId: 'op-a', baseRevision: 0 });
+    const second = operation({ operationId: 'op-b', baseRevision: 1 });
+    await seed(first);
+    await seed(second);
+    await seedLocalRow({
+      id: 'edital-1',
+      profileId,
+      title: 'A',
+      status: 'ACTIVE',
+      localRevision: 1,
+    });
+
+    const outcome = await applyRemoteChange(
+      profileId,
+      { uid, libraryId },
+      { sequence: 1, entityId: 'edital-1', revision: 2, deleted: false, epoch: 1 },
+      {
+        entityId: 'edital-1',
+        entityType: 'edital',
+        schemaVersion: 1,
+        revision: 2,
+        deleted: false,
+        payload: {
+          id: 'edital-1',
+          profileId,
+          title: 'B',
+          status: 'ACTIVE',
+          localRevision: 2,
+        },
+        epoch: 1,
+      },
+    );
+
+    expect(outcome).toBe('CONFLICT');
+    const rows = await readOutbox();
+    expect(rows.find((row) => row.operationId === 'op-a')?.status).toBe('CONFLICT');
+    expect(rows.find((row) => row.operationId === 'op-b')?.status).toBe('CONFLICT');
+    await expect(getEligibleOutbox(profileId, Date.now())).resolves.toEqual([]);
+  });
+
+  it('f7_pull_conflict_for_a_local_delete_resolves_back_to_delete', async () => {
+    const deletion = operation({
+      operationId: 'op-delete',
+      kind: 'delete',
+      baseRevision: 1,
+      payload: { id: 'edital-1', profileId, title: 'A', localRevision: 1 },
+    });
+    await seed(deletion);
+
+    const outcome = await applyRemoteChange(
+      profileId,
+      { uid, libraryId },
+      { sequence: 1, entityId: 'edital-1', revision: 2, deleted: false, epoch: 1 },
+      {
+        entityId: 'edital-1',
+        entityType: 'edital',
+        schemaVersion: 1,
+        revision: 2,
+        deleted: false,
+        payload: {
+          id: 'edital-1',
+          profileId,
+          title: 'B',
+          status: 'ACTIVE',
+          localRevision: 2,
+        },
+        epoch: 1,
+      },
+    );
+    expect(outcome).toBe('CONFLICT');
+    const [conflict] = await getConflicts(profileId);
+    expect(conflict?.localPayload).toBeNull();
+
+    await expect(
+      resolveRemoteConflict(conflict!.conflictId, 'LOCAL', conflict!.remoteRevision),
+    ).resolves.toBe('LOCAL_COMMITTED');
+    const rows = await readOutbox();
+    const pending = rows.filter((row) => row.status === 'PENDING');
+    expect(pending).toHaveLength(1);
+    expect(pending[0]).toMatchObject({
+      kind: 'delete',
+      entityId: 'edital-1',
+      baseRevision: 2,
+    });
   });
 });

@@ -17,8 +17,12 @@ import {
 } from './budget';
 import {
   applyRetryPlan,
+  clearRecoveryRequired,
+  getConflicts,
   getEligibleOutbox,
+  getRecoveryRequired,
   markConflict,
+  markRecoveryRequired,
 } from '../indexeddb';
 import { LocalProfileRepository } from '../local-profile-repository';
 
@@ -37,6 +41,7 @@ export type SyncCoordinatorOptions = {
   pull?: (profileId: string) => Promise<PullResult>;
   budget?: { usage: SyncUsage; limits: SyncUsageLimits };
   persistBudget?: (usage: SyncUsage) => Promise<void>;
+  countConflicts?: (profileId: string) => Promise<number>;
 };
 
 function health(
@@ -45,6 +50,7 @@ function health(
   pendingCount: number,
   mode: string,
   converged = false,
+  conflictCount = 0,
 ): SyncHealth {
   return {
     localCommitted,
@@ -52,6 +58,7 @@ function health(
     converged,
     pendingCount: Math.max(0, pendingCount),
     mode,
+    ...(conflictCount > 0 ? { conflictCount } : {}),
   };
 }
 
@@ -72,6 +79,7 @@ export class SyncCoordinator {
   private readonly pull: ((profileId: string) => Promise<PullResult>) | null;
   private readonly budget: SyncCoordinatorOptions['budget'];
   private readonly persistBudget: SyncCoordinatorOptions['persistBudget'];
+  private readonly countConflicts: (profileId: string) => Promise<number>;
   private readonly stopped = new Set<string>();
   private readonly recoveryRequired = new Set<string>();
 
@@ -88,14 +96,21 @@ export class SyncCoordinator {
     this.pull = options.pull ?? null;
     this.budget = options.budget;
     this.persistBudget = options.persistBudget;
+    this.countConflicts =
+      options.countConflicts ??
+      (async (profileId) => {
+        const conflicts = await getConflicts(profileId);
+        return conflicts.filter((conflict) => conflict.status === 'OPEN').length;
+      });
   }
 
   stop(profileId: string): void {
     this.stopped.add(profileId);
   }
 
-  clearRecovery(profileId: string): void {
+  async clearRecovery(profileId: string): Promise<void> {
     this.recoveryRequired.delete(profileId);
+    await clearRecoveryRequired(profileId);
   }
 
   async requestFlush(profileId: string, reason: FlushReason): Promise<SyncHealth> {
@@ -105,9 +120,19 @@ export class SyncCoordinator {
         ? health(true, false, 0, 'FAILED')
         : health(true, false, pending, 'STOPPED');
     }
-    if (this.recoveryRequired.has(profileId)) {
+    const recovery = await getRecoveryRequired(profileId).catch(() => null);
+    if (recovery || this.recoveryRequired.has(profileId)) {
+      this.recoveryRequired.add(profileId);
       const pending = await this.pendingCount(profileId);
-      return health(true, false, pending < 0 ? 0 : pending, 'RECOVERY_REQUIRED');
+      const conflicts = await this.openConflictCount(profileId);
+      return health(
+        true,
+        false,
+        (pending < 0 ? 0 : pending) + conflicts,
+        'RECOVERY_REQUIRED',
+        false,
+        conflicts,
+      );
     }
     const lockName = `estudo-organizado-v2:flush:${profileId}`;
     const outcome = await withSafeFlushLock(lockName, () => this.run(profileId, reason), this.locks);
@@ -129,17 +154,53 @@ export class SyncCoordinator {
   }
 
   private async run(profileId: string, _reason: FlushReason): Promise<SyncHealth> {
-    const operations = await this.getEligible(profileId, this.now()).catch(() => null);
-    if (operations === null) return health(true, false, 0, 'FAILED');
-    if (operations.length === 0) {
-      const pull = this.pull ? await this.pull(profileId).catch(() => 'FAILED' as const) : null;
-      if (pull === 'RECOVERY_REQUIRED') this.recoveryRequired.add(profileId);
+    const recovery = await getRecoveryRequired(profileId).catch(() => null);
+    if (recovery || this.recoveryRequired.has(profileId)) {
+      this.recoveryRequired.add(profileId);
+      const pending = await this.pendingCount(profileId);
+      const conflicts = await this.openConflictCount(profileId);
       return health(
         true,
         false,
-        0,
-        pull === 'RECOVERY_REQUIRED' ? 'RECOVERY_REQUIRED' : 'READY',
-        pull === 'CONVERGED',
+        (pending < 0 ? 0 : pending) + conflicts,
+        'RECOVERY_REQUIRED',
+        false,
+        conflicts,
+      );
+    }
+
+    // The cursor safety check happens before the first write. A pull may apply
+    // remote changes and persist conflicts; running it first also guarantees
+    // that stale cursors cannot be bypassed by a flush.
+    let prePull: PullResult | null = null;
+    if (this.pull) {
+      prePull = await this.pull(profileId).catch(() => 'FAILED' as const);
+      if (prePull === 'RECOVERY_REQUIRED') {
+        await this.requireRecovery(profileId, 'UNSAFE_CURSOR');
+        const pending = await this.pendingCount(profileId);
+        const conflicts = await this.openConflictCount(profileId);
+        return health(
+          true,
+          false,
+          (pending < 0 ? 0 : pending) + conflicts,
+          'RECOVERY_REQUIRED',
+          false,
+          conflicts,
+        );
+      }
+    }
+
+    const operations = await this.getEligible(profileId, this.now()).catch(() => null);
+    if (operations === null) return health(true, false, 0, 'FAILED');
+    if (operations.length === 0) {
+      const conflicts = await this.openConflictCount(profileId);
+      return health(
+        true,
+        false,
+        conflicts,
+        conflicts > 0 ? 'CONFLICT' : 'READY',
+        conflicts === 0 && prePull === 'CONVERGED',
+        conflicts,
       );
     }
 
@@ -173,7 +234,6 @@ export class SyncCoordinator {
     });
 
     let confirmed = 0;
-    let conflicts = 0;
     let ackFailures = 0;
     for (const operationId of result.confirmedIds) {
       const operation = operations.find((candidate) => candidate.operationId === operationId);
@@ -214,7 +274,6 @@ export class SyncCoordinator {
           remoteRevision,
           result.conflictRemotes[operationId],
         );
-        conflicts += 1;
       }
     }
 
@@ -222,7 +281,9 @@ export class SyncCoordinator {
       await this.applyRetry(profileId, result.failures);
     }
 
-    const pendingCount = result.pending.length + result.blocked.length + conflicts + ackFailures;
+    const openConflicts = await this.openConflictCount(profileId);
+    const pendingCount =
+      result.pending.length + result.blocked.length + openConflicts + ackFailures;
     const remoteCommitted = confirmed > 0;
     if (this.budget) {
       this.budget.usage.reads += operations.length * 3;
@@ -237,14 +298,23 @@ export class SyncCoordinator {
       );
       await this.persistBudget?.(this.budget.usage);
     }
-    const pull = this.pull ? await this.pull(profileId).catch(() => 'FAILED' as const) : null;
-    if (pull === 'RECOVERY_REQUIRED') this.recoveryRequired.add(profileId);
+    const mode = openConflicts > 0 ? 'CONFLICT' : pendingCount > 0 ? 'SYNCING' : 'READY';
     return health(
       true,
       remoteCommitted,
       pendingCount,
-      pull === 'RECOVERY_REQUIRED' ? 'RECOVERY_REQUIRED' : pendingCount > 0 ? 'SYNCING' : 'READY',
-      pull === 'CONVERGED' && pendingCount === 0,
+      mode,
+      prePull === 'CONVERGED' && pendingCount === 0,
+      openConflicts,
     );
+  }
+
+  private async openConflictCount(profileId: string): Promise<number> {
+    return this.countConflicts(profileId).catch(() => 0);
+  }
+
+  private async requireRecovery(profileId: string, reason: string): Promise<void> {
+    this.recoveryRequired.add(profileId);
+    await markRecoveryRequired(profileId, reason).catch(() => undefined);
   }
 }

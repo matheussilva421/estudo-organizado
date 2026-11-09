@@ -326,10 +326,94 @@ describe('F7 sync coordinator', () => {
       mode: 'RECOVERY_REQUIRED',
     });
     expect(remote.appliedCount()).toBe(0);
-    subject.clearRecovery(profileId);
+    await subject.clearRecovery(profileId);
     await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
       mode: 'READY',
     });
     expect(remote.appliedCount()).toBe(1);
+  });
+
+  it('f7_recovery_required_survives_a_new_coordinator', async () => {
+    const remote = new FakeRemotePort({ uid, profileId });
+    let pulls = 0;
+    const pull = async () => {
+      pulls += 1;
+      return pulls === 1 ? ('RECOVERY_REQUIRED' as const) : ('CONVERGED' as const);
+    };
+    const first = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      pull,
+    });
+    await expect(first.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'RECOVERY_REQUIRED',
+    });
+
+    await seed(operation());
+    const second = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      pull,
+    });
+    await expect(second.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'RECOVERY_REQUIRED',
+    });
+    expect(remote.appliedCount()).toBe(0);
+
+    await second.clearRecovery(profileId);
+    await expect(second.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'READY',
+    });
+    expect(remote.appliedCount()).toBe(1);
+  });
+
+  it('f7_pull_runs_before_the_first_write', async () => {
+    await seed(operation());
+    const remote = new FakeRemotePort({ uid, profileId });
+    let appliedDuringPull = -1;
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      pull: async () => {
+        appliedDuringPull = remote.appliedCount();
+        return 'CONVERGED';
+      },
+    });
+    const health = await subject.requestFlush(profileId, 'MANUAL');
+    expect(appliedDuringPull).toBe(0);
+    expect(remote.appliedCount()).toBe(1);
+    expect(health.mode).toBe('READY');
+  });
+
+  it('f7_conflict_is_reported_in_health_until_resolved', async () => {
+    await seed(operation());
+    const remote: RemoteMutationPort = {
+      async apply() {
+        return {
+          kind: 'CONFLICT',
+          remoteRevision: 2,
+          remote: {
+            payload: {
+              id: 'edital-1',
+              profileId,
+              title: 'REMOTE',
+              status: 'ACTIVE',
+              localRevision: 2,
+            },
+            deleted: false,
+          },
+        };
+      },
+      async lookup() {
+        return 'MISSING';
+      },
+    };
+    const health = await coordinator(remote).requestFlush(profileId, 'MANUAL');
+    expect(health.mode).toBe('CONFLICT');
+    expect(health.conflictCount).toBe(1);
+    expect(health.pendingCount).toBeGreaterThan(0);
   });
 });

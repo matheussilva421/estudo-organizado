@@ -245,7 +245,10 @@ export async function getEligibleOutbox(
   now: number,
 ): Promise<OutboxOperation[]> {
   const database = await openV2Database(profileId);
-  const transaction = database.transaction([STORES.outbox, STORES.profiles], 'readonly');
+  const transaction = database.transaction(
+    [STORES.outbox, STORES.profiles, STORES.conflicts],
+    'readonly',
+  );
   const profile = (await requestResult(
     transaction.objectStore(STORES.profiles).get(profileId),
   )) as ProfileRecord | undefined;
@@ -256,8 +259,19 @@ export async function getEligibleOutbox(
   const pending = (await requestResult(
     transaction.objectStore(STORES.outbox).index('by_profile_status').getAll([profileId, 'PENDING']),
   )) as OutboxOperation[];
+  // Defense in depth for rows written before the conflict barrier existed: an
+  // entity with an open conflict never becomes deliverable again.
+  const conflicts = (await requestResult(
+    transaction.objectStore(STORES.conflicts).index('by_profile').getAll(profileId),
+  )) as Array<{ entityType?: unknown; entityId?: unknown; status?: unknown }>;
+  const blocked = new Set(
+    conflicts
+      .filter((row) => row.status === 'OPEN')
+      .map((row) => `${String(row.entityType)}:${String(row.entityId)}`),
+  );
   return pending
     .filter((operation) => {
+    if (blocked.has(`${operation.entityType}:${operation.entityId}`)) return false;
     const next = operation.nextRetryAt;
     const due = next === null || next === undefined || (Number.isFinite(next) && next <= now);
     if (!due) return false;
@@ -407,6 +421,20 @@ export async function markConflict(
         false,
       );
     }
+    // Every later operation of the same entity is superseded by the conflict
+    // decision. Keeping it PENDING would let the next flush overwrite the
+    // remote revision without an explicit choice.
+    const siblings = (await requestResult(
+      outbox.index('by_profile_entity').getAll([
+        profileId,
+        persisted.entityType,
+        persisted.entityId,
+      ]),
+    )) as OutboxOperation[];
+    for (const sibling of siblings) {
+      if (sibling.status !== 'PENDING') continue;
+      outbox.put({ ...sibling, status: 'CONFLICT' });
+    }
     outbox.put({ ...persisted, status: 'CONFLICT' });
     conflicts.put({
       conflictId: operation.operationId,
@@ -517,6 +545,59 @@ export type SyncCursor = {
 
 export function cursorKey(profileId: string): string {
   return `sync-cursor:${profileId}`;
+}
+
+export function recoveryKey(profileId: string): string {
+  return `recovery-required:${profileId}`;
+}
+
+export type RecoveryMarker = {
+  reason: string;
+  at: string;
+};
+
+/**
+ * Persists the fail-closed recovery gate. It survives reloads and other tabs,
+ * so an unsafe cursor can never be bypassed by reopening the app.
+ */
+export async function markRecoveryRequired(
+  profileId: string,
+  reason: string,
+): Promise<void> {
+  if (!profileId.trim()) return;
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.meta, 'readwrite');
+  try {
+    transaction.objectStore(STORES.meta).put({
+      key: recoveryKey(profileId),
+      value: { reason: reason || 'UNSAFE_CURSOR', at: new Date().toISOString() } satisfies RecoveryMarker,
+    });
+    await transactionDone(transaction);
+  } catch (error) {
+    throw toLocalPersistenceError(error);
+  }
+}
+
+export async function getRecoveryRequired(profileId: string): Promise<RecoveryMarker | null> {
+  if (!profileId.trim()) return null;
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.meta, 'readonly');
+  const row = (await requestResult(
+    transaction.objectStore(STORES.meta).get(recoveryKey(profileId)),
+  )) as { value?: RecoveryMarker } | undefined;
+  return row?.value ?? null;
+}
+
+export async function clearRecoveryRequired(profileId: string): Promise<void> {
+  if (!profileId.trim()) return;
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.meta, 'readwrite');
+  try {
+    transaction.objectStore(STORES.meta).delete(recoveryKey(profileId));
+    await transactionDone(transaction);
+  } catch (error) {
+    throw toLocalPersistenceError(error);
+  }
 }
 
 export async function getSyncCursor(profileId: string): Promise<SyncCursor | null> {
