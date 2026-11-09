@@ -63,3 +63,41 @@
 3. Implementar por clusters UX-01–UX-31, reutilizando os módulos acima e mantendo os gates G-EXT/G-STAGING independentes.
 4. Revisar acessibilidade, estados honestos, mobile/tablet e regressões F2–F7.
 5. Não iniciar F8, não publicar produção e não substituir a V1.
+
+## 7. Inventário UX-01–UX-31
+
+| Tarefa | Artefato/contrato existente | Situação para o GOAL de UX | Risco principal |
+|---|---|---|---|
+| UX-01 | preflight, auditoria, matriz | `REUSE` | baseline de UX ainda não medido |
+| UX-02 | `ui-state`, `SyncStatus`, `BackupHealth` | `PARTIAL` | estados precisam de semântica por tela |
+| UX-03 | Home/planejamento/sessões, `experience-queries` | `PARTIAL` | “cumprido” vs “vinculado” |
+| UX-04 | `routing`, `use-hash-route` | `PARTIAL` | rotas profundas/continuidade |
+| UX-05 | `draft-guard`, `SessionWorkspace` | `REUSE` | foco ao fechar modal |
+| UX-06 | `AppNav`, `routing` | `PARTIAL` | D31–D34 ainda não implementadas |
+| UX-07 | `AttentionView`, `experience-queries` | `REUSE` | deduplicação de avisos |
+| UX-08 | `SearchView` | `REUSE` | busca progressiva sem novo motor |
+| UX-09 | `HomeView` | `PARTIAL` | modelos de dashboard |
+| UX-10 | `HomeView`, queries | `PARTIAL` | catálogo de widgets |
+| UX-11 | nenhum parser de fórmulas seguro | `MISSING` | execução de fórmula/segurança |
+| UX-12 | busca/filtros existentes | `PARTIAL` | filtros globais/locais |
+| UX-13 | ações rápidas de Home/App | `PARTIAL` | estados dos widgets |
+| UX-14 | `EditalManager`, `ContentTree` | `REUSE` | hierarquia/painel de detalhes |
+| UX-15 | `SubjectForm`, `ContentTree` | `REUSE` | reordenação/associações |
+| UX-16 | `PlanningWorkspace`, `PlanningCalendar` | `REUSE` | capacidade/calendário |
+| UX-17 | `PlanningWizard`, `StudyCycle` | `REUSE` | replanejamento/Reta Final |
+| UX-18 | `SessionWorkspace` | `REUSE` | timer seguro |
+| UX-19 | `SessionWorkspace` | `REUSE` | histórico/hábitos/recuperação |
+| UX-20 | `ReviewWorkspace` | `REUSE` | fila/execução/política |
+| UX-21 | `ReviewWorkspace` | `PARTIAL` | evidências/agenda/histórico |
+| UX-22 | `AnalyticsView`, queries | `PARTIAL` | metodologia/KPIs |
+| UX-23 | nenhum gráfico (D30 adiado) | `MISSING` | gráficos/editor semântico |
+| UX-24 | portabilidade de planejamento/sessões, backup | `PARTIAL` | snapshots/exportações |
+| UX-25 | `SettingsView`, `GoogleLink`, `SyncStatus` | `REUSE` | perfil/sync contextual |
+| UX-26 | `LocalBackupPanel`, crypto, restore | `REUSE` | cofre/recovery |
+| UX-27 | `storage-health`, `SettingsView` | `PARTIAL` | IndexedDB/privacidade |
+| UX-28 | tokens, `styles.css` | `REUSE` | design system incremental |
+| UX-29 | E2E F2–F7 | `PARTIAL` | jornadas por perfil |
+| UX-30 | testes unit/E2E, a11y | `PARTIAL` | performance/acessibilidade real |
+| UX-31 | auditoria e higiene Git | `PARTIAL` | revisão independente de UX |
+
+`REUSE` significa que o artefato existe e deve ser ponto de partida; `PARTIAL` exige extensão; `MISSING` exige implementação nova no GOAL de UX. Nenhuma linha autoriza implementação neste GOAL.

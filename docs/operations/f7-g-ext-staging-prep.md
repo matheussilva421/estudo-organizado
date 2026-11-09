@@ -153,3 +153,11 @@ npx firebase emulators:exec --config firebase/firebase.json --project demo-estud
 ```
 
 Não usar projeto real, URL real ou credenciais neste passo.
+
+## 11. Auditoria do checklist contra o código estabilizado
+
+**Prontos para o piloto isolado:** projeto Spark separado e API key pública no contrato; Auth nomeado por projeto; Rules com tombstone, `changeId` e `getAfter`; sync local de F2–F6; restore/backup com checksum/manifesto; Worker imutável, delete da última cópia protegido e JWKS padrão; PWA com precache/versionamento/presença de abas; retenção de sete versões com hidratação remota; orçamento local de sync.
+
+**Pendentes de prova real ou de insumo:** Firebase/Cloudflare/Auth/Firestore/KV reais; concorrência multi-cliente em serviço real; medição de cotas; URL independente e HTTPS; dispositivos físicos; migração V1 com exportação/fixtures autorizadas; rebaseline com `historyFloor` completo; T26/T27 e aceite humano.
+
+**Regra:** os itens “prontos” acima são `TESTED_LOCAL`, não `PASS_REAL_ISOLATED`. O piloto só pode marcá-los após G-EXT/G-STAGING e evidência do provedor.

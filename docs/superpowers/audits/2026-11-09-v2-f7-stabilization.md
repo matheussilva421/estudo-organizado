@@ -44,7 +44,9 @@ Os pareceres completos estão no pacote de evidências. Todos observaram que o c
 | Rules | tombstone sem payload, `changeId` ligado a `sequence` e `getAfter` de entidade/change/head no recibo | 10 testes Firebase PASS |
 | Runtime | composition root liga Auth, Firestore, pull, coordinator, backup, restore e painel local; modo local não importa Firebase | `f7-runtime.test.ts` 3 PASS |
 | Estados | `CONFLICT`, `RECOVERY_REQUIRED`, `PAUSED_QUOTA`, `PAUSED_AUTH`, `PENDING_OFFLINE`, `SYNCING` têm rótulos próprios; saúde local reflete conteúdo real | `f7-sync-view.test.ts` 9 PASS |
-| PWA | precache de assets com `ignoreVary`; `CACHE_NAME` versionado por build; primeira visita offline; update só APPLIED após `controllerchange`; staging exige HTTPS/host não-loopback e o SW recusa origem V1 | `pwa-offline` 4 PASS, `f7-sw-update` 7 PASS, staging 6 PASS |
+| PWA | precache de assets com `ignoreVary`; `CACHE_NAME` versionado por build; primeira visita offline; update só APPLIED após `controllerchange`; presença positiva de abas por Web Lock; staging exige HTTPS/host não-loopback e o SW recusa origem V1 | `pwa-offline` 4 PASS, `f7-sw-update` 7 PASS, `f4-update` 4 PASS, `f7-tab-presence` 3 PASS, staging 6 PASS |
+| Duas abas/outbox real | duas páginas Chromium, outbox IndexedDB, `SyncCoordinator`, Web Locks e remote fake compartilhado; ACK perdido recuperado por lookup | `f7-real-outbox` 2 PASS |
+| Recovery fail-closed | `RECOVERY_REQUIRED` bloqueia novos flushes até `clearRecovery`; testado | `f7-sync-coordinator` 14 PASS |
 | Delivery F3/F5/F4 | writers deixam de marcar `deliveryMode:'BLOCKED'`; gate aceita todos os tipos; consentimento limpa o bloqueio legado; coordinator entrega planejamento | `f7-delivery-types` 4 PASS, `f7-sync-coordinator` 13 PASS |
 
 ### Pendentes, parciais ou deliberadamente bloqueados
@@ -55,9 +57,8 @@ Os pareceres completos estão no pacote de evidências. Todos observaram que o c
 | Previews em memória | `PARTIAL` | preview de restore/rebaseline expira com reload; UI refaz a prévia. |
 | Retenção multi-dispositivo | `PARTIAL` | estado do scheduler persiste neste dispositivo; `remote.list()` ainda não hidrata versões de outro dispositivo. |
 | Migração V1 real | `BLOCKED_MAPPING` | dados não vazios falham fechados; falta mapeamento semântico por schema e fixtures não vazias. |
-| Concorrência real de Rules/CAS | `NOT_RUN` | testes unitários usam fake; emulador cobre forma/ownership, não corrida multi-cliente. |
+| Concorrência real de Rules/CAS | `PARTIAL` | duas abas reais passam localmente com Web Locks/outbox; serviço Firestore multi-cliente real NOT_RUN. |
 | Budget em serviço real | `PARTIAL` | orçamento aplicado antes do flush com uso persistido; números reais de quota só em T26. |
-| `otherTabsReady` sem resposta | `PARTIAL` | sem resposta após 300 ms ainda é tratado como seguro. |
 | Quatro HIGH F0 | `MITIGADO_LOCAL` | ver seção 5; nenhuma prova real. |
 
 ## 4. Testes executados em 09/11/2026
@@ -66,9 +67,9 @@ Os pareceres completos estão no pacote de evidências. Todos observaram que o c
 |---|---|
 | `npm run typecheck` | PASS |
 | `npm run lint` | PASS |
-| `npm run test:unit` | **762 PASS / 112 arquivos** |
+| `npm run test:unit` | **768 PASS / 113 arquivos** |
 | `npm run build` | PASS (Vite 8.3.5; chunks Firebase lazy) |
-| `npm run test:e2e` | **162 PASS + 2 skips / 164** |
+| `npm run test:e2e` | **164 PASS + 2 skips / 166** |
 | Firebase Emulator (`demo-estudo-v2`) | **10 PASS** (Rules + transação) |
 
 Os 2 skips são os históricos. As imagens F4 regravadas pelo E2E foram revertidas para os blobs versionados; as cópias externas em `estudo-organizado-preservacao-20261104` permanecem intactas.
