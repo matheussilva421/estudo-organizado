@@ -911,7 +911,6 @@ export class LocalSessionRepository {
       payload: session,
       schemaVersion: DOMAIN_SCHEMA_VERSION,
       status: 'PENDING',
-      deliveryMode: 'BLOCKED',
     };
     transaction.objectStore(STORES.outbox).put(operation);
   }

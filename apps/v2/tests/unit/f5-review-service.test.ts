@@ -192,7 +192,7 @@ describe('F5 review service integration', () => {
     const outbox = (await requestResult(transaction.objectStore(STORES.outbox).getAll())) as { entityType: string; deliveryMode?: string }[];
     const reviewRows = outbox.filter((row) => row.entityType.startsWith('review-'));
     expect(reviewRows.length).toBeGreaterThan(0);
-    expect(reviewRows.every((row) => row.deliveryMode === 'BLOCKED')).toBe(true);
+    expect(reviewRows.every((row) => row.deliveryMode === undefined)).toBe(true);
   });
 
   it('aggregates a saved F4 session and exposes insufficient/sufficient states', async () => {

@@ -194,6 +194,7 @@ describe('F3 planning commit', () => {
       transaction.objectStore('outbox').getAll(),
     )) as { deliveryMode?: string; entityType: string }[];
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ entityType: 'planning-scenario', deliveryMode: 'BLOCKED' });
+    expect(rows[0]).toMatchObject({ entityType: 'planning-scenario' });
+    expect(rows[0]?.deliveryMode).toBeUndefined();
   });
 });

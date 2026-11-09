@@ -176,7 +176,6 @@ export class LocalPlanningImportCommitter {
             payload: persisted,
             schemaVersion: PLANNING_ENTITY_SCHEMA_VERSION,
             status: 'PENDING',
-            deliveryMode: 'BLOCKED',
           });
         }
         outbox.put({
@@ -189,7 +188,6 @@ export class LocalPlanningImportCommitter {
           payload: scenario,
           schemaVersion: PLANNING_ENTITY_SCHEMA_VERSION,
           status: 'PENDING',
-          deliveryMode: 'BLOCKED',
         });
         scenarioIds.push(scenario.id);
         applied += 1;

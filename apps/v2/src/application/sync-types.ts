@@ -72,10 +72,7 @@ export type OutboxOperation = {
   payload: OutboxPayload;
   schemaVersion: number;
   status: OutboxStatus;
-  /**
-   * F3 planning intents stay local: real delivery is an F7 concern and must
-   * never be inferred from the presence of a row in this outbox.
-   */
+  /** Legacy F3/F5 rows remain local until an explicit consent migration. */
   deliveryMode?: 'BLOCKED';
   /**
    * Revision expected at the remote side. Local CAS keeps using

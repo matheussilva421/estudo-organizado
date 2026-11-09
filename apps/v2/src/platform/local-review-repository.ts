@@ -236,7 +236,6 @@ export class LocalReviewRepository {
           payload: value as OutboxPayload,
           schemaVersion: DOMAIN_SCHEMA_VERSION,
           status: 'PENDING',
-          deliveryMode: 'BLOCKED',
         });
       };
       putOutbox(entityTypeOf(input), primary.entityId, persisted, current?.localRevision ?? null, `${entityTypeOf(input)}~${primary.entityId}`);
@@ -358,7 +357,6 @@ export class LocalReviewRepository {
           payload: value as OutboxPayload,
           schemaVersion: DOMAIN_SCHEMA_VERSION,
           status: 'PENDING',
-          deliveryMode: 'BLOCKED',
         });
       };
 

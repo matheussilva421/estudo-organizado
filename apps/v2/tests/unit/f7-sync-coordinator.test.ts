@@ -283,4 +283,26 @@ describe('F7 sync coordinator', () => {
     });
     expect(remote.appliedCount()).toBe(0);
   });
+
+  it('f7_planning_operation_is_delivered_after_consent', async () => {
+    const planning = operation({
+      operationId: 'op-planning',
+      entityType: 'planning-scenario',
+      entityId: 'scenario-1',
+      baseRevision: 0,
+      payload: {
+        id: 'scenario-1',
+        profileId,
+        editalId: 'edital-1',
+        localRevision: 1,
+        status: 'DRAFT',
+      } as never,
+    });
+    await seed(planning);
+    const remote = new FakeRemotePort({ uid, profileId });
+    const health = await coordinator(remote).requestFlush(profileId, 'MANUAL');
+    expect(remote.appliedCount()).toBe(1);
+    expect((await read('op-planning'))?.status).toBe('CONFIRMED');
+    expect(health.remoteCommitted).toBe(true);
+  });
 });

@@ -131,7 +131,6 @@ export class LocalSessionHabitService {
         payload: occurrence,
         schemaVersion: DOMAIN_SCHEMA_VERSION,
         status: 'PENDING',
-        deliveryMode: 'BLOCKED',
       });
       await transactionDone(transaction);
       return { kind: 'LOCAL_COMMITTED', value: occurrence };

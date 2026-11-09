@@ -229,6 +229,13 @@ export class LocalProfileRepository implements ProfileRepository {
 
       let adopted = 0;
       for (const operation of pending) {
+        if (operation.deliveryMode === 'BLOCKED') {
+          const next = { ...operation };
+          delete next.deliveryMode;
+          outbox.put({ ...next, deliveryUid: uid, remoteLibraryId });
+          adopted += 1;
+          continue;
+        }
         if (operation.deliveryUid === uid && operation.remoteLibraryId === remoteLibraryId) {
           continue;
         }

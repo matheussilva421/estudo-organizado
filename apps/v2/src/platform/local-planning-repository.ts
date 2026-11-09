@@ -418,7 +418,6 @@ export class LocalPlanningRepository implements PlanningRepository {
           payload: updated,
           schemaVersion: PLANNING_ENTITY_SCHEMA_VERSION,
           status: 'PENDING',
-          deliveryMode: 'BLOCKED',
         });
       }
 
@@ -439,7 +438,6 @@ export class LocalPlanningRepository implements PlanningRepository {
         payload: activated,
         schemaVersion: PLANNING_ENTITY_SCHEMA_VERSION,
         status: 'PENDING',
-        deliveryMode: 'BLOCKED',
       });
 
       transaction.objectStore(STORES.planningCheckpoints).put({
@@ -612,7 +610,6 @@ export class LocalPlanningRepository implements PlanningRepository {
         payload: nextScenario,
         schemaVersion: PLANNING_ENTITY_SCHEMA_VERSION,
         status: 'PENDING',
-        deliveryMode: 'BLOCKED',
       });
 
       for (const block of input.changes.upsertBlocks ?? []) {
@@ -648,7 +645,6 @@ export class LocalPlanningRepository implements PlanningRepository {
           payload: persisted,
           schemaVersion: PLANNING_ENTITY_SCHEMA_VERSION,
           status: 'PENDING',
-          deliveryMode: 'BLOCKED',
         });
       }
 
@@ -672,7 +668,6 @@ export class LocalPlanningRepository implements PlanningRepository {
           payload: existing,
           schemaVersion: PLANNING_ENTITY_SCHEMA_VERSION,
           status: 'PENDING',
-          deliveryMode: 'BLOCKED',
         });
       }
 
