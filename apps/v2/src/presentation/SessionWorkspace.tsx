@@ -37,6 +37,7 @@ import {
   STORES,
 } from '../platform/indexeddb';
 import { applyWaitingUpdate } from '../platform/sw-update';
+import { hasDirtyDrafts } from './draft-guard';
 import {
   LocalSessionCoordinator,
   type SessionAuthority,
@@ -448,7 +449,10 @@ export function SessionWorkspace({
             session.state !== 'CANCELLED'
           ) &&
           manualNote.trim().length === 0 &&
-          recovery === null;
+          manualMinutes === '30' &&
+          manualDate === todayInZone() &&
+          recovery === null &&
+          !hasDirtyDrafts();
         channel.postMessage({
           type: 'UPDATE_RESPONSE',
           from: holderId,
@@ -457,7 +461,7 @@ export function SessionWorkspace({
       }
     };
     return () => channel.close();
-  }, [holderId, manualNote, recovery, session]);
+  }, [holderId, manualNote, manualMinutes, manualDate, recovery, session]);
 
   async function applyUpdate(): Promise<void> {
     if (!('serviceWorker' in navigator) || busy) return;
@@ -471,6 +475,7 @@ export function SessionWorkspace({
           session.state !== 'COMPLETED' &&
           session.state !== 'CANCELLED',
         hasUnsavedForm:
+          hasDirtyDrafts() ||
           manualNote.trim().length > 0 ||
           manualMinutes !== '30' ||
           manualDate !== todayInZone(),

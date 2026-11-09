@@ -50,3 +50,20 @@ test('unsaved_form_not_discarded_during_update', async ({ page }) => {
   await expect(page.getByLabel('Nova disciplina')).toHaveValue('Rascunho não salvo');
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
 });
+
+test('first_visit_after_install_survives_offline', async ({ page, context }) => {
+  await boot(page);
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      await new Promise<void>((resolve) => {
+        navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true });
+      });
+    }
+  });
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Estudo Organizado V2' })).toBeVisible();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await context.setOffline(false);
+});

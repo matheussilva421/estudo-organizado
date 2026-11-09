@@ -30,6 +30,8 @@ import { SubjectList } from './components/SubjectList';
 import { SyncStatus } from './components/SyncStatus';
 import { GoogleLink } from './components/GoogleLink';
 import { BackupControls, type BackupHealth } from './components/BackupControls';
+import { LocalBackupPanel } from './components/LocalBackupPanel';
+import { F7Runtime, type F7RuntimeState } from '../platform/f7-runtime';
 import { PlanningWorkspace } from './PlanningWorkspace';
 import { SessionWorkspace } from './SessionWorkspace';
 import { ReviewWorkspace } from './ReviewWorkspace';
@@ -206,6 +208,8 @@ export function App() {
   const [experienceError, setExperienceError] = useState(false);
   const [today, setToday] = useState<string>(() => todayInZone());
   const refreshSeq = useRef(0);
+  const runtimeRef = useRef<F7Runtime | null>(null);
+  const [f7, setF7] = useState<F7RuntimeState | null>(null);
   const [analyticsCache] = useState(() => new ExperienceProjectionCache());
 
   useDraftGuard('f2-subject', form.title.trim().length > 0, 'nova disciplina');
@@ -304,6 +308,26 @@ export function App() {
   }, [refresh]);
 
   useEffect(() => {
+    const runtime = new F7Runtime(
+      PROFILE_ID,
+      import.meta.env as Record<string, string | undefined>,
+    );
+    runtimeRef.current = runtime;
+    const unsubscribe = runtime.subscribe((next) => setF7(next));
+    void runtime.init();
+    const onOnline = () => {
+      void runtime.syncNow();
+    };
+    window.addEventListener('online', onOnline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      unsubscribe();
+      runtime.dispose();
+      runtimeRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     document.documentElement.dataset.theme = theme;
     storePreference(THEME_KEY, theme);
   }, [theme]);
@@ -349,6 +373,7 @@ export function App() {
         setNotice(persistenceMessage(error));
         return { kind: 'FAILED', reason: 'UNKNOWN' } as CommitResult<unknown>;
       }
+      if (result.kind === 'LOCAL_COMMITTED') runtimeRef.current?.notifyLocalCommit();
       const refreshed = await refresh();
       if (result.kind === 'LOCAL_COMMITTED' && !refreshed) {
         setNotice(
@@ -361,6 +386,69 @@ export function App() {
     },
     [refresh],
   );
+
+  function reportRuntimeError(error: unknown): void {
+    setNotice(error instanceof Error ? error.message : 'Falha na operação de nuvem.');
+  }
+
+  async function exportLocalBackup(): Promise<void> {
+    const runtime = runtimeRef.current;
+    if (!runtime) throw new Error('Runtime de backup indisponível.');
+    const snapshot = await runtime.exportBackup();
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `estudo-organizado-v2-backup-${todayInZone()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function restoreLocalBackup(file: File): Promise<string> {
+    const runtime = runtimeRef.current;
+    if (!runtime) return 'Runtime de backup indisponível.';
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      return 'Arquivo JSON inválido.';
+    }
+    const prepared = await runtime.prepareRestore(parsed);
+    if (prepared.kind === 'INVALID') return `Backup inválido: ${prepared.reason}`;
+    const preview = prepared.preview;
+    const confirmed = window.confirm(
+      `Prévia da restauração:\n${preview.toCreate} criação(ões), ${preview.toUpdate} atualização(ões), ${preview.conflicts} conflito(s).\n` +
+        `${preview.requiresRebaseline ? 'Este backup exige rebaseline; entidades excluídas não serão ressuscitadas.\n' : ''}` +
+        'Aplicar agora?',
+    );
+    if (!confirmed) return 'Restauração cancelada.';
+    const result = await runtime.commitRestore(preview.id);
+    await refresh();
+    return result === 'LOCAL_COMMITTED'
+      ? 'Backup restaurado e conferido nos stores locais.'
+      : `Restauração não concluída: ${result}`;
+  }
+
+  async function createCloudBackup(): Promise<string> {
+    const runtime = runtimeRef.current;
+    if (!runtime) return 'Runtime de backup indisponível.';
+    const result = await runtime.createBackup();
+    return result === 'VERIFIED'
+      ? 'Backup confirmado no destino remoto.'
+      : `Backup não confirmado: ${result}`;
+  }
+
+  function configureRecoverySecret(): void {
+    const secret = window.prompt(
+      'Chave de recuperação (mínimo 12 caracteres). Ela não é enviada à nuvem. Guarde-a fora deste dispositivo.',
+    );
+    if (secret === null) return;
+    if (secret.trim().length < 12) {
+      window.alert('Use pelo menos 12 caracteres.');
+      return;
+    }
+    runtimeRef.current?.setRecoverySecret(secret);
+  }
 
   function updateSubjectTitle(title: string): void {
     setForm({ ...form, title, error: null });
@@ -448,24 +536,26 @@ export function App() {
     scopedAulas.some((aula) => aula.id === topic.aulaId),
   );
 
-  const health = assessSyncHealth({
-    localCommitted: content.editais.length > 0 || content.subjects.length > 0,
+  const localCommitted = content.editais.length > 0 || content.subjects.length > 0;
+  const fallbackHealth = assessSyncHealth({
+    localCommitted,
     remoteCommitted: false,
     verifiedCursor: null,
     pendingCount: pending,
     mode: profile?.state ?? 'LOCAL_ONLY',
   });
-  const backupHealth: BackupHealth = {
-    status: 'NONE',
-    lastVerifiedAt: null,
-    versions: 0,
-  };
-  const googleStatus =
-    profile?.state === 'READY'
+  const health = f7?.ready ? { ...f7.health, localCommitted } : fallbackHealth;
+  const backupHealth: BackupHealth = f7?.ready
+    ? f7.backupHealth
+    : { status: 'NONE', lastVerifiedAt: null, versions: 0 };
+  const googleStatus = f7?.ready
+    ? f7.googleStatus
+    : profile?.state === 'READY'
       ? 'READY'
       : profile?.state === 'PAUSED_AUTH'
         ? 'PAUSED_AUTH'
         : 'LOCAL_ONLY';
+  const googleEmail = f7?.email ?? null;
 
   const homeSummary: HomeSummary = useMemo(
     () =>
@@ -653,7 +743,17 @@ export function App() {
           {routeLabel(route.module)}
         </p>
 
-        <SyncStatus health={health} backupHealth={backupHealth} />
+        <SyncStatus
+          health={health}
+          backupHealth={backupHealth}
+          onSyncNow={
+            f7?.syncAvailable
+              ? () => {
+                  void runtimeRef.current?.syncNow();
+                }
+              : undefined
+          }
+        />
 
         {route.invalid ? <NotFoundView /> : null}
 
@@ -704,6 +804,7 @@ export function App() {
             <AttentionView
               summary={homeSummary}
               health={health}
+              backupHealth={backupHealth}
               pendingOutbox={pending}
               upgradeBlocked={upgrade.blocked}
             />
@@ -723,11 +824,68 @@ export function App() {
                 setDensity('comfortable');
               }}
               health={health}
+              backupHealth={backupHealth}
               pendingOutbox={pending}
               upgrade={upgrade}
-              googleLink={<GoogleLink status={googleStatus} email={null} />}
+              googleLink={
+                <GoogleLink
+                  status={googleStatus}
+                  email={googleEmail}
+                  onPreview={
+                    f7?.cloudAvailable
+                      ? () => {
+                          void runtimeRef.current?.previewGoogleLink().catch(reportRuntimeError);
+                        }
+                      : undefined
+                  }
+                  onConfirm={
+                    f7?.googleStatus === 'LINKING'
+                      ? () => {
+                          void runtimeRef.current?.confirmGoogleLink().catch(reportRuntimeError);
+                        }
+                      : undefined
+                  }
+                  onLogout={
+                    f7?.googleStatus === 'READY'
+                      ? () => {
+                          void runtimeRef.current?.logout().catch(reportRuntimeError);
+                        }
+                      : undefined
+                  }
+                />
+              }
               backupControls={
-                <BackupControls health={backupHealth} recoverySecretConfigured={false} />
+                <BackupControls
+                  health={backupHealth}
+                  recoverySecretConfigured={f7?.recoverySecretConfigured ?? false}
+                  onExport={() => {
+                    void exportLocalBackup().catch(reportRuntimeError);
+                  }}
+                  onCreate={
+                    f7?.backupAvailable && f7.recoverySecretConfigured
+                      ? () => {
+                          void createCloudBackup().then(setNotice).catch(reportRuntimeError);
+                        }
+                      : undefined
+                  }
+                />
+              }
+              localBackup={
+                <LocalBackupPanel
+                  status={
+                    backupHealth.status === 'VERIFIED'
+                      ? 'Backup verificado no destino remoto.'
+                      : backupHealth.status === 'FAILED'
+                        ? 'A última tentativa de backup falhou.'
+                        : 'Nenhum backup verificado neste dispositivo.'
+                  }
+                  cloudAvailable={f7?.cloudAvailable ?? false}
+                  recoverySecretConfigured={f7?.recoverySecretConfigured ?? false}
+                  onExport={exportLocalBackup}
+                  onRestoreFile={restoreLocalBackup}
+                  onCreate={createCloudBackup}
+                  onRecoverySecret={configureRecoverySecret}
+                />
               }
             />
           </div>

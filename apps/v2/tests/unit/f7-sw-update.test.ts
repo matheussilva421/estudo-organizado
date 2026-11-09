@@ -1,8 +1,12 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
-import { canApplyV2Update, type UpdateSafety } from '../../src/platform/sw-update';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  applyWaitingUpdate,
+  canApplyV2Update,
+  type UpdateSafety,
+} from '../../src/platform/sw-update';
 
 const safe: UpdateSafety = {
   hasActiveSession: false,
@@ -13,6 +17,9 @@ const safe: UpdateSafety = {
 };
 
 describe('F7 PWA safe update', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
   it('f7_active_timer_blocks_sw_update', () => {
     expect(canApplyV2Update({ ...safe, hasActiveSession: true })).toEqual({
       allowed: false,
@@ -52,5 +59,32 @@ describe('F7 PWA safe update', () => {
     expect(source).not.toContain('estudo-organizado.matheussilva421.workers.dev');
     expect(source).not.toContain('/js/');
     expect(source).toContain("estudo-organizado-v2-shell");
+    expect(source).toContain('__PRECACHE__');
+  });
+
+  it('f7_update_without_a_waiting_worker_is_deferred', async () => {
+    const registration = {
+      waiting: null,
+      update: async () => undefined,
+    } as unknown as ServiceWorkerRegistration;
+    await expect(applyWaitingUpdate(registration, safe)).resolves.toBe('DEFERRED');
+  });
+
+  it('f7_update_reports_applied_only_after_controllerchange', async () => {
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        addEventListener: (event: string, listener: () => void) => {
+          if (event === 'controllerchange') setTimeout(listener, 0);
+        },
+      },
+    });
+    const postMessage = vi.fn();
+    const registration = {
+      waiting: { postMessage },
+      update: async () => undefined,
+      active: {},
+    } as unknown as ServiceWorkerRegistration;
+    await expect(applyWaitingUpdate(registration, safe)).resolves.toBe('APPLIED');
+    expect(postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
   });
 });

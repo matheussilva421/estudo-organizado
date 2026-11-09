@@ -1,17 +1,25 @@
 import { useState } from 'react';
 import type { HomeSummary } from '../../application/experience-queries';
 import type { SyncHealth } from '../../application/sync-types';
+import type { BackupHealth } from '../components/BackupControls';
 import { routeHref } from '../routing';
 import { PRIORITY_CATEGORY_LABELS, priorityTone, routeForTarget } from './priority-display';
 
 type Props = {
   summary: HomeSummary;
   health: SyncHealth;
+  backupHealth?: BackupHealth;
   pendingOutbox: number;
   upgradeBlocked: boolean;
 };
 
-export function AttentionView({ summary, health, pendingOutbox, upgradeBlocked }: Props) {
+export function AttentionView({
+  summary,
+  health,
+  backupHealth,
+  pendingOutbox,
+  upgradeBlocked,
+}: Props) {
   const academic = summary.priorities.filter(
     (item) =>
       item.category !== 'INTEGRIDADE' &&
@@ -108,12 +116,18 @@ export function AttentionView({ summary, health, pendingOutbox, upgradeBlocked }
             <dd>
               {health.remoteCommitted
                 ? 'Enviado; convergência ainda não verificada'
-                : 'Não enviado — F7 não implementada'}
+                : 'Não enviado — sem prova remota'}
             </dd>
           </div>
           <div data-integrity="backup">
             <dt>Backup/recuperação</dt>
-            <dd>Não verificado — nenhuma prova técnica nesta fase</dd>
+            <dd>
+              {backupHealth?.status === 'VERIFIED'
+                ? 'Backup confirmado no destino remoto'
+                : backupHealth?.status === 'FAILED'
+                  ? 'Falha no backup; última cópia preservada'
+                  : 'Não verificado'}
+            </dd>
           </div>
         </dl>
         <ul className="integrity-notes">

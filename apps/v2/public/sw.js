@@ -1,9 +1,10 @@
 const CACHE_NAME = 'estudo-organizado-v2-shell-v1';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
+const PRECACHE = Array.isArray(self.__PRECACHE__) ? self.__PRECACHE__ : SHELL;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL)),
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)),
   );
 });
 
@@ -41,13 +42,13 @@ self.addEventListener('fetch', (event) => {
           void caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
           return response;
         })
-        .catch(() => caches.match('/index.html')),
+        .catch(() => caches.match('/index.html', { ignoreVary: true })),
     );
     return;
   }
 
   event.respondWith(
-    caches.match(request).then((cached) => {
+    caches.match(request, { ignoreVary: true }).then((cached) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
         if (!response.ok) return response;

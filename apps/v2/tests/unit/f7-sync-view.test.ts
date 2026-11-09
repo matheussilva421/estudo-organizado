@@ -77,7 +77,27 @@ describe('F7 sync and backup view', () => {
         health: health({ pendingCount: 3, mode: 'PENDING_OFFLINE' }),
       }),
     );
-    expect(markup).toContain('Salvo neste dispositivo');
+    expect(markup).toContain('Offline · alterações pendentes');
     expect(markup).not.toContain('modal');
+  });
+
+  it('f7_conflict_mode_is_not_labeled_as_saved', () => {
+    const markup = renderToStaticMarkup(
+      createElement(SyncStatus, { health: health({ mode: 'CONFLICT' }) }),
+    );
+    expect(markup).toContain('Conflito exige decisão');
+    expect(markup).not.toContain('Salvo neste dispositivo');
+    expect(markup).toContain('data-semantic-state="CONFLICT"');
+  });
+
+  it('f7_recovery_and_quota_modes_are_explicit', () => {
+    const recovery = renderToStaticMarkup(
+      createElement(SyncStatus, { health: health({ mode: 'RECOVERY_REQUIRED' }) }),
+    );
+    expect(recovery).toContain('Recuperação necessária');
+    const quota = renderToStaticMarkup(
+      createElement(SyncStatus, { health: health({ mode: 'PAUSED_QUOTA' }) }),
+    );
+    expect(quota).toContain('Sincronização pausada por quota');
   });
 });

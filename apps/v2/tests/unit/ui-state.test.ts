@@ -58,7 +58,7 @@ describe('subject UI state', () => {
         lastVerifiedCursor: 'cursor-1',
         pendingCount: 0,
       }),
-    ).toContain('outros dispositivos');
+    ).toContain('cursor verificado');
   });
 
   it('keeps_the_eight_approved_themes', () => {

@@ -86,7 +86,7 @@ test('f6 attention separates local, remote and backup evidence', async ({ page }
   await page.goto('/#/attention');
   await expect(page.getByTestId('f6-attention')).toBeVisible();
   await expect(page.locator('[data-integrity="local"]')).toContainText('Sem dados locais');
-  await expect(page.locator('[data-integrity="remote"]')).toContainText('F7 não implementada');
+  await expect(page.locator('[data-integrity="remote"]')).toContainText('sem prova remota');
   await expect(page.locator('[data-integrity="backup"]')).toContainText('Não verificado');
   await expect(page.getByText('Outbox pendente: 0')).toBeVisible();
 });

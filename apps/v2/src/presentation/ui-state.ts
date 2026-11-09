@@ -35,8 +35,14 @@ export function markSubmitFailure(state: FormState, message: string): FormState 
 }
 
 export function syncStatusLabel(health: SyncHealth): string {
+  if (health.mode === 'CONFLICT') return 'Conflito exige decisão';
+  if (health.mode === 'RECOVERY_REQUIRED') return 'Recuperação necessária';
+  if (health.mode === 'PAUSED_QUOTA') return 'Sincronização pausada por quota';
+  if (health.mode === 'PAUSED_AUTH') return 'Sessão Google expirada';
+  if (health.mode === 'PENDING_OFFLINE') return 'Offline · alterações pendentes';
+  if (health.mode === 'SYNCING') return 'Sincronizando';
   if (health.converged && health.lastVerifiedCursor) {
-    return 'Sincronizado · outros dispositivos atualizados até o cursor verificado';
+    return 'Sincronizado neste dispositivo até o cursor verificado';
   }
   if (health.remoteCommitted) {
     return 'Enviado para a nuvem · aguardando confirmação de convergência';

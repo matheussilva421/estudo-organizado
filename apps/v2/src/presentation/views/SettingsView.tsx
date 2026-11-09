@@ -2,6 +2,7 @@ import type { ThemeOption } from '../ui-state';
 import type { DatabaseUpgradeState } from '../../platform/indexeddb';
 import type { SyncHealth } from '../../application/sync-types';
 import type { ReactNode } from 'react';
+import type { BackupHealth } from '../components/BackupControls';
 
 export type Density = 'comfortable' | 'compact';
 
@@ -13,10 +14,12 @@ type Props = {
   onDensityChange: (density: Density) => void;
   onReset: () => void;
   health: SyncHealth;
+  backupHealth?: BackupHealth;
   pendingOutbox: number;
   upgrade: DatabaseUpgradeState;
   googleLink?: ReactNode;
   backupControls?: ReactNode;
+  localBackup?: ReactNode;
 };
 
 export function SettingsView({
@@ -27,10 +30,12 @@ export function SettingsView({
   onDensityChange,
   onReset,
   health,
+  backupHealth,
   pendingOutbox,
   upgrade,
   googleLink,
   backupControls,
+  localBackup,
 }: Props) {
   return (
     <section className="view settings-view" aria-labelledby="settings-title" data-testid="f6-settings">
@@ -94,6 +99,7 @@ export function SettingsView({
           </p>
           {googleLink}
           {backupControls}
+          {localBackup}
         </section>
       ) : null}
 
@@ -112,7 +118,13 @@ export function SettingsView({
           </div>
           <div data-integrity="backup">
             <dt>Backup</dt>
-            <dd>Não verificado</dd>
+            <dd>
+              {backupHealth?.status === 'VERIFIED'
+                ? 'Backup confirmado'
+                : backupHealth?.status === 'FAILED'
+                  ? 'Falha no backup'
+                  : 'Não verificado'}
+            </dd>
           </div>
         </dl>
         <ul className="integrity-notes">

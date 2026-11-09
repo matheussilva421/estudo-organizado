@@ -13,16 +13,24 @@ type SyncStatusProps = {
 };
 
 export function SyncStatus({ health, backupHealth, onSyncNow }: SyncStatusProps) {
-  const state: SemanticState = !health.localCommitted
-    ? 'EMPTY'
-    : health.pendingCount > 0
-      ? 'PENDING'
-      : 'LOCAL_COMMITTED';
+  const state: SemanticState =
+    health.mode === 'CONFLICT'
+      ? 'CONFLICT'
+      : health.mode === 'RECOVERY_REQUIRED'
+        ? 'STALE'
+        : health.mode === 'PAUSED_QUOTA' || health.mode === 'PAUSED_AUTH'
+          ? 'UNAVAILABLE'
+          : !health.localCommitted
+            ? 'EMPTY'
+            : health.pendingCount > 0 || health.mode === 'PENDING_OFFLINE'
+              ? 'PENDING'
+              : 'LOCAL_COMMITTED';
   return (
     <section
       className="sync-status"
       aria-label="Estado da sincronização"
       data-semantic-state={state}
+      data-sync-mode={health.mode}
     >
       <p role="status" className="sync-label">
         {syncStatusLabel(health)}

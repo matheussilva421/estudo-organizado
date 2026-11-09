@@ -71,7 +71,8 @@ export async function applyWaitingUpdate(
       return 'FAILED';
     }
   }
-  if (!registration.waiting) return 'APPLIED';
+  if (!registration.waiting) return 'DEFERRED';
+  let changed = false;
   const activated = new Promise<void>((resolve) => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
       resolve();
@@ -81,6 +82,7 @@ export async function applyWaitingUpdate(
     navigator.serviceWorker.addEventListener(
       'controllerchange',
       () => {
+        changed = true;
         clearTimeout(timer);
         resolve();
       },
@@ -89,7 +91,7 @@ export async function applyWaitingUpdate(
   });
   registration.waiting.postMessage({ type: 'SKIP_WAITING' });
   await activated;
-  return 'APPLIED';
+  return changed ? 'APPLIED' : 'DEFERRED';
 }
 
 export async function registerV2ServiceWorker(): Promise<ServiceWorkerRegistration | null> {
