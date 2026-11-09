@@ -32,8 +32,8 @@
 | Análise | `AnalyticsView`, `experience-queries`, `ExperienceProjectionCache` | D30 (gráficos) é adiado; toda métrica deve ter fonte e estado de staleness |
 | Busca | `SearchView`, `experience-queries`, `routing` | D35 é progressiva e subordinada; não criar índice remoto |
 | Atenção/integridade | `AttentionView`, `SyncStatus`, `ui-state`, `storage-health` | Estados `CONFLICT`, `RECOVERY_REQUIRED`, `PAUSED_QUOTA`, `PAUSED_AUTH`, `PENDING_OFFLINE`, `SYNCING` são independentes |
-| Configurações | `SettingsView`, `GoogleLink`, `BackupControls`, `LocalBackupPanel` | Auth, sync e backup separados; nenhuma ação remota por render |
-| Backup/restore | `backup/collect`, `crypto`, `f7-format`, `restore-commit`, `scheduler`, `kv-client`, `LocalBackupPanel` | Reutilizar preview/consentimento/read-back; não criar segundo formato |
+| Configurações | `SettingsView`, `GoogleLink`, `SyncConflictsPanel`, `BackupControls`, `LocalBackupPanel` | Auth, sync, conflito e backup separados; nenhuma ação remota por render |
+| Backup/restore | `backup/collect`, `crypto`, `f7-format`, `restore-commit`, `scheduler`, `kv-client`, `CloudBackupPanel`, `LocalBackupPanel` | Reutilizar preview/consentimento/read-back, inclusive versão remota descriptografada; não criar segundo formato |
 | PWA/update | `public/sw.js`, `sw-update.ts`, `vite.config.ts` precache | Manter adiamento seguro, precache e isolamento V1; não criar SW paralelo |
 | Acessibilidade | tokens, foco, skip link, oito temas, E2E de contraste/teclado | Reutilizar testes existentes e ampliar por tela; NVDA/Narrator continua NOT_RUN |
 
@@ -41,7 +41,7 @@
 
 | Dependência | Necessária antes de UX? | Observação |
 |---|---|---|
-| Revisão independente F7 | sim | concluída nesta estabilização; itens abertos listados na auditoria |
+| Revisão independente F7 | sim | concluída no HEAD final; itens abertos e gates listados na auditoria |
 | Sync real/Firebase | não para protótipo local; sim para homologação | G-EXT separado |
 | Backup criptografado/restore | sim para telas de recuperação | código local já corrigido; serviço real G-EXT |
 | URL de avaliação | sim para aceite visual externo | G-STAGING separado |
@@ -92,8 +92,8 @@
 | UX-22 | `AnalyticsView`, queries | `PARTIAL` | metodologia/KPIs |
 | UX-23 | nenhum gráfico (D30 adiado) | `MISSING` | gráficos/editor semântico |
 | UX-24 | portabilidade de planejamento/sessões, backup | `PARTIAL` | snapshots/exportações |
-| UX-25 | `SettingsView`, `GoogleLink`, `SyncStatus` | `REUSE` | perfil/sync contextual |
-| UX-26 | `LocalBackupPanel`, crypto, restore | `REUSE` | cofre/recovery |
+| UX-25 | `SettingsView`, `GoogleLink`, `SyncStatus`, `SyncConflictsPanel` | `REUSE` | perfil/sync/conflito contextual |
+| UX-26 | `LocalBackupPanel`, `CloudBackupPanel`, crypto, restore | `REUSE` | cofre/recovery local e remoto |
 | UX-27 | `storage-health`, `SettingsView` | `PARTIAL` | IndexedDB/privacidade |
 | UX-28 | tokens, `styles.css` | `REUSE` | design system incremental |
 | UX-29 | E2E F2–F7 | `PARTIAL` | jornadas por perfil |
