@@ -52,6 +52,18 @@ describe('F7 sync scheduler', () => {
     expect(remote.calls).toHaveLength(0);
   });
 
+  it('f7_health_callback_runs_after_an_automatic_flush', async () => {
+    const remote = coordinator();
+    const seen: string[] = [];
+    const scheduler = new AdaptiveSyncScheduler({
+      coordinator: remote,
+      onHealth: (_profileId, next) => seen.push(next.mode),
+    });
+    scheduler.request(profileId, 'COMMIT');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(seen).toEqual(['READY']);
+  });
+
   it('f7_no_auth_does_not_send', async () => {
     const remote = coordinator();
     const scheduler = new AdaptiveSyncScheduler({

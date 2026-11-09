@@ -11,6 +11,7 @@ export type FlushResult = {
   confirmedIds: string[];
   conflicts: string[];
   conflictRevisions: Record<string, number>;
+  conflictEpochs: Record<string, number>;
   conflictRemotes: Record<string, { payload: unknown | null; deleted: boolean }>;
   pending: string[];
   proof: Record<string, number>;
@@ -35,6 +36,8 @@ export type FlushOptions = {
    * that forgets the gate cannot push unconsented content to an adapter.
    */
   canSend: (operation: OutboxOperation) => boolean;
+  /** Checked before each network send (logout/restore must abort promptly). */
+  shouldAbort?: () => boolean;
 };
 
 export async function flushPending(
@@ -45,6 +48,7 @@ export async function flushPending(
   const confirmedIds: string[] = [];
   const conflicts: string[] = [];
   const conflictRevisions: Record<string, number> = {};
+  const conflictEpochs: Record<string, number> = {};
   const conflictRemotes: Record<string, { payload: unknown | null; deleted: boolean }> = {};
   const pending: string[] = [];
   const proof: Record<string, number> = {};
@@ -54,6 +58,7 @@ export async function flushPending(
   const blockedEntities = new Set<string>();
 
   for (const operation of operations) {
+    if (options.shouldAbort?.()) break;
     if (blockedEntities.has(operation.entityId)) {
       blocked.push(operation.operationId);
       continue;
@@ -68,7 +73,12 @@ export async function flushPending(
       if (result.kind === 'CONFLICT') {
         conflicts.push(operation.operationId);
         conflictRevisions[operation.operationId] = result.remoteRevision;
-        if (result.remote) conflictRemotes[operation.operationId] = result.remote;
+        if (result.remote) {
+          conflictRemotes[operation.operationId] = result.remote;
+          if (typeof result.remote.epoch === 'number') {
+            conflictEpochs[operation.operationId] = result.remote.epoch;
+          }
+        }
         blockedEntities.add(operation.entityId);
         continue;
       }
@@ -125,6 +135,7 @@ export async function flushPending(
     confirmedIds,
     conflicts,
     conflictRevisions,
+    conflictEpochs,
     conflictRemotes,
     pending,
     proof,

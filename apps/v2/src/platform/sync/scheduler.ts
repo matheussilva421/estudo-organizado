@@ -20,6 +20,7 @@ export type AdaptiveSyncSchedulerOptions = {
   hasAuth?: (profileId: string) => Promise<boolean>;
   retryBaseMs?: number;
   retryMaxMs?: number;
+  onHealth?: (profileId: string, health: SyncHealth) => void;
 };
 
 export type SchedulerState = {
@@ -61,6 +62,7 @@ export class AdaptiveSyncScheduler {
   private readonly hasAuth: (profileId: string) => Promise<boolean>;
   private readonly retryBaseMs: number;
   private readonly retryMaxMs: number;
+  private readonly onHealth: AdaptiveSyncSchedulerOptions['onHealth'];
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly reasons = new Map<string, SyncTrigger>();
   private readonly paused = new Set<string>();
@@ -73,6 +75,7 @@ export class AdaptiveSyncScheduler {
     this.hasAuth = options.hasAuth ?? (async () => true);
     this.retryBaseMs = Math.max(1, options.retryBaseMs ?? 30_000);
     this.retryMaxMs = Math.max(this.retryBaseMs, options.retryMaxMs ?? 5 * 60_000);
+    this.onHealth = options.onHealth;
   }
 
   request(profileId: string, trigger: SyncTrigger): void {
@@ -134,6 +137,7 @@ export class AdaptiveSyncScheduler {
 
     const health = await this.coordinator.requestFlush(profileId, mapReason(trigger)).catch(() => null);
     if (!health) return;
+    this.onHealth?.(profileId, health);
     if (health.mode === 'PAUSED_QUOTA' || health.mode === 'PAUSED_AUTH' || health.mode === 'PAUSED_LOCK') {
       this.pause(profileId);
       return;

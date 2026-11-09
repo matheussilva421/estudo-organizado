@@ -154,6 +154,9 @@ export class SyncCoordinator {
   }
 
   private async run(profileId: string, _reason: FlushReason): Promise<SyncHealth> {
+    if (this.stopped.has(profileId)) {
+      return health(true, false, 0, 'STOPPED');
+    }
     const recovery = await getRecoveryRequired(profileId).catch(() => null);
     if (recovery || this.recoveryRequired.has(profileId)) {
       this.recoveryRequired.add(profileId);
@@ -175,6 +178,9 @@ export class SyncCoordinator {
     let prePull: PullResult | null = null;
     if (this.pull) {
       prePull = await this.pull(profileId).catch(() => 'FAILED' as const);
+      if (this.stopped.has(profileId)) {
+        return health(true, false, 0, 'STOPPED');
+      }
       if (prePull === 'RECOVERY_REQUIRED') {
         await this.requireRecovery(profileId, 'UNSAFE_CURSOR');
         const pending = await this.pendingCount(profileId);
@@ -231,11 +237,16 @@ export class SyncCoordinator {
         };
         return canDeliver(operation, binding, profile);
       },
+      shouldAbort: () => this.stopped.has(profileId),
     });
 
     let confirmed = 0;
     let ackFailures = 0;
+    if (this.stopped.has(profileId)) {
+      return health(true, false, 0, 'STOPPED');
+    }
     for (const operationId of result.confirmedIds) {
+      if (this.stopped.has(profileId)) break;
       const operation = operations.find((candidate) => candidate.operationId === operationId);
       if (!operation) continue;
       const profile = await this.getProfile(profileId).catch(() => null);
@@ -273,6 +284,7 @@ export class SyncCoordinator {
           operation,
           remoteRevision,
           result.conflictRemotes[operationId],
+          result.conflictEpochs[operationId],
         );
       }
     }

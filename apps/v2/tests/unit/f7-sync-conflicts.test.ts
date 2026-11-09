@@ -200,7 +200,7 @@ describe('F7 sync conflicts', () => {
   it('f7_remote_delete_resolution_records_a_tombstone', async () => {
     const record = operation();
     await seed(record);
-    await markConflict(profileId, record, 2, { payload: null, deleted: true });
+    await markConflict(profileId, record, 2, { payload: null, deleted: true }, 2);
     const [conflict] = await getConflicts(profileId);
     await expect(resolveRemoteConflict(conflict!.conflictId, 'REMOTE', 2)).resolves.toBe(
       'LOCAL_COMMITTED',
@@ -210,8 +210,11 @@ describe('F7 sync conflicts', () => {
     await expect(
       requestResult(tx.objectStore(STORES.editais).get([profileId, 'edital-1'])),
     ).resolves.toBeUndefined();
-    const tombstones = await requestResult(tx.objectStore(STORES.tombstones).getAll());
+    const tombstones = (await requestResult(
+      tx.objectStore(STORES.tombstones).getAll(),
+    )) as Array<{ epoch?: number }>;
     expect(tombstones).toHaveLength(1);
+    expect(tombstones[0]?.epoch).toBe(2);
   });
 
   it('f7_pull_conflict_blocks_every_pending_operation_of_the_entity', async () => {
@@ -299,5 +302,96 @@ describe('F7 sync conflicts', () => {
       entityId: 'edital-1',
       baseRevision: 2,
     });
+  });
+
+  it('f7_push_conflict_keeps_the_latest_local_payload', async () => {
+    const first = operation({ operationId: 'op-1', baseRevision: 0 });
+    const second = operation({
+      operationId: 'op-2',
+      baseRevision: 1,
+      payload: {
+        id: 'edital-1',
+        profileId,
+        title: 'LOCAL-LATEST',
+        status: 'ACTIVE',
+        localRevision: 2,
+      },
+    });
+    await seed(first);
+    await seed(second);
+    await seedLocalRow({
+      id: 'edital-1',
+      profileId,
+      title: 'LOCAL-LATEST',
+      status: 'ACTIVE',
+      localRevision: 2,
+    });
+    await markConflict(profileId, first, 2, {
+      payload: remote().payload,
+      deleted: false,
+    });
+    const [conflict] = await getConflicts(profileId);
+    expect(conflict).toMatchObject({ localKind: 'upsert' });
+    expect(conflict?.localPayload).toMatchObject({ title: 'LOCAL-LATEST', localRevision: 2 });
+    await expect(
+      resolveRemoteConflict(conflict!.conflictId, 'LOCAL', conflict!.remoteRevision),
+    ).resolves.toBe('LOCAL_COMMITTED');
+    const pending = (await readOutbox()).filter((row) => row.status === 'PENDING');
+    expect(pending).toHaveLength(1);
+    expect(pending[0]).toMatchObject({
+      kind: 'upsert',
+      payload: expect.objectContaining({ title: 'LOCAL-LATEST' }),
+    });
+  });
+
+  it('f7_push_delete_conflict_resolves_back_to_delete', async () => {
+    const deletion = operation({ operationId: 'op-del', kind: 'delete' });
+    await seed(deletion);
+    await markConflict(profileId, deletion, 2, {
+      payload: remote().payload,
+      deleted: false,
+    });
+    const [conflict] = await getConflicts(profileId);
+    expect(conflict).toMatchObject({ localKind: 'delete', localPayload: null });
+    await expect(
+      resolveRemoteConflict(conflict!.conflictId, 'LOCAL', conflict!.remoteRevision),
+    ).resolves.toBe('LOCAL_COMMITTED');
+    const pending = (await readOutbox()).filter((row) => row.status === 'PENDING');
+    expect(pending[0]?.kind).toBe('delete');
+  });
+
+  it('f7_remote_resolution_rejects_a_later_local_edit', async () => {
+    const record = operation();
+    await seed(record);
+    await seedLocalRow({
+      id: 'edital-1',
+      profileId,
+      title: 'A',
+      status: 'ACTIVE',
+      localRevision: 1,
+    });
+    await markConflict(profileId, record, 2, {
+      payload: remote().payload,
+      deleted: false,
+    });
+    const [conflict] = await getConflicts(profileId);
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(STORES.editais, 'readwrite');
+    tx.objectStore(STORES.editais).put({
+      id: 'edital-1',
+      profileId,
+      title: 'LOCAL-NEWER',
+      status: 'ACTIVE',
+      localRevision: 2,
+    });
+    await transactionDone(tx);
+
+    await expect(
+      resolveRemoteConflict(conflict!.conflictId, 'REMOTE', conflict!.remoteRevision),
+    ).resolves.toBe('STALE');
+    const check = db.transaction(STORES.editais, 'readonly');
+    await expect(
+      requestResult(check.objectStore(STORES.editais).get([profileId, 'edital-1'])),
+    ).resolves.toMatchObject({ title: 'LOCAL-NEWER', localRevision: 2 });
   });
 });

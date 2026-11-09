@@ -74,6 +74,8 @@ export type OutboxOperation = {
   status: OutboxStatus;
   /** Legacy F3/F5 rows remain local until an explicit consent migration. */
   deliveryMode?: 'BLOCKED';
+  /** Why delivery is blocked; restore rows must survive relink. */
+  blockedReason?: 'LEGACY_CONSENT' | 'RESTORE';
   /**
    * Revision expected at the remote side. Local CAS keeps using
    * `baseRevision`; the adapter compares this value instead, so a conflict
@@ -104,7 +106,7 @@ export type RemoteMutationResult =
   | {
       kind: 'CONFLICT';
       remoteRevision: number;
-      remote?: { payload: unknown | null; deleted: boolean };
+      remote?: { payload: unknown | null; deleted: boolean; epoch?: number };
     };
 
 export type RemoteMutationPort = {

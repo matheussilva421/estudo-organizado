@@ -36,6 +36,13 @@ function conflictFor(
   // later operation stayed PENDING, the next flush could overwrite the remote
   // revision silently (last-writer-wins) without user consent.
   const outbox = transaction.objectStore(STORES.outbox);
+  const latest = [...pending].sort((left, right) => {
+    const leftBase = typeof left.baseRevision === 'number' ? left.baseRevision : -1;
+    const rightBase = typeof right.baseRevision === 'number' ? right.baseRevision : -1;
+    if (leftBase !== rightBase) return leftBase - rightBase;
+    return (left.sequence ?? 0) - (right.sequence ?? 0);
+  }).at(-1);
+  const localKind: 'upsert' | 'delete' = latest?.kind === 'delete' ? 'delete' : 'upsert';
   for (const queued of pending) {
     outbox.put({ ...queued, status: 'CONFLICT' });
   }
@@ -45,10 +52,12 @@ function conflictFor(
     operationId: operation?.operationId ?? `remote:${change.sequence}`,
     entityType: entity.entityType,
     entityId: entity.entityId,
-    localPayload: local,
+    localPayload: localKind === 'delete' ? null : local,
+    localKind,
     remotePayload: entity.payload,
     baseRevision: operation?.baseRevision ?? null,
     remoteRevision: entity.revision,
+    remoteEpoch: entity.epoch,
     deleted: entity.deleted,
     status: 'OPEN',
     createdAt: new Date().toISOString(),

@@ -416,4 +416,36 @@ describe('F7 sync coordinator', () => {
     expect(health.conflictCount).toBe(1);
     expect(health.pendingCount).toBeGreaterThan(0);
   });
+
+  it('f7_stop_aborts_an_inflight_flush_before_ack', async () => {
+    await seed(operation());
+    let release: (() => void) | null = null;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let applied = 0;
+    const remote: RemoteMutationPort = {
+      async apply() {
+        await gate;
+        applied += 1;
+        return { kind: 'APPLIED', remoteRevision: 1 };
+      },
+      async lookup() {
+        return 'MISSING';
+      },
+    };
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      confirm: async () => 'CONFIRMED',
+    });
+    const running = subject.requestFlush(profileId, 'MANUAL');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    subject.stop(profileId);
+    release!();
+    await expect(running).resolves.toMatchObject({ mode: 'STOPPED' });
+    expect(applied).toBe(1);
+    expect((await read())?.status).toBe('PENDING');
+  });
 });

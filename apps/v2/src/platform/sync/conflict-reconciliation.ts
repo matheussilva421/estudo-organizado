@@ -140,18 +140,28 @@ export async function resolveRemoteConflict(
       return 'STALE';
     }
 
-    if (choice === 'LOCAL') {
-      const localRow = await requestResult(
-        transaction.objectStore(storeName).get([current.profileId, current.entityId]),
-      );
-      const expected = revisionOf(current.localPayload);
-      const currentRevision = revisionOf(localRow);
-      if (localRow !== undefined && expected !== null && currentRevision !== expected) {
+    const localRow = await requestResult(
+      transaction.objectStore(storeName).get([current.profileId, current.entityId]),
+    );
+    const expected = revisionOf(current.localPayload);
+    const currentRevision = revisionOf(localRow);
+    const localKind =
+      current.localKind ?? (current.localPayload === null ? 'delete' : 'upsert');
+    if (localKind === 'delete') {
+      if (localRow !== undefined) {
         transaction.abort();
         return 'STALE';
       }
+    } else if (localRow !== undefined && (expected === null || currentRevision !== expected)) {
+      // Another tab edited the entity after the conflict was captured. Never
+      // let a decision taken on an old snapshot overwrite that edit.
+      transaction.abort();
+      return 'STALE';
+    }
+
+    if (choice === 'LOCAL') {
       const operationId = newOperationId();
-      const deleting = current.localPayload === null;
+      const deleting = localKind === 'delete';
       const operation: OutboxOperation = {
         operationId,
         profileId: current.profileId,
@@ -183,7 +193,7 @@ export async function resolveRemoteConflict(
           entityId: current.entityId,
           operationId: `conflict:${current.conflictId}`,
           baseRevision: current.remoteRevision,
-          epoch: 0,
+          epoch: current.remoteEpoch ?? 0,
           deleted: true,
           deletedAt: new Date().toISOString(),
           snapshot: current.localPayload ?? {},

@@ -390,12 +390,14 @@ export async function markConflict(
   operation: OutboxOperation,
   remoteRevision: number,
   remote?: { payload: unknown | null; deleted: boolean },
+  remoteEpoch?: number,
 ): Promise<void> {
   if (
     operation.profileId !== profileId ||
     operation.status === 'CONFIRMED' ||
     !Number.isInteger(remoteRevision) ||
-    remoteRevision < 1
+    remoteRevision < 1 ||
+    (remoteEpoch !== undefined && (!Number.isInteger(remoteEpoch) || remoteEpoch < 0))
   ) {
     throw new LocalPersistenceError('UNAVAILABLE', 'conflict outside the profile scope', false);
   }
@@ -436,17 +438,29 @@ export async function markConflict(
       outbox.put({ ...sibling, status: 'CONFLICT' });
     }
     outbox.put({ ...persisted, status: 'CONFLICT' });
+    const latest = [...siblings]
+      .filter((sibling) => sibling.status === 'PENDING')
+      .sort((left, right) => {
+        const leftBase = typeof left.baseRevision === 'number' ? left.baseRevision : -1;
+        const rightBase = typeof right.baseRevision === 'number' ? right.baseRevision : -1;
+        if (leftBase !== rightBase) return leftBase - rightBase;
+        return (left.sequence ?? 0) - (right.sequence ?? 0);
+      })
+      .at(-1) ?? persisted;
+    const localKind: 'upsert' | 'delete' = latest.kind === 'delete' ? 'delete' : 'upsert';
     conflicts.put({
       conflictId: operation.operationId,
       profileId,
       operationId: operation.operationId,
       entityType: persisted.entityType,
       entityId: persisted.entityId,
-      localPayload: persisted.payload,
+      localPayload: localKind === 'delete' ? null : latest.payload,
+      localKind,
       remotePayload: remote?.payload ?? null,
       baseRevision: persisted.baseRevision,
       remoteRevision,
       deleted: remote?.deleted === true,
+      ...(remoteEpoch !== undefined ? { remoteEpoch } : {}),
       status: 'OPEN',
       createdAt: new Date().toISOString(),
     });
@@ -466,7 +480,10 @@ export type PersistedConflict = {
   remotePayload: unknown | null;
   baseRevision: number | null;
   remoteRevision: number;
+  remoteEpoch?: number;
   deleted: boolean;
+  /** Local intent captured with the conflict, so delete never becomes upsert. */
+  localKind?: 'upsert' | 'delete';
   status: 'OPEN' | 'RESOLVED';
   resolution?: 'LOCAL' | 'REMOTE';
   resolvedByOperationId?: string;
