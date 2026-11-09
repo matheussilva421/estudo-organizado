@@ -62,6 +62,51 @@ function provenance(input: unknown): string[] {
   return result;
 }
 
+function hasContent(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (Array.isArray(value)) return value.some((item) => hasContent(item));
+  if (isRecord(value)) return Object.values(value).some((item) => hasContent(item));
+  if (typeof value === 'string') return value.trim().length > 0;
+  return true;
+}
+
+const MAPPED_ARRAY_KEYS = new Set(['editais', 'eventos', 'blocos']);
+
+function hasUnmappedContent(input: unknown): boolean {
+  if (!isRecord(input)) return false;
+  for (const [key, value] of Object.entries(input)) {
+    if (key === 'schemaVersion' || key === 'idbVersion') {
+      if (typeof value !== 'number' && hasContent(value)) return true;
+      continue;
+    }
+    if (MAPPED_ARRAY_KEYS.has(key)) {
+      if (!Array.isArray(value) && hasContent(value)) return true;
+      continue;
+    }
+    if (key === 'habitos') {
+      if (!isRecord(value)) {
+        if (hasContent(value)) return true;
+        continue;
+      }
+      for (const [habitKey, habitValue] of Object.entries(value)) {
+        if (habitKey === 'questoes' && Array.isArray(habitValue)) continue;
+        if (hasContent(habitValue)) return true;
+      }
+      continue;
+    }
+    if (key === 'retaFinal' || key === 'planejamento') {
+      if (!isRecord(value)) {
+        if (hasContent(value)) return true;
+        continue;
+      }
+      if (hasUnmappedContent(value)) return true;
+      continue;
+    }
+    if (hasContent(value)) return true;
+  }
+  return false;
+}
+
 export function inspectLegacyV1Export(input: unknown): LegacyMigrationPreview {
   const recognition = recognizeLegacyFormat(input);
   if (recognition.kind !== 'V1_SUPPORTED') {
@@ -85,7 +130,10 @@ export function inspectLegacyV1Export(input: unknown): LegacyMigrationPreview {
     editais.length > 0 || events.length > 0 || questions.length > 0 || blocks.length > 0;
   const recordCount = editais.length + events.length + questions.length + split.unique.length;
   return {
-    kind: split.duplicates.length > 0 || unmapped > 0 || hasData ? 'AMBIGUOUS' : 'SAFE',
+    kind:
+      split.duplicates.length > 0 || unmapped > 0 || hasData || hasUnmappedContent(input)
+        ? 'AMBIGUOUS'
+        : 'SAFE',
     recordCount,
     unmapped,
     conflicts: split.duplicates.length,

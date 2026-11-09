@@ -92,4 +92,48 @@ describe('F7 V1 migration', () => {
       fetchSpy.mockRestore();
     }
   });
+
+  it('f7_v1_unmapped_habitos_content_is_ambiguous', async () => {
+    const input = { schemaVersion: 12, habitos: { sequencia: 10 } };
+    expect(inspectLegacyV1Export(input).kind).toBe('AMBIGUOUS');
+    const converted = await convertLegacyV1InIsolation(input);
+    expect(converted.preview.kind).toBe('AMBIGUOUS');
+    expect(converted.snapshot).toBeNull();
+  });
+
+  it('f7_v1_reta_final_without_blocks_is_ambiguous', async () => {
+    const input = { schemaVersion: 12, retaFinal: { ativa: true } };
+    expect(inspectLegacyV1Export(input).kind).toBe('AMBIGUOUS');
+    const converted = await convertLegacyV1InIsolation(input);
+    expect(converted.preview.kind).toBe('AMBIGUOUS');
+    expect(converted.snapshot).toBeNull();
+  });
+
+  it('f7_v1_unknown_string_content_is_ambiguous', async () => {
+    const input = { schemaVersion: 12, arquivo: 'x' };
+    expect(inspectLegacyV1Export(input).kind).toBe('AMBIGUOUS');
+    const converted = await convertLegacyV1InIsolation(input);
+    expect(converted.preview.kind).toBe('AMBIGUOUS');
+    expect(converted.snapshot).toBeNull();
+  });
+
+  it('f7_v1_empty_content_remains_safe', async () => {
+    const input = {
+      schemaVersion: 12,
+      idbVersion: 7,
+      editais: [],
+      eventos: [],
+      habitos: { questoes: [] },
+      retaFinal: { blocos: [] },
+      arquivo: null,
+      desconhecido: {},
+      lista: [null, {}],
+    };
+    const preview = inspectLegacyV1Export(input);
+    expect(preview.kind).toBe('SAFE');
+    expect(preview.recordCount).toBe(0);
+    const converted = await convertLegacyV1InIsolation(input);
+    expect(converted.preview.kind).toBe('SAFE');
+    expect(converted.snapshot).not.toBeNull();
+  });
 });
