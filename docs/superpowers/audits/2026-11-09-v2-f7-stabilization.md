@@ -89,7 +89,7 @@ O parecer Lorentz do HEAD 5183a285 fechou como FIXED_VERIFIED os cinco bloqueado
 |---|---|
 | npm run typecheck | PASS |
 | npm run lint | PASS |
-| npm run test:unit | 797 PASS / 113 arquivos |
+| npm run test:unit | 799 PASS / 113 arquivos |
 | npm run build | PASS (Vite 8.3.5; chunks Firebase lazy) |
 | npm run test:e2e | 164 PASS + 2 skips / 166 |
 | Firebase Emulator demo-estudo-v2 | 12 PASS / 2 arquivos |
