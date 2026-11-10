@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { EditalDiscipline } from '../../domain/edital';
 import type { Assunto, Aula, LessonTopicLink } from '../../domain/content';
+import { sortByOrder } from '../../domain/content';
 import { displayName } from '../../domain/edital';
 import type { StudySubject } from '../../domain/subject';
 import { useDraftGuard } from '../draft-guard';
@@ -26,6 +27,8 @@ type ContentTreeProps = {
   onCreateAula: (link: EditalDiscipline, title: string) => Promise<boolean>;
   onLinkTopic: (aula: Aula, assunto: Assunto) => Promise<boolean>;
   onUnlinkTopic: (link: LessonTopicLink) => Promise<boolean>;
+  onReorderAssunto: (assunto: Assunto, orderKey: string) => Promise<boolean>;
+  onMoveAssunto: (assunto: Assunto, parentId: string | null) => Promise<boolean>;
   locked?: boolean;
   focusId?: string | null;
 };
@@ -41,6 +44,8 @@ export function ContentTree({
   onCreateAula,
   onLinkTopic,
   onUnlinkTopic,
+  onReorderAssunto,
+  onMoveAssunto,
   locked = false,
   focusId = null,
 }: ContentTreeProps) {
@@ -51,6 +56,10 @@ export function ContentTree({
   const [rootLimits, setRootLimits] = useState<Record<string, number>>({});
   const [childLimits, setChildLimits] = useState<Record<string, number>>({});
   const [draftSaveFailed, setDraftSaveFailed] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const [draggedAssunto, setDraggedAssunto] = useState<string | null>(null);
+  const [moveSource, setMoveSource] = useState<Record<string, string>>({});
+  const [moveParent, setMoveParent] = useState<Record<string, string>>({});
   function localKeyFor(linkId: string, kind: 'assunto' | 'aula'): string {
     return localDraftKey(profileId, kind + '-new', linkId);
   }
@@ -92,14 +101,107 @@ export function ContentTree({
 
   const subjectById = new Map(subjects.map((subject) => [subject.id, subject]));
 
+  function orderedSiblings(linkId: string, parentId: string | null): Assunto[] {
+    return sortByOrder(
+      assuntos.filter(
+        (item) =>
+          item.editalDisciplineId === linkId && (item.parentId ?? null) === parentId,
+      ),
+    );
+  }
+
+  function keyBefore(siblings: Assunto[], index: number): string | null {
+    const before = index > 0 ? Number.parseInt(siblings[index - 1]!.orderKey, 10) : 0;
+    const after =
+      index < siblings.length
+        ? Number.parseInt(siblings[index]!.orderKey, 10)
+        : before + 20;
+    const lower = Number.isFinite(before) ? before : 0;
+    const upper = Number.isFinite(after) ? after : lower + 20;
+    if (upper - lower <= 1) return null;
+    return String(Math.floor((lower + upper) / 2)).padStart(6, '0');
+  }
+
+  async function moveSibling(assunto: Assunto, direction: -1 | 1): Promise<void> {
+    const siblings = orderedSiblings(assunto.editalDisciplineId, assunto.parentId ?? null);
+    const currentIndex = siblings.findIndex((item) => item.id === assunto.id);
+    const targetIndex = currentIndex + direction;
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= siblings.length) return;
+    const reordered = [...siblings];
+    [reordered[currentIndex], reordered[targetIndex]] = [
+      reordered[targetIndex]!,
+      reordered[currentIndex]!,
+    ];
+    const insertAt = reordered.findIndex((item) => item.id === assunto.id);
+    const orderKey = keyBefore(reordered.filter((item) => item.id !== assunto.id), insertAt);
+    if (!orderKey) {
+      setOrderError('Não há espaço de ordem entre estes itens. Nenhuma alteração foi gravada.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const ok = await onReorderAssunto(assunto, orderKey);
+      setOrderError(ok ? null : 'A reordenação falhou; a árvore permanece como estava.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function dropBefore(target: Assunto): Promise<void> {
+    setDraggedAssunto(null);
+    if (!draggedAssunto || draggedAssunto === target.id) return;
+    const dragged = assuntos.find((item) => item.id === draggedAssunto);
+    if (!dragged || dragged.editalDisciplineId !== target.editalDisciplineId) return;
+    if ((dragged.parentId ?? null) !== (target.parentId ?? null)) {
+      setOrderError('Arraste entre assuntos do mesmo nível. Para mudar de pai, use “Mover de hierarquia”.');
+      return;
+    }
+    const siblings = orderedSiblings(target.editalDisciplineId, target.parentId ?? null).filter(
+      (item) => item.id !== dragged.id,
+    );
+    const insertAt = siblings.findIndex((item) => item.id === target.id);
+    const orderKey = keyBefore(siblings, insertAt);
+    if (!orderKey) {
+      setOrderError('Não há espaço de ordem para soltar neste ponto.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const ok = await onReorderAssunto(dragged, orderKey);
+      setOrderError(ok ? null : 'A reordenação falhou; a árvore permanece como estava.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function descendantIdsOf(assuntoId: string): Set<string> {
+    const result = new Set<string>();
+    const pending = [assuntoId];
+    while (pending.length > 0) {
+      const current = pending.pop()!;
+      for (const child of assuntos.filter((item) => item.parentId === current)) {
+        if (result.has(child.id)) continue;
+        result.add(child.id);
+        pending.push(child.id);
+      }
+    }
+    return result;
+  }
+
   useEffect(() => {
     if (!focusId) return;
     if (!/^[A-Za-z0-9._~-]{1,128}$/.test(focusId)) return;
-    const element = document.querySelector('[data-entity-id="' + focusId + '"]');
-    if (element) element.scrollIntoView({ block: 'center', behavior: 'auto' });
+    const element = document.querySelector<HTMLElement>('[data-entity-id="' + focusId + '"]');
+    if (element) {
+      element.tabIndex = -1;
+      element.focus({ preventScroll: true });
+      element.scrollIntoView({ block: 'center', behavior: 'auto' });
+    }
   }, [focusId, links, assuntos, aulas]);
 
   function renderAssunto(linkId: string, assunto: Assunto, depth: number): React.ReactNode {
+    const siblings = orderedSiblings(linkId, assunto.parentId ?? null);
+    const siblingIndex = siblings.findIndex((item) => item.id === assunto.id);
     const children = assuntos.filter(
       (item) => item.editalDisciplineId === linkId && item.parentId === assunto.id,
     );
@@ -113,10 +215,44 @@ export function ContentTree({
         data-depth={depth}
         data-entity-id={assunto.id}
         data-focus={assunto.id === focusId ? 'true' : undefined}
+        draggable={!locked}
+        onDragStart={(event) => {
+          setDraggedAssunto(assunto.id);
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('text/plain', assunto.id);
+        }}
+        onDragOver={(event) => {
+          if (draggedAssunto) event.preventDefault();
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void dropBefore(assunto);
+        }}
       >
         <div className="tree-row">
           <span className="tree-title">{assunto.title}</span>
           <span className="tree-meta">{topics.length} aula(s)</span>
+          <span className="tree-actions">
+            <button
+              type="button"
+              className="button-ghost"
+              aria-label={`Mover ${assunto.title} para cima`}
+              disabled={locked || busy || siblingIndex <= 0}
+              onClick={() => void moveSibling(assunto, -1)}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              className="button-ghost"
+              aria-label={`Mover ${assunto.title} para baixo`}
+              disabled={locked || busy || siblingIndex < 0 || siblingIndex >= siblings.length - 1}
+              onClick={() => void moveSibling(assunto, 1)}
+            >
+              ↓
+            </button>
+          </span>
         </div>
         {children.length > 0 ? (
           <ul className="tree-children">
@@ -159,6 +295,9 @@ export function ContentTree({
           navegue antes de adicionar ou copiar.
         </p>
       ) : null}
+      {orderError ? (
+        <p className="inline-notice" role="alert" data-testid="f7-order-error">{orderError}</p>
+      ) : null}
       {links.map((link) => {
         const subject = subjectById.get(link.subjectId);
         const label = subject ? displayName(subject, link) : '(disciplina indisponível)';
@@ -172,6 +311,20 @@ export function ContentTree({
         const draftLocalKey = localKeyFor(link.id, 'assunto');
         const assuntoDraft = draftValue(draftKey, draftLocalKey);
         const selectedParent = parentChoices[link.id] ?? '';
+        const selectedMoveSource = moveSource[link.id] ?? '';
+        const moveSourceEntity = assuntos.find((item) => item.id === selectedMoveSource);
+        const selectedMoveParent = moveParent[link.id] ?? '';
+        const targetMoveParent = selectedMoveParent || null;
+        const moveIsNoop = (moveSourceEntity?.parentId ?? null) === targetMoveParent;
+        const blockedParents = moveSourceEntity ? descendantIdsOf(moveSourceEntity.id) : new Set<string>();
+        const availableMoveParents = sortByOrder(
+          assuntos.filter(
+            (item) =>
+              item.editalDisciplineId === link.id &&
+              item.id !== selectedMoveSource &&
+              !blockedParents.has(item.id),
+          ),
+        );
 
         return (
           <section
@@ -253,6 +406,59 @@ export function ContentTree({
                 ) : null}
               </ul>
             )}
+
+            <details className="inline-move-hierarchy">
+              <summary>Mover de hierarquia</summary>
+              <form
+                className="inline-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!moveSourceEntity || moveIsNoop) return;
+                  setBusy(true);
+                  void onMoveAssunto(moveSourceEntity, targetMoveParent)
+                    .then((ok) => {
+                      if (ok) {
+                        setMoveSource((current) => ({ ...current, [link.id]: '' }));
+                        setMoveParent((current) => ({ ...current, [link.id]: '' }));
+                        setOrderError(null);
+                      } else {
+                        setOrderError('Não foi possível mover; a hierarquia atual foi preservada.');
+                      }
+                    })
+                    .finally(() => setBusy(false));
+                }}
+              >
+                <label htmlFor={`move-source-${link.id}`}>Assunto a mover</label>
+                <select
+                  id={`move-source-${link.id}`}
+                  value={selectedMoveSource}
+                  onChange={(event) =>
+                    setMoveSource((current) => ({ ...current, [link.id]: event.target.value }))
+                  }
+                >
+                  <option value="">Escolha um assunto</option>
+                  {sortByOrder(assuntos.filter((item) => item.editalDisciplineId === link.id)).map((item) => (
+                    <option key={item.id} value={item.id}>{item.title}</option>
+                  ))}
+                </select>
+                <label htmlFor={`move-parent-${link.id}`}>Novo pai</label>
+                <select
+                  id={`move-parent-${link.id}`}
+                  value={selectedMoveParent}
+                  onChange={(event) =>
+                    setMoveParent((current) => ({ ...current, [link.id]: event.target.value }))
+                  }
+                >
+                  <option value="">Raiz</option>
+                  {availableMoveParents.map((item) => (
+                    <option key={item.id} value={item.id}>{item.title}</option>
+                  ))}
+                </select>
+                <button type="submit" className="button-ghost" disabled={locked || busy || !moveSourceEntity || moveIsNoop}>
+                  Mover assunto
+                </button>
+              </form>
+            </details>
 
             <form
               className="inline-form"

@@ -67,10 +67,9 @@ test('f7 recovery shows preview, exports backup and commits a verified snapshot'
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain('recovery');
 
-  page.once('dialog', (dialog) => {
-    void dialog.accept();
-  });
   await page.getByRole('button', { name: 'Aplicar rebaseline verificado' }).click();
+  const confirmation = page.getByRole('dialog', { name: 'Aplicar rebaseline verificado?' });
+  await confirmation.getByRole('button', { name: 'Aplicar rebaseline' }).click();
   await expect(page.locator('[data-recovery-status="RECUPERADO"]')).toBeVisible();
 
   const state = await page.evaluate(
@@ -95,6 +94,27 @@ test('f7 recovery without a stable remote snapshot stays blocked', async ({ page
   expect(state.marker).toBe(true);
 });
 
+test('f7 recovery dialog traps focus, cancels safely and returns to the trigger', async ({ page }) => {
+  await boot(page);
+  await seedRecovery(page);
+  await page.goto('/#/settings');
+  await page.getByRole('button', { name: 'Verificar recuperação' }).click();
+  await expect(page.locator('[data-recovery-preview]')).toBeVisible();
+  const trigger = page.getByRole('button', { name: 'Aplicar rebaseline verificado' });
+  await trigger.click();
+  const dialog = page.getByRole('dialog', { name: 'Aplicar rebaseline verificado?' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Aplicar rebaseline' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  const state = await page.evaluate(
+    (profile) => (window as unknown as HarnessWindow).__v2E2E.recoveryState(profile),
+    profileId,
+  );
+  expect(state.marker).toBe(true);
+});
+
 test('f7 recovery preserves a pending offline operation for later reconciliation', async ({ page }) => {
   await boot(page);
   await seedRecovery(page);
@@ -111,10 +131,8 @@ test('f7 recovery preserves a pending offline operation for later reconciliation
   await page.goto('/#/settings');
   await page.getByRole('button', { name: 'Verificar recuperação' }).click();
   await expect(page.locator('[data-recovery-preview]')).toContainText('1 operação(ões) offline');
-  page.once('dialog', (dialog) => {
-    void dialog.accept();
-  });
   await page.getByRole('button', { name: 'Aplicar rebaseline verificado' }).click();
+  await page.getByRole('dialog', { name: 'Aplicar rebaseline verificado?' }).getByRole('button', { name: 'Aplicar rebaseline' }).click();
   await expect(page.locator('[data-recovery-status="RECUPERADO"]')).toBeVisible();
   await expect(
     page.evaluate(
@@ -171,10 +189,8 @@ test('f7 recovery commits once across two tabs with a pending offline edit', asy
 
   await first.getByRole('button', { name: 'Verificar recuperação' }).click();
   await expect(first.locator('[data-recovery-preview]')).toBeVisible();
-  first.once('dialog', (dialog) => {
-    void dialog.accept();
-  });
   await first.getByRole('button', { name: 'Aplicar rebaseline verificado' }).click();
+  await first.getByRole('dialog', { name: 'Aplicar rebaseline verificado?' }).getByRole('button', { name: 'Aplicar rebaseline' }).click();
   await expect(first.locator('[data-recovery-status="RECUPERADO"]')).toBeVisible();
 
   await second.reload();

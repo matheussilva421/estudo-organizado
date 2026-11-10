@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-11-10T13:37:01.682Z",
+  "themes": [
+    "grafite",
+    "ardosia",
+    "platina",
+    "terminal",
+    "neon",
+    "arrakis",
+    "codex",
+    "plasma"
+  ],
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1280,
+      "height": 900
+    },
+    {
+      "name": "tablet",
+      "width": 834,
+      "height": 1112
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "name": "mobile-320",
+      "width": 320,
+      "height": 720
+    }
+  ],
+  "moduleShots": [
+    {
+      "name": "home",
+      "route": "/#/home"
+    },
+    {
+      "name": "content",
+      "route": "/#/content/f7ux-edital?focus=f7ux-assunto"
+    },
+    {
+      "name": "planning",
+      "route": "/#/planning"
+    },
+    {
+      "name": "sessions",
+      "route": "/#/sessions"
+    },
+    {
+      "name": "reviews",
+      "route": "/#/reviews"
+    },
+    {
+      "name": "attention",
+      "route": "/#/attention"
+    },
+    {
+      "name": "analytics",
+      "route": "/#/analytics"
+    },
+    {
+      "name": "settings",
+      "route": "/#/settings"
+    }
+  ],
+  "note": "Somente fixtures sintéticas; nenhum token, e-mail ou acervo real."
+}

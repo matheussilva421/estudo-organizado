@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OutboxOperation } from '../../src/application/sync-types';
 import type { ProfileRecord } from '../../src/application/profile-service';
 import { snapshotChecksum, type F7BackupSnapshot } from '../../src/platform/backup/f7-format';
-import { commitF7Restore, prepareF7Restore } from '../../src/platform/backup/restore-commit';
+import {
+  commitF7Restore,
+  getLocalRestoreEpoch,
+  prepareF7Restore,
+} from '../../src/platform/backup/restore-commit';
 import { previewLink } from '../../src/application/sync-policy';
 import { LocalProfileRepository } from '../../src/platform/local-profile-repository';
 import {
@@ -24,7 +28,7 @@ async function snapshot(overrides: Partial<F7BackupSnapshot['manifest']> = {}): 
     formatVersion: 3 as const,
     profileId,
     recordCount: 1,
-    epoch: 1,
+    epoch: 2,
     deletionHistoryComplete: true,
     ...overrides,
   };
@@ -84,6 +88,10 @@ beforeEach(async () => {
 });
 
 describe('F7 restore', () => {
+  it('f7_restore_uses_the_persisted_local_epoch_for_safety_checks', async () => {
+    await seed();
+    await expect(getLocalRestoreEpoch(profileId)).resolves.toBe(2);
+  });
   it('f7_restore_is_readonly_until_consent', async () => {
     await seed();
     const prepared = await prepareF7Restore(await snapshot(), profileId);
@@ -91,6 +99,18 @@ describe('F7 restore', () => {
     if (prepared.kind !== 'PREVIEW') return;
     await expect(commitF7Restore(prepared.preview.id, false as unknown as true)).resolves.toBe('FAILED');
     expect(await metaKeys()).not.toContain(`restore:${profileId}`);
+  });
+
+  it('f7_restore_rejects_a_base_changed_after_preview', async () => {
+    await seed();
+    const prepared = await prepareF7Restore(await snapshot(), profileId);
+    expect(prepared.kind).toBe('PREVIEW');
+    if (prepared.kind !== 'PREVIEW') return;
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(STORES.editais, 'readwrite');
+    tx.objectStore(STORES.editais).put({ profileId, id: 'edital-concurrent', title: 'Outra aba' });
+    await transactionDone(tx);
+    await expect(commitF7Restore(prepared.preview.id, true)).resolves.toBe('STALE');
   });
 
   it('f7_restore_rejects_checksum_mismatch', async () => {
@@ -115,12 +135,12 @@ describe('F7 restore', () => {
       snapshot: {},
     });
     await transactionDone(tx);
-    const prepared = await prepareF7Restore(await snapshot(), profileId);
+    const prepared = await prepareF7Restore(await snapshot({ epoch: 1 }), profileId);
     expect(prepared.kind).toBe('PREVIEW');
     if (prepared.kind === 'PREVIEW') {
       expect(prepared.preview.requiresRebaseline).toBe(true);
       expect(prepared.preview.conflicts).toBe(1);
-      await commitF7Restore(prepared.preview.id, true);
+      await expect(commitF7Restore(prepared.preview.id, true)).resolves.toBe('REBASELINE_REQUIRED');
     }
     const check = db.transaction(STORES.tombstones, 'readonly');
     const rows = (await requestResult(check.objectStore(STORES.tombstones).getAll())) as unknown[];
@@ -283,6 +303,13 @@ describe('F7 restore', () => {
     if (prepared.kind !== 'PREVIEW') return;
     await expect(commitF7Restore(prepared.preview.id, true)).resolves.toBe('LOCAL_COMMITTED');
     await expect(editalRow()).resolves.toMatchObject({ title: 'TJPB' });
+    const db = await openV2Database(profileId);
+    const meta = db.transaction(STORES.meta, 'readonly');
+    const marker = (await requestResult(
+      meta.objectStore(STORES.meta).get(`restore:${profileId}`),
+    )) as { value?: { applied?: number; readBackVerified?: number } } | undefined;
+    expect(marker?.value?.readBackVerified).toBe(marker?.value?.applied);
+    expect(marker?.value?.applied).toBeGreaterThan(0);
   });
 
   it('f7_restore_preview_counts_existing_rows_as_updates', async () => {
@@ -319,7 +346,7 @@ describe('F7 restore', () => {
       formatVersion: 3 as const,
       profileId,
       recordCount: 2,
-      epoch: 1,
+      epoch: 2,
       deletionHistoryComplete: true,
     };
     const snapshot = {
@@ -372,7 +399,7 @@ describe('F7 restore', () => {
       formatVersion: 3 as const,
       profileId,
       recordCount: 4,
-      epoch: 1,
+      epoch: 2,
       deletionHistoryComplete: true,
     };
     const input = {

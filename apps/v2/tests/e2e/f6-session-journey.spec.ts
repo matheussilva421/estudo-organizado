@@ -28,7 +28,8 @@ test('f6 active F4 session survives navigation theme viewport and reload', async
   await expect(page.locator('#planning-section')).toBeVisible();
   await expect(page.locator('#sessions-section')).toBeHidden();
 
-  await page.getByRole('link', { name: 'Sessões', exact: true }).click();
+  await page.getByRole('button', { name: 'Estudar', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name: 'Abrir sessões' }).click();
   await expect(page).toHaveURL(/#\/sessions$/);
   await expect(page.getByTestId('session-timer')).toContainText('RUNNING');
 

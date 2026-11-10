@@ -12,6 +12,7 @@ import {
 import { queryWidgetMetric } from '../../src/application/widget-queries';
 import type { AnalyticsSummary, HomeSummary } from '../../src/application/experience-queries';
 import type { ContentSnapshot } from '../../src/application/content-service';
+import type { StudySession } from '../../src/domain/session';
 
 const content: ContentSnapshot = {
   subjects: [],
@@ -135,5 +136,46 @@ describe('F7-UX widget data contract', () => {
     const result = queryWidgetMetric('STUDY_TIME_BY_EXAM', frozen);
     expect(result).toMatchObject({ status: 'PARTIAL', value: 1 });
     expect(result.warnings.join(' ')).toMatch(/compartilhadas/i);
+  });
+
+  it('does not report missing plans or questions as ready zero', () => {
+    const emptyAnalytics = {
+      ...analytics,
+      sessions: { completed: 0, inPeriod: 0, undated: 0, recovery: 0, focusMs: 0, manualMs: 0 },
+      questions: { total: 0, correct: 0, accuracy: null, sessionsWithData: 0 },
+      planned: { blocks: 0, minutes: 0, activeScenarios: 0 },
+      byEdital: [],
+    };
+    const emptyInput = { summary, analytics: emptyAnalytics, content };
+    expect(queryWidgetMetric('QUESTIONS', emptyInput)).toMatchObject({ status: 'UNAVAILABLE', value: null });
+    expect(queryWidgetMetric('PLANNED_MINUTES', emptyInput)).toMatchObject({ status: 'UNAVAILABLE', value: null });
+    expect(queryWidgetMetric('STUDY_TIME_BY_EXAM', emptyInput)).toMatchObject({ status: 'UNAVAILABLE', value: null });
+  });
+
+  it('recomputes the time metric for the effective widget scope', () => {
+    const makeSession = (id: string, options: Partial<StudySession> = {}): StudySession => ({
+      id,
+      profileId: 'local-default',
+      state: 'COMPLETED',
+      origin: 'TIMER',
+      localRevision: 1,
+      schemaVersion: 1,
+      referenceZone: 'America/Fortaleza',
+      recordedAtCivilDate: '2026-11-10',
+      planBlockIds: [],
+      editalIds: [],
+      intervals: [{ id: `${id}-i`, kind: 'FOCUS', verifiedMs: 300_000, contextId: null, checkpoint: null, recoveryFlag: false }],
+      ...options,
+    });
+    const sessions = [
+      makeSession('planned', { planBlockIds: ['block-1'] }),
+      makeSession('content', {
+        allocations: [{ sessionId: 'content', allocationId: 'a1', durationMs: 300_000 }],
+      }),
+    ];
+    const input = { summary, analytics, content, sessions };
+    expect(queryWidgetMetric('STUDY_TIME', input, 'PLANNING')).toMatchObject({ value: 5 });
+    expect(queryWidgetMetric('STUDY_TIME', input, 'CONTENT')).toMatchObject({ value: 5 });
+    expect(queryWidgetMetric('STUDY_TIME', input, 'REVIEWS')).toMatchObject({ status: 'UNAVAILABLE', value: null });
   });
 });

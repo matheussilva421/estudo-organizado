@@ -36,12 +36,20 @@ export type ChartRow = {
 
 const METHOD_VERSION = 'f7-ux-v1';
 
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    for (const child of Object.values(value as Record<string, unknown>)) deepFreeze(child);
+    Object.freeze(value);
+  }
+  return value;
+}
+
 export function buildAnalyticsEvidence(summary: AnalyticsSummary): AnalyticsMetricEvidence[] {
   return [
     {
       id: 'focus-time',
       label: 'Tempo de foco executado',
-      value: Math.round(summary.sessions.focusMs / 60_000),
+      value: summary.sessions.inPeriod > 0 ? Math.round(summary.sessions.focusMs / 60_000) : null,
       unit: 'minutes',
       numerator: summary.sessions.focusMs,
       denominator: null,
@@ -53,7 +61,7 @@ export function buildAnalyticsEvidence(summary: AnalyticsSummary): AnalyticsMetr
     {
       id: 'planned-time',
       label: 'Tempo planejado',
-      value: summary.planned.minutes,
+      value: summary.planned.activeScenarios > 0 ? summary.planned.minutes : null,
       unit: 'minutes',
       numerator: summary.planned.minutes,
       denominator: null,
@@ -65,7 +73,7 @@ export function buildAnalyticsEvidence(summary: AnalyticsSummary): AnalyticsMetr
     {
       id: 'questions',
       label: 'Questões registradas',
-      value: summary.questions.total,
+      value: summary.questions.total > 0 ? summary.questions.total : null,
       unit: 'count',
       numerator: summary.questions.total,
       denominator: null,
@@ -77,7 +85,10 @@ export function buildAnalyticsEvidence(summary: AnalyticsSummary): AnalyticsMetr
     {
       id: 'accuracy',
       label: 'Aproveitamento',
-      value: summary.questions.accuracy === null ? null : Math.round(summary.questions.accuracy * 1000) / 10,
+      value:
+        summary.questions.accuracy === null || summary.questions.total < 10
+          ? null
+          : Math.round(summary.questions.accuracy * 1000) / 10,
       unit: 'percent',
       numerator: summary.questions.correct,
       denominator: summary.questions.total || null,
@@ -106,7 +117,7 @@ export function validateChartSpec(
 }
 
 export function createAnalyticsSnapshot(summary: AnalyticsSummary, createdAt: string): AnalyticsSnapshot {
-  const copy = structuredClone(summary);
+  const copy = deepFreeze(structuredClone(summary));
   const evidence = buildAnalyticsEvidence(copy);
   const table: ChartRow[] = evidence.map((metric) => ({
     metricId: metric.id,
@@ -132,7 +143,7 @@ export function createAnalyticsSnapshot(summary: AnalyticsSummary, createdAt: st
       });
     }
   }
-  return Object.freeze({
+  return deepFreeze({
     schemaVersion: 1 as const,
     createdAt,
     methodology: Object.freeze({
@@ -141,8 +152,8 @@ export function createAnalyticsSnapshot(summary: AnalyticsSummary, createdAt: st
       source: copy.source,
     }),
     summary: copy,
-    chart: Object.freeze(table.map((row) => Object.freeze({ ...row }))),
-    table: Object.freeze(table.map((row) => Object.freeze({ ...row }))),
+    chart: table.map((row) => ({ ...row })),
+    table: table.map((row) => ({ ...row })),
   });
 }
 
@@ -165,6 +176,8 @@ export function exportAnalyticsReport(
       content: JSON.stringify({
         schemaVersion: snapshot.schemaVersion,
         createdAt: snapshot.createdAt,
+        scope: snapshot.summary.scope,
+        period: snapshot.summary.period,
         methodology: snapshot.methodology,
         chart: snapshot.chart,
         table: snapshot.table,

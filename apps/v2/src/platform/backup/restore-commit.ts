@@ -22,6 +22,7 @@ type StoredRestore = {
   targetProfileId: string;
   snapshot: F7BackupSnapshot;
   preview: RestorePreviewF7;
+  baseFingerprint: string;
 };
 
 /** Academic and durable local stores that a portable backup may restore. */
@@ -81,6 +82,17 @@ const committed = new Set<string>();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function fingerprintRows(rowsByStore: Record<string, unknown[]>): string {
+  return JSON.stringify(
+    Object.keys(rowsByStore)
+      .sort()
+      .map((store) => [
+        store,
+        rowsByStore[store]!.map((row) => JSON.stringify(row)).sort(),
+      ]),
+  );
 }
 
 function previewId(): string {
@@ -261,6 +273,11 @@ async function localEpoch(profileId: string): Promise<number> {
   return row && typeof row.epoch === 'number' && Number.isInteger(row.epoch) ? row.epoch : 0;
 }
 
+/** Exposes the persisted epoch only for read-only legacy backup classification. */
+export async function getLocalRestoreEpoch(profileId: string): Promise<number> {
+  return localEpoch(profileId);
+}
+
 export async function prepareF7Restore(
   snapshot: F7BackupSnapshot,
   targetProfileId: string,
@@ -269,9 +286,19 @@ export async function prepareF7Restore(
   const inspected = await inspectF7Backup(snapshot);
   if (inspected.kind === 'INVALID') return { kind: 'INVALID', reason: inspected.reason };
 
-  const currentEpoch = await localEpoch(targetProfileId).catch(() => 0);
+  let currentEpoch: number;
+  try {
+    currentEpoch = await localEpoch(targetProfileId);
+  } catch {
+    return { kind: 'INVALID', reason: 'LOCAL_EPOCH_UNAVAILABLE' };
+  }
   const database = await openV2Database(targetProfileId);
-  const tombstones = await currentTombstones(database, targetProfileId).catch(() => new Map());
+  let tombstones: TombstoneIndex;
+  try {
+    tombstones = await currentTombstones(database, targetProfileId);
+  } catch {
+    return { kind: 'INVALID', reason: 'LOCAL_TOMBSTONES_UNAVAILABLE' };
+  }
   for (const row of snapshotTombstones(snapshot)) addTombstone(tombstones, row);
   const effective = effectiveIds(snapshot, tombstones);
 
@@ -282,11 +309,13 @@ export async function prepareF7Restore(
   let toCreate = 0;
   let toUpdate = 0;
   let conflicts = 0;
+  const currentRowsByStore: Record<string, unknown[]> = {};
 
   for (const name of stores) {
     const rows = snapshot.payload[name];
     if (!Array.isArray(rows)) continue;
     const store = transaction.objectStore(name);
+    currentRowsByStore[name] = (await requestResult(store.getAll())) as unknown[];
     const entityType = ENTITY_TYPE_BY_STORE[name];
     for (const row of rows) {
       if (!isRecord(row)) continue;
@@ -317,18 +346,24 @@ export async function prepareF7Restore(
       inspected.kind === 'REBASELINE_REQUIRED' || snapshot.manifest.epoch < currentEpoch,
     sourceEpoch: snapshot.manifest.epoch,
   };
-  previews.set(preview.id, { targetProfileId, snapshot, preview });
+  previews.set(preview.id, {
+    targetProfileId,
+    snapshot,
+    preview,
+    baseFingerprint: fingerprintRows(currentRowsByStore),
+  });
   return { kind: 'PREVIEW', preview };
 }
 
 export async function commitF7Restore(
   previewIdValue: string,
   consent: true,
-): Promise<'LOCAL_COMMITTED' | 'STALE' | 'INSUFFICIENT_SPACE' | 'FAILED'> {
+): Promise<'LOCAL_COMMITTED' | 'STALE' | 'INSUFFICIENT_SPACE' | 'REBASELINE_REQUIRED' | 'FAILED'> {
   if (consent !== true) return 'FAILED';
   if (committed.has(previewIdValue)) return 'LOCAL_COMMITTED';
   const stored = previews.get(previewIdValue);
   if (!stored) return 'STALE';
+  if (stored.preview.requiresRebaseline) return 'REBASELINE_REQUIRED';
 
   const database = await openV2Database(stored.targetProfileId).catch(() => null);
   if (!database) return 'FAILED';
@@ -350,6 +385,17 @@ export async function commitF7Restore(
       committed.add(previewIdValue);
       previews.delete(previewIdValue);
       return 'LOCAL_COMMITTED';
+    }
+
+    const currentRowsByStore: Record<string, unknown[]> = {};
+    for (const name of stores.filter((store) => store !== STORES.tombstones)) {
+      currentRowsByStore[name] = (await requestResult(
+        transaction.objectStore(name).getAll(),
+      )) as unknown[];
+    }
+    if (fingerprintRows(currentRowsByStore) !== stored.baseFingerprint) {
+      await transactionDone(transaction);
+      return 'STALE';
     }
 
     const tombstones = new Map<string, number>();
@@ -386,7 +432,12 @@ export async function commitF7Restore(
         const entityId = typeof row.id === 'string' ? row.id : '';
         if (entityType && entityId && tombstones.has(`${entityType}:${entityId}`)) continue;
         if (!rowIsEffective(name, row, effective)) continue;
-        store.put({ ...row, profileId: stored.targetProfileId });
+        const expected = { ...row, profileId: stored.targetProfileId };
+        store.put(expected);
+        const readBack = await requestResult(store.get(key));
+        if (!sameValue(readBack, expected)) {
+          throw new Error('RESTORE_READ_BACK_MISMATCH');
+        }
         applied += 1;
       }
     }
@@ -421,6 +472,7 @@ export async function commitF7Restore(
         checksum: stored.snapshot.manifest.checksum,
         preview: stored.preview,
         applied,
+        readBackVerified: applied,
         restoredAt: new Date().toISOString(),
       },
     });

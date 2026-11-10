@@ -1,63 +1,47 @@
-# F6 — aceite com ressalvas e integração
+# F7-UX — implementação local para revisão
 
-**Atualizado:** 2026-11-04
-**Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
+**Atualizado:** 2026-11-10
+
+**Worktree:** `C:\Projetos\estudo-organizado\_v2-candidate`
+
 **Branch:** `v2`
-**Código aprovado:** `482900429bed1eccc87e32646062f35e1b63f368`
-**Estado:** `F6_ACCEPTED_WITH_RESERVATIONS` — [registro formal](../audits/2026-11-04-v2-f6-acceptance.md)
+
+**Baseline:** `3145e95440f0c38178a205f4247b67a180564214`
+
+**Estado:** `F7_UX_LOCAL_IMPLEMENTED_TESTED_FOR_REVIEW`
+
+**Pacote:** [F7-UX](../../superpowers/audits/f7-ux/SUMMARY.md)
 
 ## Objetivo e escopo
 
-Registrar o aceite humano com ressalvas e integrar exclusivamente à `origin/v2`,
-por fast-forward, os 26 commits F6 que culminam em `4829004`, com um commit
-documental adicional. Sem F7/F8, deploy, PR, Actions ou alteração da `main`.
+Executar localmente o GOAL F7-UX sobre a F7 funcional validada, preservando F2–F7, os 73 commits preexistentes e os gates G-EXT/G-STAGING.
 
 ## Concluído
 
-- Registro formal `F6_ACCEPTED_WITH_RESERVATIONS` em 2026-11-04.
-- Navegação adaptativa conforme D-F6-01 B: sidebar desktop, rail tablet e bottom
-  mobile em duas linhas; DOM/foco alinhados e Label in Name corrigido.
-- Testes reexecutados na integração: typecheck/lint PASS, 572 unitários PASS,
-  156 E2E PASS + 2 skips, build PASS.
-- Commit documental com o aceite, ROADMAP e HANDOFF atualizados.
-- Integração fast-forward à `origin/v2` autorizada nesta rodada, com read-back
-  registrado no relatório de integração.
+- Contratos por evidência, widgets, filtros, fórmulas controladas, Analytics e snapshots.
+- Shell responsivo, Home personalizável, Atenção deduplicada e Configurações protegidas.
+- Reordenação e movimentação de Conteúdo com CAS e alternativas de teclado.
+- Restore protegido: rebaseline bloqueado, detecção de base stale, cópia pré-restore e read-back transacional.
+- Testes e evidências consolidados em `docs/superpowers/audits/f7-ux/`.
 
 ## Ressalvas preservadas
 
-- H-02 (NVDA/Narrator) e H-16 (hardware modesto): `NOT_RUN`/`BLOCKED_ENVIRONMENT`.
-- H-03, H-06 e H-17: verificações humanas não integralmente confirmadas.
-- AC24 `DEFERRED_F7`; RF04, RF06, RF13, RF15, RF25, RF28, RF30 e RF31 `PARTIAL`.
-- Quatro HIGH F0 `UNVERIFIED`; F4-T13 `NOT_RUN`; limitação histórica de INCOMING parcial.
-- Quatro commits exclusivos da branch F5 preservados.
-- Este aceite não é deploy, publicação produtiva da V2 ou autorização da F7.
+- G-EXT, G-STAGING, aceite UX-H, NVDA/Narrator, hardware modesto e multi-dispositivo real: `NOT_RUN`.
+- Preferências visuais e relatórios históricos são locais deste navegador e não estão no backup F7.
+- `main`/V1, Firebase/KV/Cloudflare reais e F8 permanecem intocados.
+- Nenhum push, PR, Action ou deploy foi executado.
 
 ## Estado Git
 
-- `main` e `origin/main`: `9046cfa` (intactas).
-- `origin/v2` antes do push: `789e1bc`.
-- `v2`: 26 commits funcionais + 1 commit documental de aceite, publicados por fast-forward.
-- Worktree: apenas os três PNGs F4 modificados, preservados fora dos commits.
-- Branch `codex/f5-local-preserved-20261102`: 4 commits exclusivos; não é ancestral da v2.
+- Baseline `v2`: `3145e954`; `origin/v2`: `7a7df0f2`; `main`/`origin/main`: `9046cfa`.
+- 73 commits F7 preexistentes preservados; commits F7-UX permanecem locais.
+- Bundle verificado: `_resgate-estudo-organizado/f7-ux-preflight-20261110.bundle`.
+- Hashes, branches, worktrees e commits finais: `docs/superpowers/audits/f7-ux/GIT-STATE.md`.
 
 ## Testes e evidências
 
-```powershell
-cd apps/v2
-npm run typecheck
-npm run lint
-npm run test:unit
-npm run build
-npx playwright test --grep-invert "f4 representative visual evidence"
-```
-
-- Unitários: 572 PASS em 85 arquivos (36,90 s).
-- E2E: 156 PASS + 2 skips (~1,1 min).
-- Build: principal 388,77 kB (100,59 kB gzip) + vendor React 218,77 kB (68,25 kB gzip).
-- Pacote de integração: `F6-ACCEPTANCE-INTEGRATION-REVIEW.zip`.
+Resultados finais, logs, screenshots, hashes, riscos e matriz estão no pacote F7-UX. O último conjunto inclui typecheck, lint, unit, build, E2E e Firebase Emulator; os números exatos constam em `TEST-RESULTS.md`.
 
 ## Próxima ação
 
-O aceite está registrado e a integração à `origin/v2` é o encerramento desta fase.
-F7/F8 permanecem propostas e exigem novo gate humano; `main`, Cloudflare, Firebase e
-produção continuam intocados.
+Revisar o pacote F7-UX e decidir aceite humano. Não houve integração remota; G-EXT/G-STAGING e F8 continuam bloqueados.

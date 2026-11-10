@@ -9,6 +9,8 @@ export type AttentionOccurrence = {
   severity: AttentionSeverity;
   academicEntityId: string | null;
   dismissible: boolean;
+  target?: import('./experience-queries').PriorityTarget;
+  entityId?: string | null;
 };
 
 export type ProjectedAttentionItem = Omit<AttentionOccurrence, 'id' | 'causalKey'> & {
@@ -16,6 +18,101 @@ export type ProjectedAttentionItem = Omit<AttentionOccurrence, 'id' | 'causalKey
   severity: AttentionSeverity;
   evidence: string[];
 };
+
+export type AttentionBuildInput = {
+  summary: import('./experience-queries').HomeSummary;
+  health: import('./sync-types').SyncHealth;
+  pendingOutbox: number;
+  upgradeBlocked: boolean;
+  backupStatus: 'NONE' | 'PENDING' | 'VERIFIED' | 'FAILED';
+};
+
+export const ATTENTION_DISMISSIBLE_CATEGORIES: import('./experience-queries').PriorityCategory[] = ['DIAGNOSTICO', 'ORIENTACAO'];
+
+export function buildAttentionOccurrences(input: AttentionBuildInput): AttentionOccurrence[] {
+  const items: AttentionOccurrence[] = input.summary.priorities.map((item) => ({
+    id: item.id,
+    causalKey: `priority:${item.id}`,
+    source: 'home',
+    title: item.title,
+    detail: item.detail,
+    severity:
+      item.category === 'INTEGRIDADE'
+        ? 'critical'
+        : item.category === 'DIAGNOSTICO' || item.category === 'ATRASO_REAL'
+          ? 'warning'
+          : 'info',
+    academicEntityId: item.entityId ?? null,
+    dismissible: ATTENTION_DISMISSIBLE_CATEGORIES.includes(item.category),
+    target: item.target,
+    entityId: item.entityId ?? null,
+  }));
+  if (
+    input.health.mode === 'CONFLICT' ||
+    input.health.mode === 'RECOVERY_REQUIRED' ||
+    input.health.mode === 'PAUSED_AUTH' ||
+    input.health.mode === 'PAUSED_QUOTA'
+  ) {
+    items.push({
+      id: `health-${input.health.mode}`,
+      causalKey: `sync:${input.health.mode}`,
+      source: 'sync',
+      title: input.health.mode === 'CONFLICT' ? 'Conflito remoto exige decisão' : 'Sincronização pausada',
+      detail:
+        input.health.mode === 'RECOVERY_REQUIRED'
+          ? 'Recuperação é necessária antes de enviar. Os dados locais continuam disponíveis.'
+          : 'A falha está limitada ao transporte remoto; nenhum fato local foi apagado.',
+      severity: input.health.mode === 'CONFLICT' || input.health.mode === 'RECOVERY_REQUIRED' ? 'critical' : 'warning',
+      academicEntityId: null,
+      dismissible: false,
+      target: 'settings',
+      entityId: null,
+    });
+  }
+  if (input.upgradeBlocked) {
+    items.push({
+      id: 'upgrade-blocked',
+      causalKey: 'local:upgrade-blocked',
+      source: 'indexeddb',
+      title: 'Atualização do IndexedDB bloqueada',
+      detail: 'Feche ou recarregue a outra aba. Nenhuma exclusão automática será feita.',
+      severity: 'critical',
+      academicEntityId: null,
+      dismissible: false,
+      target: 'settings',
+      entityId: null,
+    });
+  }
+  if (input.backupStatus === 'FAILED') {
+    items.push({
+      id: 'backup-failed',
+      causalKey: 'backup:failed',
+      source: 'backup',
+      title: 'Falha no backup',
+      detail: 'A última cópia preservada não deve ser tratada como atual nem como recuperação comprovada.',
+      severity: 'warning',
+      academicEntityId: null,
+      dismissible: false,
+      target: 'settings',
+      entityId: null,
+    });
+  }
+  if (input.pendingOutbox > 0 && !items.some((item) => item.causalKey === 'priority:integrity-outbox')) {
+    items.push({
+      id: 'outbox-summary',
+      causalKey: 'outbox:pending',
+      source: 'outbox',
+      title: `${input.pendingOutbox} operação(ões) pendente(s)`,
+      detail: 'Commit local não é ACK; a entrega continua sem confirmação.',
+      severity: 'info',
+      academicEntityId: null,
+      dismissible: true,
+      target: 'settings',
+      entityId: null,
+    });
+  }
+  return items;
+}
 
 const SEVERITY: Record<AttentionSeverity, number> = {
   critical: 3,
@@ -41,6 +138,8 @@ export function projectAttentionItems(
       severity: occurrence.severity,
       academicEntityId: occurrence.academicEntityId,
       dismissible: occurrence.dismissible,
+      ...(occurrence.target ? { target: occurrence.target } : {}),
+      entityId: occurrence.entityId ?? null,
       evidence: [occurrence.source],
     };
     if (!existing) {

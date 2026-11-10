@@ -55,6 +55,7 @@ const SENSITIVE_KEYS = new Set([
   'secret',
   'authorization',
   'email',
+  'googleemail',
   'uid',
 ]);
 

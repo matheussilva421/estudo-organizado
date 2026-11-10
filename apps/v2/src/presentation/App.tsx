@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { StudySubject } from '../domain/subject';
 import type { EditalDiscipline } from '../domain/edital';
 import type { Assunto, Aula, LessonTopicLink } from '../domain/content';
+import { nextSiblingOrderKey, parentKeyOf } from '../domain/content';
 import { EXECUTION_DATA_STATE } from '../domain/delete';
 import type { CommitResult } from '../application/content-commands';
 import type { ContentSnapshot } from '../application/content-service';
@@ -84,8 +85,12 @@ import { AnalyticsView } from './views/AnalyticsView';
 import { AttentionView } from './views/AttentionView';
 import { SettingsView, type Density } from './views/SettingsView';
 import { NotFoundView } from './views/NotFoundView';
+import { WorkspaceGuide } from './components/WorkspaceGuide';
+import { SafeActionDialog } from './components/SafeActionDialog';
+import { previewF1OrF2Backup } from '../platform/backup/f2-format';
+import { getLocalRestoreEpoch } from '../platform/backup/restore-commit';
 import { useHashRoute } from './use-hash-route';
-import { routeHref, routeLabel, type RouteModule } from './routing';
+import { parseRoute, routeHref, routeLabel, type RouteModule } from './routing';
 import {
   clearLocalDraft,
   loadLocalDraft,
@@ -98,6 +103,9 @@ import {
   installBeforeUnloadGuard,
   useDraftGuard,
 } from './draft-guard';
+import { describeUxEvidence } from './ux-evidence';
+import { buildAttentionOccurrences, projectAttentionItems } from '../application/attention-projection';
+import { resolveRouteEntity, type RouteEntity } from './context-navigation';
 
 const PROFILE_ID = 'local-default';
 const ZONE = 'America/Fortaleza';
@@ -200,6 +208,13 @@ const EMPTY_SNAPSHOT: ContentSnapshot = {
   lessonTopics: [],
 };
 
+type ConfirmationRequest = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  resolve: (confirmed: boolean) => void;
+};
+
 export function App() {
   const { route, navigate } = useHashRoute();
   const [content, setContent] = useState<ContentSnapshot>(EMPTY_SNAPSHOT);
@@ -238,6 +253,9 @@ export function App() {
   const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
   const lastRecoveryMarkerAt = useRef<string | null>(null);
   const [analyticsCache] = useState(() => new ExperienceProjectionCache());
+  const [analyticsDays, setAnalyticsDays] = useState(30);
+  const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
+  const [dismissedAttention, setDismissedAttention] = useState<Set<string>>(() => new Set());
 
   useDraftGuard('f2-subject', form.title.trim().length > 0, 'nova disciplina');
 
@@ -482,6 +500,18 @@ export function App() {
     setNotice(error instanceof Error ? error.message : 'Falha na operação de nuvem.');
   }
 
+  function askConfirmation(input: Omit<ConfirmationRequest, 'resolve'>): Promise<boolean> {
+    return new Promise((resolve) => {
+      setConfirmation({ ...input, resolve });
+    });
+  }
+
+  function settleConfirmation(confirmed: boolean): void {
+    const current = confirmation;
+    setConfirmation(null);
+    current?.resolve(confirmed);
+  }
+
   async function resolveSyncConflict(
     conflict: PersistedConflict,
     choice: SyncConflictChoice,
@@ -510,11 +540,15 @@ export function App() {
     const runtime = runtimeRef.current;
     if (!runtime) throw new Error('Runtime de backup indisponível.');
     const snapshot = await runtime.exportBackup();
+    downloadJsonFile(snapshot, `estudo-organizado-v2-backup-${todayInZone()}.json`);
+  }
+
+  function downloadJsonFile(snapshot: unknown, filename: string): void {
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `estudo-organizado-v2-backup-${todayInZone()}.json`;
+    link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -529,18 +563,41 @@ export function App() {
       return 'Arquivo JSON inválido.';
     }
     const prepared = await runtime.prepareRestore(parsed);
-    if (prepared.kind === 'INVALID') return `Backup inválido: ${prepared.reason}`;
+    if (prepared.kind === 'INVALID') {
+      let currentEpoch: number;
+      try {
+        currentEpoch = await getLocalRestoreEpoch(PROFILE_ID);
+      } catch {
+        return 'Não foi possível verificar a época local; a prévia F1/F2 foi bloqueada.';
+      }
+      const legacy = await previewF1OrF2Backup(parsed, currentEpoch);
+      if (legacy.kind !== 'INVALID') {
+        return `Arquivo F1/F2 reconhecido (${legacy.kind}), mas não é um backup F7 integral; nenhuma restauração direta foi executada.`;
+      }
+      return `Backup inválido: ${prepared.reason}`;
+    }
     const preview = prepared.preview;
-    const confirmed = window.confirm(
-      `Prévia da restauração:\n${preview.toCreate} criação(ões), ${preview.toUpdate} atualização(ões), ${preview.conflicts} conflito(s).\n` +
-        `${preview.requiresRebaseline ? 'Este backup exige rebaseline; entidades excluídas não serão ressuscitadas.\n' : ''}` +
-        'Aplicar agora?',
-    );
+    if (preview.requiresRebaseline) {
+      return 'Restauração direta bloqueada: o arquivo exige rebaseline ou perdeu histórico causal.';
+    }
+    const confirmed = await askConfirmation({
+      title: 'Aplicar restauração local?',
+      description:
+        `${preview.toCreate} criação(ões), ${preview.toUpdate} atualização(ões), ${preview.conflicts} conflito(s). ` +
+        `${preview.requiresRebaseline ? 'O arquivo exige rebaseline; entidades excluídas não serão ressuscitadas. ' : ''}` +
+        'A prévia foi lida sem escrever; a outbox pendente será bloqueada para evitar reenvio de dados antigos.',
+      confirmLabel: 'Aplicar restauração',
+    });
     if (!confirmed) return 'Restauração cancelada.';
+    const safetyCopy = await runtime.exportBackup();
+    downloadJsonFile(
+      safetyCopy,
+      `estudo-organizado-pre-restore-${todayInZone()}-${Date.now()}.json`,
+    );
     const result = await runtime.commitRestore(preview.id);
     await refresh();
     return result === 'LOCAL_COMMITTED'
-      ? 'Backup restaurado e conferido nos stores locais.'
+      ? 'Backup restaurado e verificado por read-back transacional no contrato local F7.'
       : `Restauração não concluída: ${result}`;
   }
 
@@ -561,16 +618,25 @@ export function App() {
       const prepared = await runtime.prepareCloudRestore(backupId);
       if (prepared.kind === 'INVALID') return `Backup na nuvem inválido: ${prepared.reason}`;
       const preview = prepared.preview;
-      const confirmed = window.confirm(
-        `Prévia da restauração remota:\n${preview.toCreate} criação(ões), ${preview.toUpdate} atualização(ões), ${preview.conflicts} conflito(s).\n` +
-          `${preview.requiresRebaseline ? 'Este backup exige rebaseline; entidades excluídas não serão ressuscitadas.\n' : ''}` +
-          'Aplicar agora?',
-      );
+      if (preview.requiresRebaseline) return 'Restauração remota bloqueada: rebaseline obrigatório.';
+      const confirmed = await askConfirmation({
+        title: 'Aplicar restauração remota?',
+        description:
+          `${preview.toCreate} criação(ões), ${preview.toUpdate} atualização(ões), ${preview.conflicts} conflito(s). ` +
+          `${preview.requiresRebaseline ? 'O arquivo exige rebaseline; entidades excluídas não serão ressuscitadas. ' : ''}` +
+          'Uma nova verificação será aplicada antes do commit; a outbox pendente não será reenviada.',
+        confirmLabel: 'Aplicar restauração',
+      });
       if (!confirmed) return 'Restauração cancelada.';
+      const safetyCopy = await runtime.exportBackup();
+      downloadJsonFile(
+        safetyCopy,
+        `estudo-organizado-pre-restore-${todayInZone()}-${Date.now()}.json`,
+      );
       const result = await runtime.commitRestore(preview.id);
       await refresh();
       return result === 'LOCAL_COMMITTED'
-        ? 'Backup remoto restaurado e conferido nos stores locais.'
+        ? 'Backup remoto restaurado e verificado por read-back transacional no contrato local F7.'
         : `Restauração não concluída: ${result}`;
     } finally {
       setCloudRestoreBusy(null);
@@ -634,11 +700,14 @@ export function App() {
     const runtime = runtimeRef.current;
     if (!runtime || !recoveryPreview) return;
     const counts = recoveryPreview.counts;
-    const confirmed = window.confirm(
-      `Aplicar o snapshot remoto verificado?\n${counts.created} criação(ões), ${counts.changed} atualização(ões), ${counts.deleted} exclusão(ões), ${counts.conflicts} conflito(s).\n` +
-        `Epoch ${recoveryPreview.checkpoint.epoch}, cursor ${recoveryPreview.checkpoint.head}.\n` +
-        'O backup local já está gravado e será mantido. Aplicar agora?',
-    );
+    const confirmed = await askConfirmation({
+      title: 'Aplicar rebaseline verificado?',
+      description:
+        `${counts.created} criação(ões), ${counts.changed} atualização(ões), ${counts.deleted} exclusão(ões), ${counts.conflicts} conflito(s). ` +
+        `Epoch ${recoveryPreview.checkpoint.epoch}, cursor ${recoveryPreview.checkpoint.head}. ` +
+        'O backup local já está gravado e será mantido.',
+      confirmLabel: 'Aplicar rebaseline',
+    });
     if (!confirmed) return;
     setRecoveryStatus('EXECUTANDO');
     setRecoveryMessage(null);
@@ -664,7 +733,7 @@ export function App() {
     );
     if (secret === null) return;
     if (secret.trim().length < 12) {
-      window.alert('Use pelo menos 12 caracteres.');
+      setNotice('Use pelo menos 12 caracteres na chave de recuperação.');
       return;
     }
     runtimeRef.current?.setRecoverySecret(secret);
@@ -756,7 +825,17 @@ export function App() {
     scopedAulas.some((aula) => aula.id === topic.aulaId),
   );
 
-  const localCommitted = content.editais.length > 0 || content.subjects.length > 0;
+  const persistedLocalData =
+    content.editais.length +
+      content.subjects.length +
+      content.assuntos.length +
+      content.aulas.length +
+      experience.scenarios.length +
+      experience.blocks.length +
+      experience.sessions.length +
+      experience.commitments.length >
+    0;
+  const localCommitted = ready && loadError === null && persistedLocalData;
   const fallbackHealth = assessSyncHealth({
     localCommitted,
     remoteCommitted: false,
@@ -811,8 +890,9 @@ export function App() {
           partialIncoming: experience.partialReconciliation,
         },
         today,
+        analyticsDays,
       ),
-    [analyticsCache, content, experience, today],
+    [analyticsCache, content, experience, today, analyticsDays],
   );
   const previousAnalytics: AnalyticsSummary = useMemo(
     () =>
@@ -827,9 +907,10 @@ export function App() {
           sessionConflicts: experience.sessionConflicts,
           partialIncoming: experience.partialReconciliation,
         },
-        addCivilDays(today, -30),
+        addCivilDays(today, -(analyticsDays * 2 - 1)),
+        analyticsDays,
       ),
-    [analyticsCache, content, experience, today],
+    [analyticsCache, content, experience, today, analyticsDays],
   );
   const analyticsComparison: AnalyticsComparison = useMemo(
     () => compareAnalytics(analytics, previousAnalytics),
@@ -840,19 +921,120 @@ export function App() {
     route.module === 'content' ? route.entityId ?? route.query.edital ?? null : null;
   const routeEditalMissing =
     ready && routeEditalId !== null && !content.editais.some((edital) => edital.id === routeEditalId);
-  const focusedId = route.query.focus ?? null;
-  const attentionCount =
-    homeSummary.counts.reviewsDue +
-    (pending > 0 ? 1 : 0) +
-    (upgrade.blocked ? 1 : 0) +
-    (experience.sessionConflicts > 0 ? 1 : 0) +
-    (experience.partialReconciliation > 0 ? 1 : 0) +
-    (loadError !== null || experienceError ? 1 : 0);
+  const pathEntityId = route.entityId;
+  const focusEntityId = route.query.focus ?? null;
+  const focusedId = focusEntityId ?? pathEntityId;
+  const resolveEntityById = (id: string): RouteEntity | null => {
+    if (route.module === 'content') {
+      const edital = content.editais.find((item) => item.id === id);
+      if (edital) {
+        return { id, profileId: edital.profileId, status: edital.status === 'ARCHIVED' ? 'ARCHIVED' : 'ACTIVE' };
+      }
+      const assunto = content.assuntos.find((item) => item.id === id);
+      if (assunto) return { id, profileId: assunto.profileId, status: 'ACTIVE' };
+      const aula = content.aulas.find((item) => item.id === id);
+      if (aula) return { id, profileId: aula.profileId, status: 'ACTIVE' };
+      const link = content.links.find((item) => item.id === id);
+      return link ? { id, profileId: link.profileId, status: link.status === 'ACTIVE' ? 'ACTIVE' : 'ARCHIVED' } : null;
+    }
+    if (route.module === 'planning') {
+      const block = experience.blocks.find((item) => item.id === id);
+      if (block) return { id, profileId: block.profileId, status: 'ACTIVE' };
+      const scenario = experience.scenarios.find((item) => item.id === id);
+      return scenario
+        ? {
+            id,
+            profileId: scenario.profileId,
+            status: scenario.status === 'ARCHIVED' || scenario.status === 'CLOSED' ? 'ARCHIVED' : 'ACTIVE',
+          }
+        : null;
+    }
+    if (route.module === 'sessions') {
+      const session = experience.sessions.find((item) => item.id === id);
+      return session
+        ? { id, profileId: session.profileId, status: session.tombstone ? 'DELETED' : 'ACTIVE' }
+        : null;
+    }
+    if (route.module === 'reviews') {
+      const commitment = experience.commitments.find((item) => item.id === id);
+      return commitment ? { id, profileId: commitment.profileId, status: 'ACTIVE' } : null;
+    }
+    return null;
+  };
+  const pathResolution = pathEntityId
+    ? resolveRouteEntity({ ...route, entityId: pathEntityId, query: {} }, PROFILE_ID, resolveEntityById)
+    : null;
+  const focusResolution = focusEntityId
+    ? resolveRouteEntity({ ...route, entityId: focusEntityId, query: {} }, PROFILE_ID, resolveEntityById)
+    : null;
+  const focusEditalId =
+    route.module !== 'content' || !focusEntityId
+      ? null
+      : content.editais.find((item) => item.id === focusEntityId)?.id ??
+        (() => {
+          const assunto = content.assuntos.find((item) => item.id === focusEntityId);
+          const aula = content.aulas.find((item) => item.id === focusEntityId);
+          const link = content.links.find((item) => item.id === focusEntityId);
+          const linkId = assunto?.editalDisciplineId ?? aula?.editalDisciplineId ?? link?.id;
+          return content.links.find((item) => item.id === linkId)?.editalId ?? null;
+        })();
+  const focusScopeInvalid =
+    route.module === 'content' &&
+    (pathEntityId ?? routeEditalId) !== null &&
+    focusEditalId !== null &&
+    focusEditalId !== (pathEntityId ?? routeEditalId);
+  const routeEntityMissing =
+    ready &&
+    ['content', 'planning', 'sessions', 'reviews'].includes(route.module) &&
+    ((pathResolution !== null && ['missing', 'foreign', 'deleted'].includes(pathResolution.kind)) ||
+      (focusResolution !== null && ['missing', 'foreign', 'deleted'].includes(focusResolution.kind)) ||
+      focusScopeInvalid);
+  const routeEntityLocked =
+    (pathResolution !== null && !pathResolution.canEdit) ||
+    (focusResolution !== null && !focusResolution.canEdit);
+  const attentionOccurrences = buildAttentionOccurrences({
+    summary: homeSummary,
+    health,
+    pendingOutbox: pending,
+    upgradeBlocked: upgrade.blocked,
+    backupStatus: backupHealth.status,
+  });
+  const projectedAttention = projectAttentionItems(attentionOccurrences, {
+    dismissedKeys: dismissedAttention,
+  });
+  const attentionCount = projectedAttention.badgeCount;
+  const uxEvidence = describeUxEvidence({
+    localCommitted,
+    outbox: { pending, failed: 0, conflicts: health.conflictCount ?? 0 },
+    sync: {
+      mode: health.mode,
+      remoteCommitted: health.remoteCommitted,
+      converged: health.converged,
+      verifiedCursor: health.lastVerifiedCursor ?? null,
+      conflictCount: health.conflictCount ?? 0,
+    },
+    backup: {
+      status: backupHealth.status,
+      coverage: 'NONE',
+      preview: 'NONE',
+    },
+    read: {
+      stale: loadError !== null || experienceError,
+      partial: experienceError,
+      error: loadError !== null,
+    },
+  });
   const isOverview = route.module === 'overview';
   const showContent = !route.invalid && (isOverview || route.module === 'content');
-  const showPlanning = !route.invalid && (isOverview || route.module === 'planning');
-  const showSessions = !route.invalid && (isOverview || route.module === 'sessions');
-  const showReviews = !route.invalid && (isOverview || route.module === 'reviews');
+  const showPlanning =
+    !route.invalid && (isOverview || route.module === 'planning') &&
+    !(route.module === 'planning' && routeEntityMissing);
+  const showSessions =
+    !route.invalid && (isOverview || route.module === 'sessions') &&
+    !(route.module === 'sessions' && routeEntityMissing);
+  const showReviews =
+    !route.invalid && (isOverview || route.module === 'reviews') &&
+    !(route.module === 'reviews' && routeEntityMissing);
 
   function submitGlobalSearch(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -881,11 +1063,16 @@ export function App() {
       target.scrollIntoView({ block: 'start' });
       return;
     }
-    if (!hasDirtyDrafts()) return;
-    if (!confirmNavigationIntent(anchor.textContent?.trim() ?? 'outra área')) {
+    event.preventDefault();
+    if (
+      hasDirtyDrafts() &&
+      !confirmNavigationIntent(anchor.textContent?.trim() ?? 'outra área')
+    ) {
       event.preventDefault();
       event.stopPropagation();
+      return;
     }
+    navigate(parseRoute(href), { skipGuard: true });
   }
 
   return (
@@ -910,6 +1097,16 @@ export function App() {
         Pular para o conteúdo
       </a>
 
+      {confirmation ? (
+        <SafeActionDialog
+          title={confirmation.title}
+          description={confirmation.description}
+          confirmLabel={confirmation.confirmLabel}
+          onCancel={() => settleConfirmation(false)}
+          onConfirm={() => settleConfirmation(true)}
+        />
+      ) : null}
+
       <header className="app-header">
         <div className="brand">
           <h1>
@@ -918,7 +1115,7 @@ export function App() {
             </a>
           </h1>
           <p className="app-subtitle">
-            Experiência integrada local-first: organizar, planejar, estudar, revisar e analisar.
+            Organizar, planejar, estudar, revisar e analisar com dados locais sob controle.
           </p>
         </div>
 
@@ -977,10 +1174,24 @@ export function App() {
 
         {route.invalid ? <NotFoundView /> : null}
 
+        {!route.invalid &&
+        routeEntityMissing &&
+        (route.module !== 'content' || !routeEditalMissing) ? (
+          <p className="inline-notice" role="status" data-testid="f7-route-entity-missing">
+            O identificador desta rota não existe neste perfil. Nenhum registro de nome parecido
+            foi substituído silenciosamente.
+          </p>
+        ) : null}
+
         {!route.invalid && route.module === 'home' ? (
           <div id="home-section">
             <HomeView
+              profileId={PROFILE_ID}
               summary={homeSummary}
+              analytics={analytics}
+              health={health}
+              evidence={uxEvidence}
+              sessions={experience.sessions}
               ready={ready}
               loadError={loadError}
               experienceError={experienceError}
@@ -1015,6 +1226,8 @@ export function App() {
               analytics={analytics}
               comparison={analyticsComparison}
               stale={loadError !== null || experienceError}
+              days={analyticsDays}
+              onDaysChange={setAnalyticsDays}
             />
           </div>
         ) : null}
@@ -1027,6 +1240,10 @@ export function App() {
               backupHealth={backupHealth}
               pendingOutbox={pending}
               upgradeBlocked={upgrade.blocked}
+              dismissedKeys={dismissedAttention}
+              onDismiss={(key) =>
+                setDismissedAttention((current) => new Set([...current, key]))
+              }
             />
           </div>
         ) : null}
@@ -1034,6 +1251,8 @@ export function App() {
         {!route.invalid && route.module === 'settings' ? (
           <div id="settings-section">
             <SettingsView
+              profileId={PROFILE_ID}
+              googleEmail={googleEmail}
               themes={THEMES}
               theme={theme}
               onThemeChange={setTheme}
@@ -1150,6 +1369,19 @@ export function App() {
         ) : null}
 
         <div id="content-section" className="module-section" hidden={!showContent}>
+          {route.module === 'content' ? (
+            <WorkspaceGuide
+              title="Conteúdo acadêmico"
+              description="Navegue por edital, disciplina, assunto e aula. A identidade permanece no ID, não no título."
+              links={[
+                { href: '#subjects-title', label: 'Disciplinas' },
+                { href: '#tree-title', label: 'Verticalização' },
+                { href: '#content-tools', label: 'Importação protegida' },
+              ]}
+              evidence="Alterações passam por comandos validados; arquivamento permanece somente leitura."
+              testId="f7-content-workspace"
+            />
+          ) : null}
           {routeEditalMissing ? (
             <p className="inline-notice" role="status">
               O edital informado na rota não existe neste perfil ou foi arquivado. Nenhum dado de
@@ -1373,6 +1605,45 @@ export function App() {
                 'Tente novamente.',
               ).then((result) => result.kind === 'LOCAL_COMMITTED')
             }
+            onReorderAssunto={(assunto, orderKey) =>
+              apply(
+                () =>
+                  contentRepository().reorderSibling({
+                    profileId: PROFILE_ID,
+                    operationId: newId(),
+                    entityType: 'assunto',
+                    entityId: assunto.id,
+                    orderKey,
+                    baseRevision: assunto.localRevision,
+                  }),
+                'Tente novamente.',
+              ).then((result) => result.kind === 'LOCAL_COMMITTED')
+            }
+            onMoveAssunto={(assunto, parentId) => {
+              const siblings = content.assuntos.filter(
+                (item) =>
+                  item.editalDisciplineId === assunto.editalDisciplineId &&
+                  (item.parentId ?? null) === parentId &&
+                  item.id !== assunto.id,
+              );
+              return apply(
+                () =>
+                  contentRepository().execute({
+                    type: 'UPSERT_ASSUNTO',
+                    operationId: newId(),
+                    profileId: PROFILE_ID,
+                    baseRevision: assunto.localRevision,
+                    value: {
+                      ...assunto,
+                      parentId,
+                      parentKey: parentKeyOf(parentId),
+                      orderKey: nextSiblingOrderKey(siblings, parentId),
+                      localRevision: assunto.localRevision,
+                    },
+                  }),
+                'Tente novamente.',
+              ).then((result) => result.kind === 'LOCAL_COMMITTED');
+            }}
             locked={upgrade.blocked || selected?.status === 'ARCHIVED'}
           />
         ) : (
@@ -1383,10 +1654,22 @@ export function App() {
         </div>
 
         <div id="planning-section" hidden={!showPlanning}>
+      {route.module === 'planning' ? (
+        <WorkspaceGuide
+          title="Planejamento contextual"
+          description="Cenários, calendário, capacidade e Reta Final preservam histórico e revisão de base."
+          links={[
+            { href: '#planning-section', label: 'Visão do plano' },
+            { href: '#planning-section', label: 'Calendário e capacidade' },
+          ]}
+          evidence="Prévia não aplica alterações. Vínculo de sessão não declara bloco cumprido."
+          testId="f7-planning-workspace"
+        />
+      ) : null}
       <PlanningWorkspace
         profileId={PROFILE_ID}
         content={content}
-        locked={upgrade.blocked}
+        locked={upgrade.blocked || (route.module === 'planning' && routeEntityLocked)}
             focusId={focusedId}
         onNotice={setNotice}
         onStartPlannedBlock={(blockId) =>
@@ -1397,10 +1680,23 @@ export function App() {
         </div>
 
         <div id="sessions-section" hidden={!showSessions}>
+      {route.module === 'sessions' ? (
+        <WorkspaceGuide
+          title="Sessões e medições"
+          description="Cronômetro verificado, registro manual e recuperação de lacunas são estados distintos."
+          links={[
+            { href: '#session-timer', label: 'Cronômetro' },
+            { href: '#session-manual', label: 'Registro manual' },
+            { href: '#session-history', label: 'Histórico' },
+          ]}
+          evidence="Tempo incerto não é somado. Conciliação de bloco exige comando próprio."
+          testId="f7-sessions-workspace"
+        />
+      ) : null}
       <SessionWorkspace
         profileId={PROFILE_ID}
         content={content}
-        locked={upgrade.blocked}
+        locked={upgrade.blocked || (route.module === 'sessions' && routeEntityLocked)}
             focusId={focusedId}
         onNotice={setNotice}
         startBlockId={startBlockId}
@@ -1410,10 +1706,22 @@ export function App() {
         </div>
 
         <div id="reviews-section" hidden={!showReviews}>
+      {route.module === 'reviews' ? (
+        <WorkspaceGuide
+          title="Revisões baseadas em evidência"
+          description="Compromisso, execução e avaliação são fatos distintos; políticas mantêm versões."
+          links={[
+            { href: '#reviews-section', label: 'Fila e política' },
+            { href: '#reviews-section', label: 'Amostras e evidências' },
+          ]}
+          evidence="Abrir uma revisão não a conclui. Encaixes no Planejamento exigem prévia e confirmação."
+          testId="f7-reviews-workspace"
+        />
+      ) : null}
       <ReviewWorkspace
         profileId={PROFILE_ID}
         content={content}
-        locked={upgrade.blocked}
+        locked={upgrade.blocked || (route.module === 'reviews' && routeEntityLocked)}
             focusId={focusedId}
         onNotice={setNotice}
       />
@@ -1442,8 +1750,8 @@ export function App() {
       </main>
 
       <footer className="app-footnote">
-        Os dados ficam no IndexedDB isolado desta origem. Nenhuma sincronização real é executada
-        nesta fase. Rota atual: {routeHref(route)}.
+        Dados locais ficam no IndexedDB isolado desta origem. Entrega remota só é exibida com prova;
+        indisponibilidade não significa perda local. Rota atual: {routeHref(route)}.
       </footer>
     </div>
   );

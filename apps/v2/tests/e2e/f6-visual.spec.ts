@@ -63,7 +63,7 @@ test('f6 shell contrast and overflow across eight themes and three viewports', a
           heading: ratio('#home-title'),
           subtitle: ratio('.view-subtitle'),
           nav: ratio('[data-nav="home"]'),
-          navInactive: ratio('[data-nav="settings"]'),
+          navInactive: ratio('[data-nav="reviews"]'),
           countLabel: ratio('.count-label'),
           source: ratio('.source-note'),
         };

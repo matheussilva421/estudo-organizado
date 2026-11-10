@@ -68,7 +68,7 @@ test('f6 tablet uses a compact rail with full visible labels and accessible name
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
-test('f6 mobile keeps a bottom navigation with every destination reachable', async ({ page }) => {
+test('f6 mobile keeps five primary destinations and routes secondary areas through Mais', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/home');
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
@@ -76,7 +76,7 @@ test('f6 mobile keeps a bottom navigation with every destination reachable', asy
   const box = await navigation.boundingBox();
   expect(box).not.toBeNull();
   expect(box!.y).toBeGreaterThan(700);
-  await expect(navigation.locator('a[data-nav]')).toHaveCount(9);
+  await expect(navigation.locator('.nav-list-mobile > li')).toHaveCount(5);
   await expect(navigation.locator('.nav-label').first()).toBeVisible();
   const internal = await navigation.evaluate(
     (element) => element.scrollWidth - element.clientWidth,
@@ -84,13 +84,14 @@ test('f6 mobile keeps a bottom navigation with every destination reachable', asy
   expect(internal).toBeLessThanOrEqual(1);
   const navBox = await navigation.boundingBox();
   expect(navBox).not.toBeNull();
-  for (const link of await navigation.locator('a[data-nav]').all()) {
+  for (const link of await navigation.locator('.nav-list-mobile > li > [data-nav], .nav-list-mobile > li > details > summary').all()) {
     const linkBox = await link.boundingBox();
     expect(linkBox).not.toBeNull();
     expect(linkBox!.x).toBeGreaterThanOrEqual(navBox!.x - 1);
     expect(linkBox!.x + linkBox!.width).toBeLessThanOrEqual(navBox!.x + navBox!.width + 1);
   }
-  // Every destination, including the last one, is visible and reachable.
+  await navigation.getByText('Mais', { exact: true }).click();
+  // Every destination, including the last one, remains reachable from Mais.
   await navigation.locator('a[data-nav="settings"]').click();
   await expect(page.locator('[data-route="settings"]')).toBeVisible();
   await expect(navigation.locator('a[data-nav="settings"]')).toHaveAttribute(
@@ -135,8 +136,13 @@ test('f6 viewport changes keep the active route and keyboard focus', async ({ pa
   ]) {
     await page.setViewportSize(viewport);
     await expect(page.locator('[data-route="content"]')).toBeVisible();
-    await expect(settings).toBeFocused();
-    const linkBox = await settings.boundingBox();
+    if (viewport.width <= 720) {
+      await expect(nav(page).locator('[data-nav="more"]')).toBeFocused();
+    } else {
+      await expect(settings).toBeFocused();
+    }
+    const focused = page.locator(':focus');
+    const linkBox = await focused.boundingBox();
     const navBox = await nav(page).boundingBox();
     expect(linkBox).not.toBeNull();
     expect(navBox).not.toBeNull();

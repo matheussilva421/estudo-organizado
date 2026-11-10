@@ -22,8 +22,7 @@ test('f6 mobile bottom navigation keeps every destination reachable', async ({ p
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
   const nav = page.getByRole('navigation', { name: 'Navegação principal' });
   await expect(nav).toBeVisible();
-  const links = nav.locator('a[data-nav]');
-  await expect(links).toHaveCount(9);
+  await expect(nav.locator('.nav-list-mobile > li')).toHaveCount(5);
   await expect(nav.locator('a[data-nav="home"]')).toHaveAttribute('aria-current', 'page');
   const box = await nav.boundingBox();
   expect(box).not.toBeNull();

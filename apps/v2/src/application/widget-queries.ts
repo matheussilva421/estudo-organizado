@@ -1,5 +1,9 @@
 import type { AnalyticsSummary, HomeSummary } from './experience-queries';
 import type { ContentSnapshot } from './content-service';
+import type { StudySession } from '../domain/session';
+import { sessionTotalFocusMs } from '../domain/session-accounting';
+
+export type WidgetQueryScope = 'ALL' | 'REVIEWS' | 'PLANNING' | 'CONTENT' | 'INTEGRITY';
 
 export type WidgetMetricSpec =
   | 'STUDY_TIME'
@@ -14,6 +18,7 @@ export type WidgetDataInput = {
   summary: HomeSummary;
   analytics: AnalyticsSummary;
   content: ContentSnapshot;
+  sessions?: StudySession[];
 };
 
 export type WidgetMetricResult = {
@@ -43,30 +48,79 @@ function base(input: WidgetDataInput, metric: string): Omit<WidgetMetricResult, 
 export function queryWidgetMetric(
   metric: WidgetMetricSpec | string,
   input: WidgetDataInput,
+  scope: WidgetQueryScope = 'ALL',
 ): WidgetMetricResult {
   const common = base(input, metric);
+  const outOfScope = (unit: WidgetMetricResult['unit']): WidgetMetricResult => ({
+    ...common,
+    status: 'UNAVAILABLE',
+    value: null,
+    unit,
+    numerator: null,
+    denominator: null,
+    warnings: [`Fora do escopo ${scope}; nenhum valor foi transportado de outro recorte.`],
+  });
+  if (scope === 'INTEGRITY') return outOfScope('count');
   switch (metric) {
-    case 'STUDY_TIME':
+    case 'STUDY_TIME': {
+      if (scope === 'REVIEWS') return outOfScope('minutes');
+      const scopedSessions = (input.sessions ?? []).filter((session) => {
+        if (session.profileId !== input.analytics.profileId || session.state !== 'COMPLETED' || session.tombstone) {
+          return false;
+        }
+        const date = session.recordedAtCivilDate;
+        if (
+          typeof date !== 'string' ||
+          date < input.analytics.period.from ||
+          date > input.analytics.period.to
+        ) {
+          return false;
+        }
+        if (scope === 'PLANNING') return (session.planBlockIds ?? []).length > 0;
+        if (scope === 'CONTENT') {
+          return (session.allocations ?? []).length > 0 || (session.measurements ?? []).length > 0;
+        }
+        return true;
+      });
+      const value =
+        scope === 'ALL'
+          ? input.analytics.sessions.inPeriod === 0
+            ? null
+            : Math.round(input.analytics.sessions.focusMs / 60_000)
+          : scopedSessions.length === 0
+            ? null
+            : Math.round(scopedSessions.reduce((sum, session) => sum + sessionTotalFocusMs(session), 0) / 60_000);
       return {
         ...common,
-        status: input.analytics.status === 'PARTIAL' ? 'PARTIAL' : 'READY',
-        value: Math.round(input.analytics.sessions.focusMs / 60_000),
+        status:
+          (scope === 'ALL' ? input.analytics.sessions.inPeriod === 0 : scopedSessions.length === 0)
+            ? 'INSUFFICIENT_DATA'
+            : input.analytics.status === 'PARTIAL'
+              ? 'PARTIAL'
+              : 'READY',
+        value,
         unit: 'minutes',
         numerator: input.analytics.sessions.focusMs,
         denominator: null,
-        warnings: input.analytics.warnings,
+        warnings:
+          (scope === 'ALL' ? input.analytics.sessions.inPeriod === 0 : scopedSessions.length === 0)
+            ? [`Sem sessões no escopo ${scope}; ausência não é zero.`]
+            : input.analytics.warnings,
       };
+    }
     case 'QUESTIONS':
+      if (scope !== 'ALL' && scope !== 'CONTENT') return outOfScope('count');
       return {
         ...common,
-        status: input.analytics.questions.total > 0 ? 'READY' : 'INSUFFICIENT_DATA',
-        value: input.analytics.questions.total,
+        status: input.analytics.questions.total > 0 ? 'READY' : 'UNAVAILABLE',
+        value: input.analytics.questions.total > 0 ? input.analytics.questions.total : null,
         unit: 'count',
         numerator: input.analytics.questions.total,
         denominator: null,
         warnings: input.analytics.questions.total > 0 ? [] : ['Sem medições de questões no período.'],
       };
     case 'QUESTION_ACCURACY':
+      if (scope !== 'ALL' && scope !== 'CONTENT') return outOfScope('percent');
       if (input.analytics.questions.total <= 0 || input.analytics.questions.accuracy === null) {
         return {
           ...common,
@@ -81,13 +135,17 @@ export function queryWidgetMetric(
       return {
         ...common,
         status: input.analytics.questions.total < 10 ? 'INSUFFICIENT_DATA' : 'READY',
-        value: Math.round(input.analytics.questions.accuracy * 1000) / 10,
+        value:
+          input.analytics.questions.total < 10
+            ? null
+            : Math.round(input.analytics.questions.accuracy * 1000) / 10,
         unit: 'percent',
         numerator: input.analytics.questions.correct,
         denominator: input.analytics.questions.total,
         warnings: input.analytics.questions.total < 10 ? ['Amostra pequena; use como diagnóstico.'] : [],
       };
     case 'REVIEWS_DUE':
+      if (scope !== 'ALL' && scope !== 'REVIEWS') return outOfScope('count');
       return {
         ...common,
         status: 'READY',
@@ -98,30 +156,38 @@ export function queryWidgetMetric(
         warnings: [],
       };
     case 'PLANNED_MINUTES':
+      if (scope !== 'ALL' && scope !== 'PLANNING') return outOfScope('minutes');
       return {
         ...common,
-        status: 'READY',
-        value: input.analytics.planned.minutes,
+        status: input.analytics.planned.activeScenarios > 0 ? 'READY' : 'UNAVAILABLE',
+        value: input.analytics.planned.activeScenarios > 0 ? input.analytics.planned.minutes : null,
         unit: 'minutes',
         numerator: input.analytics.planned.minutes,
         denominator: null,
         warnings: [],
       };
     case 'PLANNED_BLOCKS':
+      if (scope !== 'ALL' && scope !== 'PLANNING') return outOfScope('blocks');
       return {
         ...common,
-        status: 'READY',
-        value: input.analytics.planned.blocks,
+        status: input.analytics.planned.activeScenarios > 0 ? 'READY' : 'UNAVAILABLE',
+        value: input.analytics.planned.activeScenarios > 0 ? input.analytics.planned.blocks : null,
         unit: 'blocks',
         numerator: input.analytics.planned.blocks,
         denominator: null,
         warnings: [],
       };
     case 'STUDY_TIME_BY_EXAM':
+      if (scope === 'REVIEWS') return outOfScope('exams');
       return {
         ...common,
-        status: input.analytics.sharedSessions > 0 ? 'PARTIAL' : 'READY',
-        value: input.analytics.byEdital.length,
+        status:
+          input.analytics.byEdital.length === 0
+            ? 'UNAVAILABLE'
+            : input.analytics.sharedSessions > 0
+              ? 'PARTIAL'
+              : 'READY',
+        value: input.analytics.byEdital.length > 0 ? input.analytics.byEdital.length : null,
         unit: 'exams',
         numerator: input.analytics.byEdital.length,
         denominator: null,

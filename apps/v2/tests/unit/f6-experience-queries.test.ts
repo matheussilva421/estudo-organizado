@@ -267,7 +267,7 @@ describe('f6 home priorities', () => {
     expect(summary.counts.plannedToday).toBe(1);
   });
 
-  it('distinguishes a real delay from a planned item already executed', () => {
+  it('distinguishes a real delay from an explicitly reconciled block', () => {
     const late = block({ id: 'b-late', civilDate: '2026-11-01' });
     const done = block({ id: 'b-done', civilDate: '2026-10-31' });
     const summary = buildHomeSummary(
@@ -276,7 +276,19 @@ describe('f6 home priorities', () => {
         content: contentFixture(),
         scenarios: [scenario()],
         blocks: [late, done],
-        sessions: [session({ id: 's1', state: 'COMPLETED', planBlockIds: ['b-done'] })],
+        sessions: [
+          session({
+            id: 's1',
+            state: 'COMPLETED',
+            planBlockIds: ['b-done'],
+            planReconciliation: {
+              blockId: 'b-done',
+              choice: 'CONCLUDED',
+              planningBaseRevision: 1,
+              reconciledAt: '2026-11-02T12:00:00.000Z',
+            },
+          }),
+        ],
         reminders: null,
         pendingOutbox: 0,
         upgradeBlocked: false,

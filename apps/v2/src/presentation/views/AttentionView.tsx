@@ -1,9 +1,14 @@
-import { useState } from 'react';
-import type { HomeSummary } from '../../application/experience-queries';
+import { useMemo, useState } from 'react';
+import type { HomeSummary, PriorityCategory } from '../../application/experience-queries';
 import type { SyncHealth } from '../../application/sync-types';
 import type { BackupHealth } from '../components/BackupControls';
+import {
+  ATTENTION_DISMISSIBLE_CATEGORIES,
+  buildAttentionOccurrences,
+  projectAttentionItems,
+} from '../../application/attention-projection';
 import { routeHref } from '../routing';
-import { PRIORITY_CATEGORY_LABELS, priorityTone, routeForTarget } from './priority-display';
+import { routeForTarget } from './priority-display';
 
 type Props = {
   summary: HomeSummary;
@@ -11,6 +16,8 @@ type Props = {
   backupHealth?: BackupHealth;
   pendingOutbox: number;
   upgradeBlocked: boolean;
+  dismissedKeys: ReadonlySet<string>;
+  onDismiss: (key: string) => void;
 };
 
 export function AttentionView({
@@ -19,18 +26,34 @@ export function AttentionView({
   backupHealth,
   pendingOutbox,
   upgradeBlocked,
+  dismissedKeys,
+  onDismiss,
 }: Props) {
-  const academic = summary.priorities.filter(
-    (item) =>
-      item.category !== 'INTEGRIDADE' &&
-      item.category !== 'DIAGNOSTICO' &&
-      item.category !== 'ORIENTACAO',
-  );
-  const integrity = summary.priorities.filter((item) => item.category === 'INTEGRIDADE');
-  const diagnostic = summary.priorities.filter((item) => item.category === 'DIAGNOSTICO');
   const [permission, setPermission] = useState<NotificationPermission | 'UNSUPPORTED'>(
     () => (typeof Notification === 'undefined' ? 'UNSUPPORTED' : Notification.permission),
   );
+
+  const occurrences = useMemo(
+    () =>
+      buildAttentionOccurrences({
+        summary,
+        health,
+        pendingOutbox,
+        upgradeBlocked,
+        backupStatus: backupHealth?.status ?? 'NONE',
+      }),
+    [summary, health, pendingOutbox, upgradeBlocked, backupHealth?.status],
+  );
+
+  const projected = projectAttentionItems(occurrences, { dismissedKeys });
+  const priorityCategoryByKey = new Map<string, PriorityCategory>(
+    summary.priorities.map((item) => [`priority:${item.id}`, item.category] as const),
+  );
+  const academicItems = projected.items.filter((item) => {
+    const category = priorityCategoryByKey.get(item.id);
+    return category !== undefined && !ATTENTION_DISMISSIBLE_CATEGORIES.includes(category) && category !== 'INTEGRIDADE';
+  });
+  const diagnosticItems = projected.items.filter((item) => !academicItems.includes(item));
   const permissionLabel =
     permission === 'UNSUPPORTED'
       ? 'não suportada neste navegador'
@@ -45,73 +68,78 @@ export function AttentionView({
     setPermission(await Notification.requestPermission());
   }
 
+  function dismiss(key: string): void {
+    onDismiss(key);
+  }
+
+  function renderOccurrence(item: (typeof projected.items)[number]) {
+    const target = item.target ?? 'attention';
+    return (
+      <li key={item.id} className={`priority-row attention-${item.severity}`} data-causal-id={item.id}>
+        <span className={`chip ${item.severity === 'critical' ? 'chip-late' : item.severity === 'warning' ? 'chip-integrity' : 'chip-hint'}`}>
+          {item.severity === 'critical' ? 'Crítico' : item.severity === 'warning' ? 'Atenção' : 'Informativo'}
+        </span>
+        <div className="priority-copy">
+          <strong>{item.title}</strong>
+          <span>{item.detail}</span>
+          <small>Evidências: {item.evidence.join(', ')}</small>
+        </div>
+        <div className="attention-actions">
+          <a className="button-ghost" href={routeHref(routeForTarget(target, item.entityId ?? null))}>Abrir origem</a>
+          {item.dismissible ? (
+            <button type="button" className="button-ghost" onClick={() => dismiss(item.id)}>
+              Dispensar aviso
+            </button>
+          ) : null}
+        </div>
+      </li>
+    );
+  }
+
   return (
     <section className="view attention-view" aria-labelledby="attention-title" data-testid="f6-attention">
       <header className="view-header">
         <div>
-          <p className="eyebrow">Central local</p>
-          <h2 id="attention-title">Atenção e integridade</h2>
+          <p className="eyebrow">Prioridades por evidência</p>
+          <h2 id="attention-title">Central de Atenção</h2>
           <p className="view-subtitle">
-            Aviso transitório, pendência acadêmica e risco de dados são categorias distintas.
+            Cada ocorrência tem uma identidade causal. Dispensar um aviso não altera o fato de origem.
           </p>
         </div>
+        <span className="badge" data-attention-badge={projected.badgeCount}>
+          {projected.badgeCount} ocorrência(s)
+        </span>
       </header>
 
-      {health.mode === 'RECOVERY_REQUIRED' ? (
-        <p className="inline-notice" role="status" data-recovery-required>
-          Sincronização bloqueada por recuperação pendente. Nenhuma operação será enviada até um
-          rebaseline explícito; os dados locais permanecem disponíveis.
-        </p>
-      ) : null}
+      <div data-testid="f7-attention-items">
+        <section className="panel" aria-labelledby="attention-academic-title">
+          <header className="section-header">
+            <h3 id="attention-academic-title">Pendências acadêmicas</h3>
+            <span className="muted">{academicItems.length} entrada(s) causal(is)</span>
+          </header>
+          {academicItems.length === 0 ? (
+            <p className="empty-state">Nenhuma pendência acadêmica acionável agora.</p>
+          ) : (
+            <ul className="priority-list">{academicItems.map(renderOccurrence)}</ul>
+          )}
+        </section>
 
-      <section className="panel" aria-labelledby="attention-academic-title">
-        <header className="section-header">
-          <h3 id="attention-academic-title">Pendências acadêmicas</h3>
-          <span className="muted">{academic.length} item(ns)</span>
-        </header>
-        {academic.length === 0 ? (
-          <p className="empty-state">Nenhuma pendência acadêmica derivada dos dados locais.</p>
-        ) : (
-          <ul className="priority-list">
-            {academic.map((item) => (
-              <li key={item.id} className="priority-row">
-                <span className={`chip chip-${priorityTone(item.category)}`}>
-                  {PRIORITY_CATEGORY_LABELS[item.category]}
-                </span>
-                <div className="priority-copy">
-                  <strong>{item.title}</strong>
-                  <span>{item.detail}</span>
-                </div>
-                <a className="button-ghost" href={routeHref(routeForTarget(item.target))}>
-                  Resolver
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="panel" aria-labelledby="attention-diagnostic-title" data-testid="f6-diagnostics">
-        <header className="section-header">
-          <h3 id="attention-diagnostic-title">Diagnóstico local</h3>
-          <span className="muted">{diagnostic.length} item(ns)</span>
-        </header>
-        {diagnostic.length === 0 ? (
-          <p className="empty-state">Sem diagnóstico pendente.</p>
-        ) : (
-          <ul className="warning-list">
-            {diagnostic.map((item) => (
-              <li key={item.id}>
-                <strong>{item.title}</strong> — {item.detail}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        <section className="panel" aria-labelledby="attention-diagnostic-title" data-testid="f6-diagnostics">
+          <header className="section-header">
+            <h3 id="attention-diagnostic-title">Diagnóstico e integridade</h3>
+            <span className="muted">{diagnosticItems.length} entrada(s) causal(is)</span>
+          </header>
+          {diagnosticItems.length === 0 ? (
+            <p className="empty-state">Sem diagnóstico pendente.</p>
+          ) : (
+            <ul className="priority-list">{diagnosticItems.map(renderOccurrence)}</ul>
+          )}
+        </section>
+      </div>
 
       <section className="panel" aria-labelledby="attention-integrity-title" data-testid="f6-integrity">
         <header className="section-header">
-          <h3 id="attention-integrity-title">Integridade em três dimensões</h3>
+          <h3 id="attention-integrity-title">Evidência técnica</h3>
         </header>
         <dl className="integrity-grid">
           <div data-integrity="local">
@@ -119,51 +147,29 @@ export function AttentionView({
             <dd>{health.localCommitted ? 'Confirmado neste dispositivo' : 'Sem dados locais'}</dd>
           </div>
           <div data-integrity="remote">
-            <dt>Remoto</dt>
-            <dd>
-              {health.remoteCommitted
-                ? 'Enviado; convergência ainda não verificada'
-                : 'Não enviado — sem prova remota'}
-            </dd>
+            <dt>ACK remoto</dt>
+            <dd>{health.remoteCommitted ? 'Confirmado; não é convergência integral' : 'Sem prova remota'}</dd>
+          </div>
+          <div data-integrity="convergence">
+            <dt>Convergência</dt>
+            <dd>{health.converged ? `Verificada no cursor ${health.lastVerifiedCursor}` : 'Não verificada'}</dd>
           </div>
           <div data-integrity="backup">
             <dt>Backup/recuperação</dt>
             <dd>
               {backupHealth?.status === 'VERIFIED'
-                ? 'Backup confirmado no destino remoto'
+                ? 'Backup confirmado no destino; restauração não executada'
                 : backupHealth?.status === 'FAILED'
-                  ? 'Falha no backup; última cópia preservada'
+                  ? 'Falha no backup; cópia anterior preservada'
                   : 'Não verificado'}
             </dd>
           </div>
         </dl>
         <ul className="integrity-notes">
-          <li>Outbox pendente: {pendingOutbox} operação(ões). Isso não prova ACK remoto.</li>
-          <li>
-            Conflitos remotos abertos: {health.conflictCount ?? 0}. Nenhuma versão é sobrescrita
-            sem decisão explícita.
-          </li>
-          <li>
-            Armazenamento local:{' '}
-            {upgradeBlocked
-              ? 'bloqueado por outra aba; edições suspensas sem apagar dados.'
-              : 'disponível; dados não são backup.'}
-          </li>
-          <li>
-            A dispensa de um aviso, quando disponível no F5, não conclui revisão nem altera
-            compromisso.
-          </li>
+          <li>Outbox pendente: {pendingOutbox} operação(ões). Pendente não prova ACK.</li>
+          <li>Conflitos remotos: {health.conflictCount ?? 0}. Nenhuma versão é sobrescrita sem decisão.</li>
+          <li>Armazenamento: {upgradeBlocked ? 'bloqueado por outra aba; edições suspensas.' : 'disponível; dados locais não são backup.'}</li>
         </ul>
-        {integrity.length > 0 ? (
-          <ul className="warning-list">
-            {integrity.map((item) => (
-              <li key={item.id}>
-                <strong>{item.title}</strong> — {item.detail}{' '}
-                <a href={routeHref(routeForTarget(item.target))}>ver detalhes</a>
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </section>
 
       <section className="panel" aria-labelledby="attention-notify-title">
@@ -171,13 +177,9 @@ export function AttentionView({
           <h3 id="attention-notify-title">Notificações externas</h3>
         </header>
         <p className="muted">
-          A F6 mantém a central local. Notificações exigem opt-in explícito e permissão do
-          navegador; não há promessa de disparo com a PWA fechada, push remoto ou sincronização
-          entre dispositivos.
+          A central funciona offline. Avisos externos exigem opt-in e permissão; não há promessa de push com a PWA fechada.
         </p>
-        <p className="muted" data-testid="f6-notification-permission">
-          Permissão: {permissionLabel}.
-        </p>
+        <p className="muted" data-testid="f6-notification-permission">Permissão: {permissionLabel}.</p>
         <button
           type="button"
           className="button-ghost"
@@ -186,11 +188,8 @@ export function AttentionView({
         >
           Autorizar avisos externos
         </button>
-        <a className="button-ghost" href={routeHref({ module: 'reviews', entityId: null, query: {}, invalid: false })}>
-          Abrir preferências de revisão (F5)
-        </a>
+        <a className="button-ghost" href="#/reviews">Abrir preferências de revisão</a>
       </section>
     </section>
   );
 }
-

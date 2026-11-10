@@ -54,6 +54,15 @@ export function SearchView({
       ),
     [content, scenarios, blocks, sessions, commitments, query, profileId],
   );
+  const groupedResults = useMemo(() => {
+    const groups = new Map<SearchResult['kind'], SearchResult[]>();
+    for (const result of results) {
+      const group = groups.get(result.kind) ?? [];
+      group.push(result);
+      groups.set(result.kind, group);
+    }
+    return [...groups.entries()];
+  }, [results]);
   const truncated = results.length >= 30;
 
   function submit(event: React.FormEvent) {
@@ -124,23 +133,33 @@ export function SearchView({
                 ' resultado(s), ordenados por correspondência e identidade estável.'}
       </div>
 
-      {results.length > 0 ? (
-        <ul className="search-results">
-          {results.map((result) => (
-            <li key={`${result.kind}-${result.id}`}>
-              <button
-                type="button"
-                className="search-result"
-                onClick={() => openResult(result)}
-                data-result-kind={result.kind}
-              >
-                <span className="chip chip-hint">{KIND_LABELS[result.kind]}</span>
-                <span className="search-result-title">{result.title}</span>
-                <span className="search-result-context">{result.context}</span>
-              </button>
-            </li>
+      {groupedResults.length > 0 ? (
+        <div className="search-groups" data-testid="f7-search-groups">
+          {groupedResults.map(([kind, group]) => (
+            <section key={kind} className="search-group" aria-labelledby={`search-group-${kind}`}>
+              <h3 id={`search-group-${kind}`}>
+                {KIND_LABELS[kind]} <span className="muted">({group.length})</span>
+              </h3>
+              <ul className="search-results">
+                {group.map((result) => (
+                  <li key={`${result.kind}-${result.id}`}>
+                    <button
+                      type="button"
+                      className="search-result"
+                      onClick={() => openResult(result)}
+                      data-result-kind={result.kind}
+                      data-result-id={result.id}
+                    >
+                      <span className="chip chip-hint">{KIND_LABELS[result.kind]}</span>
+                      <span className="search-result-title">{result.title}</span>
+                      <span className="search-result-context">{result.context}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       ) : null}
 
       <p className="source-note">

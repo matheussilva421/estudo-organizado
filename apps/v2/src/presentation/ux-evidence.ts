@@ -24,7 +24,7 @@ export type UxEvidenceInput = {
     conflictCount: number;
   };
   backup: {
-    status: 'NONE' | 'VERIFIED' | 'FAILED';
+    status: 'NONE' | 'PENDING' | 'VERIFIED' | 'FAILED';
     coverage: 'NONE' | 'F2_PARTIAL' | 'FULL';
     preview: 'NONE' | 'SAFE' | 'INVALID' | 'REBASELINE_REQUIRED';
   };
