@@ -15,6 +15,7 @@ import {
   STORES,
   transactionDone,
   type PersistedConflict,
+  type RecoveryMarker,
 } from './indexeddb';
 import { collectF7Backup } from './backup/collect';
 import { decryptBackup, encryptSnapshot } from './backup/crypto';
@@ -27,7 +28,11 @@ import {
 } from './backup/restore-commit';
 import type { F7BackupSnapshot } from './backup/f7-format';
 import { pullRemoteChanges, type PullResult } from './sync/change-feed';
-import { createFirestorePort, FirebaseRemotePort } from './sync/firebase-remote';
+import {
+  createFirestorePort,
+  FirebaseRemotePort,
+  type RecoverySnapshotResult,
+} from './sync/firebase-remote';
 import { SyncCoordinator } from './sync/sync-coordinator';
 import { AdaptiveSyncScheduler } from './sync/scheduler';
 import type { SyncUsage, SyncUsageLimits } from './sync/budget';
@@ -35,6 +40,15 @@ import {
   resolveRemoteConflict,
   type ConflictChoice,
 } from './sync/conflict-reconciliation';
+import {
+  commitRebaseline,
+  prepareRebaseline,
+  readRecoveryBackup,
+  recoverySnapshotChecksum,
+  saveRecoveryBackup,
+  type RebaselineCheckpoint,
+  type RebaselinePreview,
+} from './sync/rebaseline';
 
 const REMOTE_LIBRARY = 'library-main';
 const RECOVERY_SECRET_KEY = 'estudo-organizado:v2:recovery-secret';
@@ -61,13 +75,33 @@ export type F7RuntimeState = {
   syncAvailable: boolean;
   backupAvailable: boolean;
   recoverySecretConfigured: boolean;
+  recovery: RecoveryMarker | null;
   lastError: string | null;
 };
 
 export type F7RuntimeOptions = {
   auth?: GoogleAuthPort;
   now?: () => number;
+  /** E2E/test seam; production uses FirebaseRemotePort.captureRecoverySnapshot. */
+  recoverySnapshot?: () => Promise<RecoverySnapshotResult>;
 };
+
+export type F7RecoveryPreview = {
+  previewId: string;
+  capturedAt: string;
+  counts: RebaselinePreview;
+  checkpoint: RebaselineCheckpoint;
+  backupChecksum: string;
+  backupRecordCount: number;
+  backupDeletionHistoryComplete: boolean;
+  outboxPending: number;
+  openConflicts: number;
+  tombstones: number;
+};
+
+export type F7RecoveryPrepareResult =
+  | { kind: 'PREVIEW'; preview: F7RecoveryPreview }
+  | { kind: 'BLOCKED' | 'STALE' | 'INVALID'; reason: string };
 
 function localBackupHealth(): BackupHealth {
   return { status: 'NONE', lastVerifiedAt: null, versions: 0 };
@@ -97,6 +131,7 @@ function initialState(): F7RuntimeState {
     syncAvailable: false,
     backupAvailable: false,
     recoverySecretConfigured: false,
+    recovery: null,
     lastError: null,
   };
 }
@@ -110,6 +145,7 @@ export class F7Runtime {
   private readonly env: Record<string, string | undefined>;
   private readonly profiles = new LocalProfileRepository();
   private readonly authFactory: () => GoogleAuthPort;
+  private readonly recoverySnapshotFactory?: () => Promise<RecoverySnapshotResult>;
   private readonly now: () => number;
   private readonly listeners = new Set<(state: F7RuntimeState) => void>();
   private state: F7RuntimeState = initialState();
@@ -127,6 +163,7 @@ export class F7Runtime {
   private unsubAuth: (() => void) | null = null;
   private lastHealth: SyncHealth | null = null;
   private previewSeq = 0;
+  private readonly recoveryCheckpoints = new Map<string, RebaselineCheckpoint>();
   private disposed = false;
 
   constructor(
@@ -137,6 +174,7 @@ export class F7Runtime {
     this.profileId = profileId;
     this.env = env;
     this.now = options.now ?? (() => Date.now());
+    this.recoverySnapshotFactory = options.recoverySnapshot;
     this.authFactory = options.auth ? () => options.auth! : () => createFirebaseGoogleAuthPort(this.config);
     try {
       this.recoverySecret = globalThis.sessionStorage?.getItem(RECOVERY_SECRET_KEY) ?? null;
@@ -247,6 +285,7 @@ export class F7Runtime {
         syncAvailable: this.coordinator !== null && !identityMismatch && !identityMissing,
         backupAvailable: this.backupScheduler !== null && !identityMismatch && !identityMissing,
         recoverySecretConfigured: this.recoverySecret !== null,
+        recovery: recovery ?? null,
         lastError: identityMismatch
           ? 'IDENTITY_MISMATCH'
           : identityMissing
@@ -446,6 +485,153 @@ export class F7Runtime {
     return prepareF7Restore(snapshot, this.profileId);
   }
 
+  async prepareRecovery(): Promise<F7RecoveryPrepareResult> {
+    const marker = await getRecoveryRequired(this.profileId).catch(() => null);
+    if (!marker) return { kind: 'BLOCKED', reason: 'RECOVERY_NOT_REQUIRED' };
+    const [profile, identity] = await Promise.all([
+      this.profiles.getProfile(this.profileId),
+      this.currentIdentity(),
+    ]);
+    if (!profile.uid || !profile.remoteLibraryId) {
+      return { kind: 'BLOCKED', reason: 'PROFILE_NOT_LINKED' };
+    }
+    if (!identity || identity.uid !== profile.uid) {
+      return { kind: 'BLOCKED', reason: 'IDENTITY_MISMATCH' };
+    }
+
+    let captured: RecoverySnapshotResult;
+    try {
+      captured = this.recoverySnapshotFactory
+        ? await this.recoverySnapshotFactory()
+        : this.remote
+          ? await this.remote.captureRecoverySnapshot(profile.uid, profile.remoteLibraryId)
+          : { kind: 'UNSUPPORTED', reason: 'REMOTE_UNAVAILABLE' };
+    } catch {
+      return { kind: 'BLOCKED', reason: 'SNAPSHOT_READ_FAILED' };
+    }
+    if (captured.kind !== 'OK') {
+      return {
+        kind: captured.kind === 'STALE' ? 'STALE' : captured.kind === 'UNSUPPORTED' ? 'BLOCKED' : 'INVALID',
+        reason: captured.reason,
+      };
+    }
+    const afterCapture = await this.currentIdentity();
+    if (!afterCapture || afterCapture.uid !== profile.uid) {
+      return { kind: 'BLOCKED', reason: 'IDENTITY_CHANGED' };
+    }
+
+    const backup = await collectF7Backup(this.profileId);
+    const baseCheckpoint = {
+      uid: profile.uid,
+      libraryId: profile.remoteLibraryId,
+      epoch: captured.epoch,
+      head: captured.head,
+      historyFloor: captured.historyFloor,
+      historyMode: captured.historyMode,
+    } as const;
+    const snapshotChecksum = await recoverySnapshotChecksum(
+      captured.entities,
+      baseCheckpoint,
+    );
+    const prepared = await prepareRebaseline(this.profileId, captured.entities, {
+      checkpoint: { ...baseCheckpoint, snapshotChecksum },
+      backupChecksum: backup.manifest.checksum,
+      backupRecordCount: backup.manifest.recordCount,
+    });
+    if (prepared.kind === 'INVALID') return { kind: 'INVALID', reason: prepared.reason };
+    try {
+      await saveRecoveryBackup(this.profileId, prepared.previewId, backup);
+    } catch {
+      return { kind: 'BLOCKED', reason: 'BACKUP_WRITE_FAILED' };
+    }
+    const checkpoint = { ...baseCheckpoint, snapshotChecksum };
+    this.recoveryCheckpoints.set(prepared.previewId, checkpoint);
+    const [pending, conflicts, tombstones] = await Promise.all([
+      getPendingOutbox(this.profileId).catch(() => []),
+      getConflicts(this.profileId).catch(() => []),
+      countTombstones(this.profileId).catch(() => 0),
+    ]);
+    return {
+      kind: 'PREVIEW',
+      preview: {
+        previewId: prepared.previewId,
+        capturedAt: captured.capturedAt,
+        counts: prepared.preview,
+        checkpoint,
+        backupChecksum: backup.manifest.checksum,
+        backupRecordCount: backup.manifest.recordCount,
+        backupDeletionHistoryComplete: backup.manifest.deletionHistoryComplete,
+        outboxPending: pending.length,
+        openConflicts: conflicts.filter((conflict) => conflict.status === 'OPEN').length,
+        tombstones,
+      },
+    };
+  }
+
+  async exportRecoveryBackup(previewId: string): Promise<F7BackupSnapshot | null> {
+    if (!previewId.trim()) return null;
+    return readRecoveryBackup(this.profileId, previewId);
+  }
+
+  async commitRecovery(previewId: string): Promise<'RECOVERED' | 'FAILED'> {
+    const [profile, identity] = await Promise.all([
+      this.profiles.getProfile(this.profileId),
+      this.currentIdentity(),
+    ]);
+    if (
+      !profile.uid ||
+      !profile.remoteLibraryId ||
+      !identity ||
+      identity.uid !== profile.uid
+    ) {
+      return 'FAILED';
+    }
+    const marker = await getRecoveryRequired(this.profileId).catch(() => null);
+    if (!marker) return 'FAILED';
+    const checkpoint = this.recoveryCheckpoints.get(previewId);
+    if (!checkpoint) return 'FAILED';
+    let recheck: RecoverySnapshotResult;
+    try {
+      recheck = this.recoverySnapshotFactory
+        ? await this.recoverySnapshotFactory()
+        : this.remote
+          ? await this.remote.captureRecoverySnapshot(profile.uid, profile.remoteLibraryId!)
+          : { kind: 'UNSUPPORTED', reason: 'REMOTE_UNAVAILABLE' };
+    } catch {
+      return 'FAILED';
+    }
+    if (
+      recheck.kind !== 'OK' ||
+      recheck.epoch !== checkpoint.epoch ||
+      recheck.head !== checkpoint.head
+    ) {
+      return 'FAILED';
+    }
+    const recheckChecksum = await recoverySnapshotChecksum(recheck.entities, checkpoint);
+    if (recheckChecksum !== checkpoint.snapshotChecksum) return 'FAILED';
+
+    this.coordinator?.stop(this.profileId);
+    await this.coordinator?.drain(this.profileId);
+    const locks = typeof navigator !== 'undefined' ? navigator.locks : null;
+    const run = () => commitRebaseline(this.profileId, previewId);
+    const result = locks
+      ? await locks.request(
+        `estudo-organizado-v2:flush:${this.profileId}`,
+        run,
+      )
+      : await run();
+    if (result !== 'LOCAL_COMMITTED') return 'FAILED';
+
+    this.coordinator = null;
+    this.remote = null;
+    this.lastHealth = null;
+    this.syncScheduler?.dispose();
+    this.syncScheduler = null;
+    this.recoveryCheckpoints.delete(previewId);
+    await this.refresh();
+    return 'RECOVERED';
+  }
+
   async commitRestore(previewId: string): Promise<string> {
     // Stop new sends before the restore invalidates the outbox; the coordinator
     // also aborts an in-flight flush before ACK and drains it before committing.
@@ -619,6 +805,14 @@ async function loadBackupState(
     store.get(`backup-state:${profileId}`),
   )) as { value?: BackupSchedulerState } | undefined;
   return row?.value ?? null;
+}
+
+async function countTombstones(profileId: string): Promise<number> {
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.tombstones, 'readonly');
+  return requestResult(
+    transaction.objectStore(STORES.tombstones).index('by_profile').count(profileId),
+  ) as Promise<number>;
 }
 
 async function saveBackupState(

@@ -57,6 +57,8 @@ import type {
   PlanningScenario,
   PlanningScenarioSnapshot,
 } from '../domain/planning';
+import type { RemoteEntity } from './sync/remote-schema';
+import type { RecoverySnapshotResult } from './sync/firebase-remote';
 
 type Fault = E2EFault;
 
@@ -177,6 +179,14 @@ export type V2E2EHarness = {
     outbox: number;
   }>;
   seedReviewCommitments: (profileId: string, count: number) => Promise<number>;
+  seedRecovery: (profileId: string, uid: string, libraryId: string) => Promise<void>;
+  setRecoverySnapshot: (entities: RemoteEntity[], epoch: number, head: number) => void;
+  recoverySnapshot: () => Promise<RecoverySnapshotResult>;
+  recoveryState: (profileId: string) => Promise<{
+    marker: boolean;
+    cursor: { epoch: number; cursor: number } | null;
+    subjects: number;
+  }>;
   seedAssuntos: (
     profileId: string,
     linkId: string,
@@ -185,6 +195,8 @@ export type V2E2EHarness = {
 };
 
 type SharedRemoteState = { applied: string[]; effects: number };
+
+const RECOVERY_SNAPSHOT_KEY = 'v2-e2e-recovery-snapshot';
 
 function remoteKey(profileId: string): string {
   return `v2-e2e-remote:${profileId}`;
@@ -631,6 +643,90 @@ export function installE2EHarness(): void {
       }
       await transactionDone(transaction);
       return count;
+    },
+    seedRecovery: async (profileId, uidValue, libraryId) => {
+      localStorage.setItem('v2-e2e-auth-uid', uidValue);
+      const database = await openV2Database(profileId);
+      const transaction = database.transaction(
+        [STORES.profiles, STORES.meta],
+        'readwrite',
+      );
+      transaction.objectStore(STORES.profiles).put({
+        profileId,
+        uid: uidValue,
+        remoteLibraryId: libraryId,
+        syncEnabled: true,
+        state: 'READY',
+        primaryEditalId: null,
+        localRevision: 1,
+      });
+      transaction.objectStore(STORES.meta).put({
+        key: `sync-cursor:${profileId}`,
+        value: {
+          profileId,
+          uid: uidValue,
+          libraryId,
+          epoch: 1,
+          cursor: 2,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+      transaction.objectStore(STORES.meta).put({
+        key: `recovery-required:${profileId}`,
+        value: { reason: 'E2E_STALE_CURSOR', at: new Date().toISOString() },
+      });
+      await transactionDone(transaction);
+    },
+    setRecoverySnapshot: (entities, epoch, head) => {
+      localStorage.setItem(
+        RECOVERY_SNAPSHOT_KEY,
+        JSON.stringify({ entities, epoch, head }),
+      );
+    },
+    recoverySnapshot: async () => {
+      const raw = localStorage.getItem(RECOVERY_SNAPSHOT_KEY);
+      if (!raw) return { kind: 'UNSUPPORTED', reason: 'NO_SNAPSHOT' };
+      const parsed = JSON.parse(raw) as {
+        entities: RemoteEntity[];
+        epoch: number;
+        head: number;
+      };
+      return {
+        kind: 'OK',
+        entities: parsed.entities,
+        epoch: parsed.epoch,
+        head: parsed.head,
+        historyFloor: parsed.head,
+        historyMode: 'SNAPSHOT_ONLY',
+        capturedAt: new Date().toISOString(),
+      };
+    },
+    recoveryState: async (profileId) => {
+      const database = await openV2Database(profileId);
+      const transaction = database.transaction(
+        [STORES.meta, STORES.subjects],
+        'readonly',
+      );
+      const meta = transaction.objectStore(STORES.meta);
+      const marker = (await requestResult(
+        meta.get(`recovery-required:${profileId}`),
+      )) as { key?: string } | undefined;
+      const cursor = (await requestResult(
+        meta.get(`sync-cursor:${profileId}`),
+      )) as { value?: { epoch?: number; cursor?: number } } | undefined;
+      const subjects = (await requestResult(
+        transaction.objectStore(STORES.subjects).index('by_profile').count(profileId),
+      )) as number;
+      return {
+        marker: marker !== undefined,
+        cursor:
+          cursor?.value &&
+          typeof cursor.value.epoch === 'number' &&
+          typeof cursor.value.cursor === 'number'
+            ? { epoch: cursor.value.epoch, cursor: cursor.value.cursor }
+            : null,
+        subjects,
+      };
     },
     seedAssuntos: async (profileId, linkId, count) => {
       const database = await openV2Database(profileId);

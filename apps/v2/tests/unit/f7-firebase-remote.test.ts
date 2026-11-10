@@ -35,6 +35,13 @@ class MemoryStore implements FirestorePort {
     return this.docs.has(path) ? structuredClone(this.docs.get(path)) : null;
   }
 
+  async list(path: string): Promise<unknown[]> {
+    const prefix = path.endsWith('/') ? path : `${path}/`;
+    return [...this.docs.entries()]
+      .filter(([key]) => key.startsWith(prefix) && !key.slice(prefix.length).includes('/'))
+      .map(([, value]) => structuredClone(value));
+  }
+
   async runTransaction<T>(task: (transaction: { get(path: string): Promise<unknown | null>; set(path: string, value: unknown): void }) => Promise<T>): Promise<T> {
     const writes: Array<[string, unknown]> = [];
     const value = await task({
@@ -51,6 +58,59 @@ function port(store: FirestorePort): FirebaseRemotePort {
 }
 
 describe('F7 Firebase remote adapter', () => {
+  it('f7_capture_recovery_snapshot_reads_head_and_entities', async () => {
+    const store = new MemoryStore();
+    const base = `users/${uid}/libraries/${libraryId}`;
+    store.docs.set(`${base}/meta/head`, { epoch: 2, changeSequence: 5, uid });
+    store.docs.set(`${base}/entities/edital-1`, {
+      entityId: 'edital-1',
+      entityType: 'edital',
+      schemaVersion: 1,
+      revision: 1,
+      deleted: false,
+      epoch: 2,
+      payload: {
+        id: 'edital-1',
+        profileId,
+        title: 'TJPB',
+        status: 'ACTIVE',
+        localRevision: 1,
+      },
+      uid,
+    });
+    const result = await port(store).captureRecoverySnapshot(uid, libraryId);
+    expect(result).toMatchObject({
+      kind: 'OK',
+      epoch: 2,
+      head: 5,
+      historyFloor: 5,
+      historyMode: 'SNAPSHOT_ONLY',
+    });
+    if (result.kind === 'OK') {
+      expect(result.entities).toHaveLength(1);
+      expect(result.entities[0]?.entityId).toBe('edital-1');
+    }
+  });
+
+  it('f7_capture_recovery_snapshot_rejects_a_changed_head', async () => {
+    const store = new MemoryStore();
+    let headReads = 0;
+    const original = store.get.bind(store);
+    store.get = async (path: string) => {
+      if (path.endsWith('/meta/head')) {
+        headReads += 1;
+        return {
+          epoch: 2,
+          changeSequence: headReads === 1 ? 5 : 6,
+          uid,
+        };
+      }
+      return original(path);
+    };
+    const result = await port(store).captureRecoverySnapshot(uid, libraryId);
+    expect(result).toMatchObject({ kind: 'STALE', reason: 'HEAD_CHANGED_DURING_CAPTURE' });
+  });
+
   it('f7_identical_replay_returns_already_applied', async () => {
     const store = new MemoryStore();
     const remote = port(store);

@@ -42,7 +42,16 @@ import {
 import { BackupControls, type BackupHealth } from './components/BackupControls';
 import { CloudBackupPanel } from './components/CloudBackupPanel';
 import { LocalBackupPanel } from './components/LocalBackupPanel';
-import { F7Runtime, type F7RuntimeState } from '../platform/f7-runtime';
+import {
+  F7Runtime,
+  type F7RecoveryPreview,
+  type F7RuntimeState,
+} from '../platform/f7-runtime';
+import type { RecoverySnapshotResult } from '../platform/sync/firebase-remote';
+import {
+  RecoveryPanel,
+  type RecoveryUiStatus,
+} from './components/RecoveryPanel';
 import { holdTabPresence } from '../platform/tab-presence';
 import { PlanningWorkspace } from './PlanningWorkspace';
 import { SessionWorkspace } from './SessionWorkspace';
@@ -224,6 +233,10 @@ export function App() {
   const [f7, setF7] = useState<F7RuntimeState | null>(null);
   const [syncConflictBusy, setSyncConflictBusy] = useState<string | null>(null);
   const [cloudRestoreBusy, setCloudRestoreBusy] = useState<string | null>(null);
+  const [recoveryStatus, setRecoveryStatus] = useState<RecoveryUiStatus>('VERIFICAR');
+  const [recoveryPreview, setRecoveryPreview] = useState<F7RecoveryPreview | null>(null);
+  const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
+  const lastRecoveryMarkerAt = useRef<string | null>(null);
   const [analyticsCache] = useState(() => new ExperienceProjectionCache());
 
   useDraftGuard('f2-subject', form.title.trim().length > 0, 'nova disciplina');
@@ -322,9 +335,47 @@ export function App() {
   }, [refresh]);
 
   useEffect(() => {
+    const e2eAuth = __V2_E2E__
+      ? {
+          async signIn() {
+            const uid = localStorage.getItem('v2-e2e-auth-uid');
+            if (!uid) throw new Error('E2E_AUTH_MISSING');
+            return { uid, email: 'e2e@example.test' };
+          },
+          async signOut() {
+            localStorage.removeItem('v2-e2e-auth-uid');
+          },
+          async current() {
+            const uid = localStorage.getItem('v2-e2e-auth-uid');
+            return uid ? { uid, email: 'e2e@example.test' } : null;
+          },
+          async getIdToken() {
+            return localStorage.getItem('v2-e2e-auth-uid') ? 'e2e-token' : null;
+          },
+          subscribe() {
+            return () => undefined;
+          },
+        }
+      : undefined;
+    const recoverySnapshot = __V2_E2E__
+      ? async (): Promise<RecoverySnapshotResult> => {
+          const harness = (
+            window as Window & {
+              __v2E2E?: { recoverySnapshot: () => Promise<RecoverySnapshotResult> };
+            }
+          ).__v2E2E;
+          return harness
+            ? harness.recoverySnapshot()
+            : { kind: 'UNSUPPORTED', reason: 'HARNESS_MISSING' };
+        }
+      : undefined;
     const runtime = new F7Runtime(
       PROFILE_ID,
       import.meta.env as Record<string, string | undefined>,
+      {
+        ...(recoverySnapshot ? { recoverySnapshot } : {}),
+        ...(e2eAuth ? { auth: e2eAuth } : {}),
+      },
     );
     runtimeRef.current = runtime;
     const unsubscribe = runtime.subscribe((next) => setF7(next));
@@ -353,6 +404,17 @@ export function App() {
       for (const stop of unsubscribe) stop();
     };
   }, []);
+
+  useEffect(() => {
+    const markerAt = f7?.recovery?.at ?? null;
+    if (markerAt && markerAt !== lastRecoveryMarkerAt.current) {
+      lastRecoveryMarkerAt.current = markerAt;
+      setRecoveryStatus('VERIFICAR');
+      setRecoveryPreview(null);
+      setRecoveryMessage(null);
+    }
+    if (!markerAt) lastRecoveryMarkerAt.current = null;
+  }, [f7?.recovery?.at]);
 
   useEffect(() => holdTabPresence(), []);
 
@@ -512,6 +574,87 @@ export function App() {
         : `Restauração não concluída: ${result}`;
     } finally {
       setCloudRestoreBusy(null);
+    }
+  }
+
+  function recoveryReasonLabel(reason: string): string {
+    if (reason === 'IDENTITY_MISMATCH') return 'A sessão Google não corresponde ao perfil vinculado.';
+    if (reason === 'IDENTITY_CHANGED') return 'A sessão mudou durante a verificação; repita.';
+    if (reason === 'SNAPSHOT_READ_FAILED') return 'Não foi possível ler o snapshot remoto.';
+    if (reason === 'NO_SNAPSHOT') return 'O snapshot remoto não está disponível neste ambiente.';
+    if (reason === 'HEAD_CHANGED_DURING_CAPTURE') return 'O remoto mudou durante a leitura; repita.';
+    if (reason === 'REMOTE_UNAVAILABLE' || reason === 'LIST_UNAVAILABLE') {
+      return 'O snapshot remoto não está disponível neste ambiente.';
+    }
+    if (reason === 'RECOVERY_NOT_REQUIRED') return 'Não há recuperação pendente.';
+    if (reason === 'PROFILE_NOT_LINKED') return 'Vincule uma conta Google antes de recuperar.';
+    return reason;
+  }
+
+  async function prepareRecovery(): Promise<void> {
+    const runtime = runtimeRef.current;
+    if (!runtime) return;
+    setRecoveryStatus('VERIFICANDO');
+    setRecoveryMessage(null);
+    try {
+      const result = await runtime.prepareRecovery();
+      if (result.kind === 'PREVIEW') {
+        setRecoveryPreview(result.preview);
+        setRecoveryStatus('PREVIEW');
+      } else {
+        setRecoveryPreview(null);
+        setRecoveryStatus('BLOQUEADO');
+        setRecoveryMessage(recoveryReasonLabel(result.reason));
+      }
+    } catch (error) {
+      setRecoveryStatus('BLOQUEADO');
+      setRecoveryMessage(error instanceof Error ? error.message : 'Falha ao verificar.');
+    }
+  }
+
+  async function exportRecoveryBackup(): Promise<void> {
+    const runtime = runtimeRef.current;
+    if (!runtime || !recoveryPreview) return;
+    const snapshot = await runtime.exportRecoveryBackup(recoveryPreview.previewId);
+    if (!snapshot) {
+      setNotice('Cópia de segurança da recuperação não encontrada.');
+      return;
+    }
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `estudo-organizado-recovery-${todayInZone()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setRecoveryMessage('Cópia de segurança exportada.');
+  }
+
+  async function confirmRecovery(): Promise<void> {
+    const runtime = runtimeRef.current;
+    if (!runtime || !recoveryPreview) return;
+    const counts = recoveryPreview.counts;
+    const confirmed = window.confirm(
+      `Aplicar o snapshot remoto verificado?\n${counts.created} criação(ões), ${counts.changed} atualização(ões), ${counts.deleted} exclusão(ões), ${counts.conflicts} conflito(s).\n` +
+        `Epoch ${recoveryPreview.checkpoint.epoch}, cursor ${recoveryPreview.checkpoint.head}.\n` +
+        'O backup local já está gravado e será mantido. Aplicar agora?',
+    );
+    if (!confirmed) return;
+    setRecoveryStatus('EXECUTANDO');
+    setRecoveryMessage(null);
+    try {
+      const result = await runtime.commitRecovery(recoveryPreview.previewId);
+      await refresh();
+      if (result === 'RECOVERED') {
+        setRecoveryStatus('RECUPERADO');
+        setRecoveryMessage('Snapshot, cursor, epoch e backup conferidos.');
+      } else {
+        setRecoveryStatus('BLOQUEADO');
+        setRecoveryMessage('A recuperação não foi concluída; o bloqueio permanece.');
+      }
+    } catch (error) {
+      setRecoveryStatus('BLOQUEADO');
+      setRecoveryMessage(error instanceof Error ? error.message : 'Falha na recuperação.');
     }
   }
 
@@ -938,6 +1081,23 @@ export function App() {
                   busyId={syncConflictBusy}
                   onResolve={(conflict, choice) => {
                     void resolveSyncConflict(conflict, choice);
+                  }}
+                />
+              }
+              recovery={
+                <RecoveryPanel
+                  recovery={f7?.recovery ?? null}
+                  status={recoveryStatus}
+                  preview={recoveryPreview}
+                  message={recoveryMessage}
+                  onPrepare={() => {
+                    void prepareRecovery();
+                  }}
+                  onExport={() => {
+                    void exportRecoveryBackup().catch(reportRuntimeError);
+                  }}
+                  onConfirm={() => {
+                    void confirmRecovery().catch(reportRuntimeError);
                   }}
                 />
               }

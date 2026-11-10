@@ -338,7 +338,7 @@ export async function commitF7Restore(
       (Array.isArray(stored.snapshot.payload[name]) && database.objectStoreNames.contains(name)),
   );
   const transaction = database.transaction(
-    [STORES.meta, STORES.outbox, ...stores],
+    [STORES.meta, STORES.outbox, STORES.profiles, ...stores],
     'readwrite',
   );
 
@@ -391,8 +391,11 @@ export async function commitF7Restore(
       }
     }
 
-    // A restored snapshot invalidates every earlier delivery intent. The rows
-    // stay in the outbox for audit, but the delivery gate refuses to send them.
+    const profile = (await requestResult(
+      transaction.objectStore(STORES.profiles).get(stored.targetProfileId),
+    )) as { uid?: string | null; remoteLibraryId?: string | null } | undefined;
+    // A restored snapshot invalidates every earlier delivery intent, whether
+    // the profile is already linked or will be linked later.
     const outbox = transaction.objectStore(STORES.outbox);
     const pendingRows = (await requestResult(
       outbox.index('by_profile_status').getAll([stored.targetProfileId, 'PENDING']),
@@ -400,14 +403,16 @@ export async function commitF7Restore(
     for (const row of pendingRows) {
       outbox.put({ ...row, deliveryMode: 'BLOCKED', blockedReason: 'RESTORE' });
     }
-    meta.delete(cursorKey(stored.targetProfileId));
-    meta.put({
-      key: recoveryKey(stored.targetProfileId),
-      value: {
-        reason: 'RESTORE_COMMITTED',
-        at: new Date().toISOString(),
-      },
-    });
+    if (profile?.uid && profile.remoteLibraryId) {
+      meta.delete(cursorKey(stored.targetProfileId));
+      meta.put({
+        key: recoveryKey(stored.targetProfileId),
+        value: {
+          reason: 'RESTORE_COMMITTED',
+          at: new Date().toISOString(),
+        },
+      });
+    }
 
     meta.put({
       key: `restore:${stored.targetProfileId}`,

@@ -51,11 +51,28 @@ export type FirestoreTransactionPort = {
 export type FirestorePort = {
   runTransaction<T>(task: (transaction: FirestoreTransactionPort) => Promise<T>): Promise<T>;
   get(path: string): Promise<unknown | null>;
+  getFresh?(path: string): Promise<unknown | null>;
+  /** Full collection read used only by a verified recovery snapshot. */
+  list?(path: string): Promise<unknown[]>;
+  listFresh?(path: string): Promise<unknown[]>;
   query?(
     path: string,
     options: { field: string; operator: '>'; value: number; orderBy: string; limit: number },
   ): Promise<unknown[]>;
 };
+
+export type RecoverySnapshotResult =
+  | {
+    kind: 'OK';
+    entities: RemoteEntity[];
+    epoch: number;
+    head: number;
+    /** A full snapshot replaces history; no old change replay is required. */
+    historyFloor: number;
+    historyMode: 'SNAPSHOT_ONLY';
+    capturedAt: string;
+  }
+  | { kind: 'STALE' | 'UNSUPPORTED' | 'INVALID'; reason: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -382,6 +399,79 @@ export class FirebaseRemotePort implements RemoteMutationPort, RemoteChangePort 
     delete entity.uid;
     return entity;
   }
+
+  /**
+   * Captures a complete, stable view of entities plus the head. The head is
+   * read before and after the collection; a concurrent write makes the
+   * capture STALE instead of producing a mixed snapshot.
+   */
+  async captureRecoverySnapshot(
+    uid: string,
+    libraryId: string,
+  ): Promise<RecoverySnapshotResult> {
+    if (uid !== this.uid || libraryId !== this.libraryId) {
+      return { kind: 'INVALID', reason: 'IDENTITY_MISMATCH' };
+    }
+    if (!this.store.list) return { kind: 'UNSUPPORTED', reason: 'LIST_UNAVAILABLE' };
+    try {
+      const getHead = this.store.getFresh
+        ? (path: string) => this.store.getFresh!(path)
+        : (path: string) => this.store.get(path);
+      const listEntities = this.store.listFresh
+        ? (path: string) => this.store.listFresh!(path)
+        : (path: string) => this.store.list!(path);
+      const beforeHead = asHead(
+        await getHead(this.path('meta', 'head')),
+      );
+      const rows = await listEntities(this.collectionPath('entities'));
+      if (!beforeHead && rows.length > 0) {
+        return { kind: 'INVALID', reason: 'HEAD_REQUIRED' };
+      }
+      const before = beforeHead ?? { epoch: 0, changeSequence: 0 };
+      const entities: RemoteEntity[] = [];
+      const seen = new Set<string>();
+      for (const row of rows) {
+        if (!isRecord(row)) return { kind: 'INVALID', reason: 'ENTITY_FORMAT' };
+        const copy = { ...row };
+        delete copy.uid;
+        const validation = validateRemoteEnvelope(copy);
+        if (!validation.ok) return { kind: 'INVALID', reason: validation.reason };
+        const entity = copy as RemoteEntity;
+        if (seen.has(entity.entityId)) {
+          return { kind: 'INVALID', reason: 'DUPLICATE_ENTITY' };
+        }
+        seen.add(entity.entityId);
+        if (entity.epoch > before.epoch) {
+          return { kind: 'INVALID', reason: 'ENTITY_EPOCH_AHEAD' };
+        }
+        entities.push(entity);
+      }
+      const afterHead = asHead(
+        await getHead(this.path('meta', 'head')),
+      );
+      if (!afterHead && rows.length > 0) {
+        return { kind: 'INVALID', reason: 'HEAD_REQUIRED' };
+      }
+      const after = afterHead ?? { epoch: 0, changeSequence: 0 };
+      if (
+        after.epoch !== before.epoch ||
+        after.changeSequence !== before.changeSequence
+      ) {
+        return { kind: 'STALE', reason: 'HEAD_CHANGED_DURING_CAPTURE' };
+      }
+      return {
+        kind: 'OK',
+        entities,
+        epoch: before.epoch,
+        head: before.changeSequence,
+        historyFloor: before.changeSequence,
+        historyMode: 'SNAPSHOT_ONLY',
+        capturedAt: new Date().toISOString(),
+      };
+    } catch {
+      return { kind: 'INVALID', reason: 'SNAPSHOT_READ_FAILED' };
+    }
+  }
 }
 
 /** Creates the production Firestore transaction port for an injected database. */
@@ -390,7 +480,9 @@ export async function createFirestorePort(db: Firestore): Promise<FirestorePort>
     collection,
     doc,
     getDoc,
+    getDocFromServer,
     getDocs,
+    getDocsFromServer,
     limit,
     orderBy,
     query,
@@ -414,6 +506,18 @@ export async function createFirestorePort(db: Firestore): Promise<FirestorePort>
     async get(path) {
       const snapshot = await getDoc(doc(db, path));
       return snapshot.exists() ? snapshot.data() : null;
+    },
+    async getFresh(path) {
+      const snapshot = await getDocFromServer(doc(db, path));
+      return snapshot.exists() ? snapshot.data() : null;
+    },
+    async list(path) {
+      const snapshot = await getDocs(collection(db, path));
+      return snapshot.docs.map((item) => item.data());
+    },
+    async listFresh(path) {
+      const snapshot = await getDocsFromServer(collection(db, path));
+      return snapshot.docs.map((item) => item.data());
     },
     async query(path, options) {
       const target = query(

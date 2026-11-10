@@ -27,7 +27,7 @@ export type F7BackupSnapshot = {
 export type InspectResult =
   | { kind: 'VALID'; snapshot: F7BackupSnapshot }
   | { kind: 'INVALID'; reason: string }
-  | { kind: 'REBASELINE_REQUIRED'; reason: string };
+  | { kind: 'REBASELINE_REQUIRED'; reason: string; snapshot: F7BackupSnapshot };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -74,17 +74,15 @@ export async function inspectF7Backup(input: unknown): Promise<InspectResult> {
   if (checksum.toLowerCase() !== manifest.checksum.toLowerCase()) {
     return { kind: 'INVALID', reason: 'CHECKSUM_MISMATCH' };
   }
-  if (manifest.deletionHistoryComplete !== true) {
-    return { kind: 'REBASELINE_REQUIRED', reason: 'DELETION_HISTORY_INCOMPLETE' };
-  }
-  return {
-    kind: 'VALID',
-    snapshot: {
-      manifest: {
-        ...manifestFields,
-        checksum,
-      },
-      payload,
+  const snapshot: F7BackupSnapshot = {
+    manifest: {
+      ...manifestFields,
+      checksum,
     },
+    payload,
   };
+  if (manifest.deletionHistoryComplete !== true) {
+    return { kind: 'REBASELINE_REQUIRED', reason: 'DELETION_HISTORY_INCOMPLETE', snapshot };
+  }
+  return { kind: 'VALID', snapshot };
 }

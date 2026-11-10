@@ -207,6 +207,43 @@ describe('F7 restore', () => {
     expect(keys).toContain(`recovery-required:${profileId}`);
   });
 
+  it('f7_restore_local_only_blocks_outbox_without_a_remote_recovery_gate', async () => {
+    const record: OutboxOperation = {
+      operationId: 'op-local-only',
+      profileId,
+      entityType: 'edital',
+      entityId: 'edital-1',
+      kind: 'upsert',
+      baseRevision: 0,
+      payload: { id: 'edital-1', profileId, title: 'A', status: 'ACTIVE', localRevision: 1 },
+      schemaVersion: 1,
+      status: 'PENDING',
+      deliveryUid: uid,
+      remoteLibraryId: libraryId,
+    };
+    await seed(record);
+    const db = await openV2Database(profileId);
+    const profileTx = db.transaction(STORES.profiles, 'readwrite');
+    profileTx.objectStore(STORES.profiles).put({
+      profileId,
+      uid: null,
+      remoteLibraryId: null,
+      syncEnabled: false,
+      state: 'LOCAL_ONLY',
+      primaryEditalId: null,
+      localRevision: 1,
+    });
+    await transactionDone(profileTx);
+    const prepared = await prepareF7Restore(await snapshot(), profileId);
+    if (prepared.kind === 'PREVIEW') await commitF7Restore(prepared.preview.id, true);
+    const tx = db.transaction(STORES.outbox, 'readonly');
+    const stored = (await requestResult(
+      tx.objectStore(STORES.outbox).get('op-local-only'),
+    )) as OutboxOperation | undefined;
+    expect(stored).toMatchObject({ deliveryMode: 'BLOCKED', blockedReason: 'RESTORE' });
+    expect(await metaKeys()).not.toContain(`recovery-required:${profileId}`);
+  });
+
   it('f7_restore_aborted_commit_preserves_original', async () => {
     await seed();
     const prepared = await prepareF7Restore(await snapshot(), profileId);

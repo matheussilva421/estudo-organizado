@@ -148,6 +148,34 @@ describe('F7 rebaseline', () => {
     expect((await tombstones()).some((row) => row.entityId === 'edital-1')).toBe(true);
   });
 
+  it('f7_rebaseline_preserves_the_local_tombstone_snapshot_on_equal_epoch', async () => {
+    await seed();
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(STORES.tombstones, 'readwrite');
+    tx.objectStore(STORES.tombstones).put({
+      profileId,
+      entityType: 'edital',
+      entityId: 'edital-1',
+      operationId: 'local-delete',
+      baseRevision: 1,
+      epoch: 2,
+      deleted: true,
+      deletedAt: new Date().toISOString(),
+      snapshot: { id: 'edital-1', profileId, title: 'RECUPERÁVEL' },
+    });
+    await transactionDone(tx);
+    const preview = await prepareRebaseline(profileId, [
+      entity({ deleted: true, payload: null }),
+    ]);
+    expect(preview.kind).toBe('PREVIEW');
+    if (preview.kind === 'PREVIEW') await commitRebaseline(profileId, preview.previewId);
+    const check = db.transaction(STORES.tombstones, 'readonly');
+    const rows = (await requestResult(
+      check.objectStore(STORES.tombstones).getAll(),
+    )) as Array<{ snapshot?: { title?: string } }>;
+    expect(rows[0]?.snapshot?.title).toBe('RECUPERÁVEL');
+  });
+
   it('f7_rebaseline_applies_live_entities_to_the_store', async () => {
     await seed();
     const preview = await prepareRebaseline(profileId, [entity()]);

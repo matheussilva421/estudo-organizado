@@ -25,6 +25,7 @@ import {
   markRecoveryRequired,
 } from '../indexeddb';
 import { LocalProfileRepository } from '../local-profile-repository';
+import { getRecoveryVerification } from './rebaseline';
 
 export type FlushReason = 'LOCAL_COMMIT' | 'RECONNECT' | 'RESUME' | 'MANUAL';
 
@@ -82,6 +83,7 @@ export class SyncCoordinator {
   private readonly countConflicts: (profileId: string) => Promise<number>;
   private readonly stopped = new Set<string>();
   private readonly recoveryRequired = new Set<string>();
+  private readonly recoveryWriteFailed = new Set<string>();
   private readonly activeFlights = new Map<string, Promise<SyncHealth>>();
 
   constructor(options: SyncCoordinatorOptions) {
@@ -115,9 +117,42 @@ export class SyncCoordinator {
     if (flight) await flight.catch(() => undefined);
   }
 
-  async clearRecovery(profileId: string): Promise<void> {
+  async clearRecovery(
+    profileId: string,
+    proof?: { previewId: string; snapshotChecksum: string },
+  ): Promise<'CLEARED' | 'REJECTED'> {
+    if (!proof) return 'REJECTED';
+    let verified;
+    try {
+      verified = await getRecoveryVerification(profileId);
+    } catch {
+      return 'REJECTED';
+    }
+    if (
+      !verified ||
+      verified.previewId !== proof.previewId ||
+      verified.snapshotChecksum !== proof.snapshotChecksum
+    ) {
+      return 'REJECTED';
+    }
+    let marker;
+    try {
+      marker = await getRecoveryRequired(profileId);
+    } catch {
+      return 'REJECTED';
+    }
+    if (marker && Date.parse(marker.at) > Date.parse(verified.verifiedAt)) {
+      return 'REJECTED';
+    }
     this.recoveryRequired.delete(profileId);
-    await clearRecoveryRequired(profileId);
+    this.recoveryWriteFailed.delete(profileId);
+    try {
+      await clearRecoveryRequired(profileId);
+    } catch {
+      this.recoveryRequired.add(profileId);
+      return 'REJECTED';
+    }
+    return 'CLEARED';
   }
 
   async requestFlush(profileId: string, reason: FlushReason): Promise<SyncHealth> {
@@ -127,9 +162,8 @@ export class SyncCoordinator {
         ? health(true, false, 0, 'FAILED')
         : health(true, false, pending, 'STOPPED');
     }
-    const recovery = await getRecoveryRequired(profileId).catch(() => null);
-    if (recovery || this.recoveryRequired.has(profileId)) {
-      this.recoveryRequired.add(profileId);
+    const gate = await this.recoveryGate(profileId);
+    if (gate !== 'CLEAR') {
       const pending = await this.pendingCount(profileId);
       const conflicts = await this.openConflictCount(profileId);
       return health(
@@ -171,9 +205,8 @@ export class SyncCoordinator {
     if (this.stopped.has(profileId)) {
       return health(true, false, 0, 'STOPPED');
     }
-    const recovery = await getRecoveryRequired(profileId).catch(() => null);
-    if (recovery || this.recoveryRequired.has(profileId)) {
-      this.recoveryRequired.add(profileId);
+    const gate = await this.recoveryGate(profileId);
+    if (gate !== 'CLEAR') {
       const pending = await this.pendingCount(profileId);
       const conflicts = await this.openConflictCount(profileId);
       return health(
@@ -342,6 +375,32 @@ export class SyncCoordinator {
 
   private async requireRecovery(profileId: string, reason: string): Promise<void> {
     this.recoveryRequired.add(profileId);
-    await markRecoveryRequired(profileId, reason).catch(() => undefined);
+    try {
+      await markRecoveryRequired(profileId, reason);
+      this.recoveryWriteFailed.delete(profileId);
+    } catch {
+      this.recoveryWriteFailed.add(profileId);
+    }
+  }
+
+  private async recoveryGate(
+    profileId: string,
+  ): Promise<'CLEAR' | 'REQUIRED' | 'FAILED'> {
+    if (this.recoveryWriteFailed.has(profileId)) return 'REQUIRED';
+    let marker;
+    try {
+      marker = await getRecoveryRequired(profileId);
+    } catch {
+      this.recoveryRequired.add(profileId);
+      return 'FAILED';
+    }
+    if (marker) {
+      this.recoveryRequired.add(profileId);
+      return 'REQUIRED';
+    }
+    // A successful read is the authority: another tab may have completed a
+    // verified rebaseline and removed the marker.
+    this.recoveryRequired.delete(profileId);
+    return 'CLEAR';
   }
 }

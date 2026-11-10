@@ -19,6 +19,7 @@ type Props = {
   upgrade: DatabaseUpgradeState;
   googleLink?: ReactNode;
   syncConflicts?: ReactNode;
+  recovery?: ReactNode;
   backupControls?: ReactNode;
   cloudBackups?: ReactNode;
   localBackup?: ReactNode;
@@ -37,6 +38,7 @@ export function SettingsView({
   upgrade,
   googleLink,
   syncConflicts,
+  recovery,
   backupControls,
   cloudBackups,
   localBackup,
@@ -103,6 +105,7 @@ export function SettingsView({
           </p>
           {googleLink}
           {syncConflicts}
+          {recovery}
           {backupControls}
           {cloudBackups}
           {localBackup}

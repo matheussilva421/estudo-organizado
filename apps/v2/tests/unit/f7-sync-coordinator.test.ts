@@ -7,7 +7,9 @@ import type { LockPort } from '../../src/platform/sync/coordination';
 import { LocalProfileRepository } from '../../src/platform/local-profile-repository';
 import {
   deleteV2DatabaseForTests,
+  clearRecoveryRequired,
   getConflicts,
+  getRecoveryRequired,
   openV2Database,
   requestResult,
   STORES,
@@ -17,6 +19,23 @@ import {
 const profileId = 'profile-coordinator';
 const uid = 'uid-a';
 const libraryId = 'library-a';
+const recoveryProof = { previewId: 'preview-recovery', snapshotChecksum: 'a'.repeat(64) };
+
+async function seedRecoveryVerification(verifiedAt = new Date().toISOString()): Promise<void> {
+  const db = await openV2Database(profileId);
+  const tx = db.transaction(STORES.meta, 'readwrite');
+  tx.objectStore(STORES.meta).put({
+    key: `rebaseline-verified:${profileId}`,
+    value: {
+      previewId: recoveryProof.previewId,
+      snapshotChecksum: recoveryProof.snapshotChecksum,
+      epoch: 1,
+      head: 1,
+      verifiedAt,
+    },
+  });
+  await transactionDone(tx);
+}
 
 function profile(): ProfileRecord {
   return {
@@ -327,7 +346,8 @@ describe('F7 sync coordinator', () => {
       mode: 'RECOVERY_REQUIRED',
     });
     expect(remote.appliedCount()).toBe(0);
-    await subject.clearRecovery(profileId);
+    await seedRecoveryVerification();
+    await expect(subject.clearRecovery(profileId, recoveryProof)).resolves.toBe('CLEARED');
     await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
       mode: 'READY',
     });
@@ -363,11 +383,72 @@ describe('F7 sync coordinator', () => {
     });
     expect(remote.appliedCount()).toBe(0);
 
-    await second.clearRecovery(profileId);
+    await seedRecoveryVerification();
+    await expect(second.clearRecovery(profileId, recoveryProof)).resolves.toBe('CLEARED');
     await expect(second.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
       mode: 'READY',
     });
     expect(remote.appliedCount()).toBe(1);
+  });
+
+  it('f7_clear_recovery_without_a_verified_checkpoint_is_rejected', async () => {
+    const remote = new FakeRemotePort({ uid, profileId });
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      pull: async () => 'RECOVERY_REQUIRED',
+    });
+    await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'RECOVERY_REQUIRED',
+    });
+    await expect(subject.clearRecovery(profileId)).resolves.toBe('REJECTED');
+    await expect(
+      subject.clearRecovery(profileId, {
+        previewId: 'forged',
+        snapshotChecksum: 'b'.repeat(64),
+      }),
+    ).resolves.toBe('REJECTED');
+    await expect(getRecoveryRequired(profileId)).resolves.not.toBeNull();
+    await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'RECOVERY_REQUIRED',
+    });
+  });
+
+  it('f7_other_tab_recovery_clear_unblocks_this_instance', async () => {
+    const remote = new FakeRemotePort({ uid, profileId });
+    let pulls = 0;
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      pull: async () => {
+        pulls += 1;
+        return pulls === 1 ? ('RECOVERY_REQUIRED' as const) : ('CONVERGED' as const);
+      },
+    });
+    await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'RECOVERY_REQUIRED',
+    });
+    await clearRecoveryRequired(profileId);
+    await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      mode: 'READY',
+    });
+    expect(remote.appliedCount()).toBe(0);
+  });
+
+  it('f7_old_recovery_proof_cannot_clear_a_newer_marker', async () => {
+    const remote = new FakeRemotePort({ uid, profileId });
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      pull: async () => 'RECOVERY_REQUIRED',
+    });
+    await subject.requestFlush(profileId, 'MANUAL');
+    await seedRecoveryVerification('2020-01-01T00:00:00.000Z');
+    await expect(subject.clearRecovery(profileId, recoveryProof)).resolves.toBe('REJECTED');
+    await expect(getRecoveryRequired(profileId)).resolves.not.toBeNull();
   });
 
   it('f7_pull_runs_before_the_first_write', async () => {
