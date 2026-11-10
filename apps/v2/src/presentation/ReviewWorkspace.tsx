@@ -120,6 +120,20 @@ function factorLabel(name: 'deficiency' | 'board' | 'urgency' | 'override'): str
   return 'Ajuste manual';
 }
 
+function importReasonLabel(reason: string): string {
+  if (reason === 'PROFILE_MISMATCH_REQUIRES_REMAP') {
+    return 'o arquivo pertence a outro perfil; remapeie os IDs antes de importar';
+  }
+  if (reason === 'INVALID_JSON') return 'o conteúdo não é JSON válido';
+  if (reason === 'UNSUPPORTED_VERSION') {
+    return 'a versão do arquivo é incompatível com esta política';
+  }
+  if (reason === 'INVALID_SCHEMA' || reason === 'INVALID_DATA') {
+    return 'o arquivo tem campos ausentes ou inválidos';
+  }
+  return reason;
+}
+
 export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId = null }: Props) {
   const service = useMemo(
     () =>
@@ -1323,7 +1337,11 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
           </span>
         </div>
         {queueSorted.length === 0 ? (
-          <p className="hint">Nenhum compromisso confirmado.</p>
+          <p className="hint">
+            {commitments.length === 0
+              ? 'Nenhum compromisso confirmado.'
+              : 'Nenhum compromisso corresponde aos filtros atuais.'}
+          </p>
         ) : (
           <>
           <ul>
@@ -1719,8 +1737,8 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
               {importPreview.kind === 'READY'
                 ? `Prévia: ${Object.entries(importPreview.counts).map(([key, value]) => `${key} ${value}`).join(', ')}`
                 : importPreview.kind === 'CONFLICT'
-                  ? `Conflito: ${importPreview.reason}`
-                  : `Inválido: ${importPreview.reason}`}
+                  ? `Conflito: ${importReasonLabel(importPreview.reason)}`
+                  : `Inválido: ${importReasonLabel(importPreview.reason)}`}
             </p>
             {importPreview.kind === 'READY' ? (
               <button type="button" onClick={() => void applyImport()} disabled={locked || busy}>
