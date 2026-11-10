@@ -102,7 +102,7 @@ O estado de aceite só muda após o parecer independente do delta e os gates fin
 |---|---|
 | npm run typecheck | PASS |
 | npm run lint | PASS |
-| npm run test:unit | 817 PASS / 115 arquivos |
+| npm run test:unit | 818 PASS / 115 arquivos |
 | npm run build | PASS (Vite 8.3.5; chunks Firebase lazy) |
 | npm run test:e2e | 168 PASS + 2 skips / 170 |
 | Firebase Emulator demo-estudo-v2 | 12 PASS / 2 arquivos |
