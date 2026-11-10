@@ -1,16 +1,38 @@
 import { useState } from 'react';
 import type { PlanningScenario } from '../../domain/planning';
-import type { ExamDateChange } from '../../domain/planning-final-stretch';
+import type {
+  ExamDateChange,
+  ExamDateChangePreview,
+  TransitionPreview,
+} from '../../domain/planning-final-stretch';
 
 type Props = {
   scenario: PlanningScenario | null;
-  onChangeExamDate: (change: ExamDateChange) => void;
-  onTransition: (examDate: string) => void;
+  examPreview: ExamDateChangePreview | null;
+  transitionPreview: TransitionPreview | null;
+  onPreviewExamChange: (change: ExamDateChange) => void;
+  onConfirmExamChange: () => void;
+  onCancelExamChange: () => void;
+  onPreviewTransition: (examDate: string) => void;
+  onConfirmTransition: () => void;
+  onCancelTransition: () => void;
   onClose: (outcome: 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED') => void;
   locked: boolean;
 };
 
-export function FinalStretch({ scenario, onChangeExamDate, onTransition, onClose, locked }: Props) {
+export function FinalStretch({
+  scenario,
+  examPreview,
+  transitionPreview,
+  onPreviewExamChange,
+  onConfirmExamChange,
+  onCancelExamChange,
+  onPreviewTransition,
+  onConfirmTransition,
+  onCancelTransition,
+  onClose,
+  locked,
+}: Props) {
   const [nextDate, setNextDate] = useState('');
   const [transitionDate, setTransitionDate] = useState('');
   const [closeOutcome, setCloseOutcome] = useState<'' | 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED'>('');
@@ -37,10 +59,36 @@ export function FinalStretch({ scenario, onChangeExamDate, onTransition, onClose
             type="button"
             data-action="preview-transition"
             disabled={locked || !transitionDate}
-            onClick={() => onTransition(transitionDate)}
+            onClick={() => onPreviewTransition(transitionDate)}
           >
             Propor Reta Final
           </button>
+          {transitionPreview ? (
+            <div data-testid="transition-preview">
+              <p>
+                Prévia: {transitionPreview.blocks.length} bloco(s) na nova Reta Final,{' '}
+                {transitionPreview.preservedBlockIds.length} preservado(s),{' '}
+                {transitionPreview.unallocatedBlockIds.length} não alocado(s). O Ciclo
+                atual continua existindo.
+              </p>
+              {transitionPreview.warnings.length > 0 ? (
+                <p className="planning-warning">
+                  {transitionPreview.warnings.join(', ')}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                data-action="confirm-transition"
+                onClick={onConfirmTransition}
+                disabled={locked}
+              >
+                Confirmar Reta Final
+              </button>
+              <button type="button" onClick={onCancelTransition} disabled={locked}>
+                Cancelar
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : !isFinalStretch ? (
         <p className="empty-state">Selecione um cenário do Ciclo ou de Reta Final.</p>
@@ -58,7 +106,7 @@ export function FinalStretch({ scenario, onChangeExamDate, onTransition, onClose
               type="button"
               data-action="postpone-exam"
               disabled={locked || !nextDate}
-              onClick={() => onChangeExamDate({ kind: 'POSTPONE', nextExamDate: nextDate })}
+              onClick={() => onPreviewExamChange({ kind: 'POSTPONE', nextExamDate: nextDate })}
             >
               Adiar prova
             </button>
@@ -66,7 +114,7 @@ export function FinalStretch({ scenario, onChangeExamDate, onTransition, onClose
               type="button"
               data-action="suspend-final-stretch"
               disabled={locked}
-              onClick={() => onChangeExamDate({ kind: 'SUSPEND' })}
+              onClick={() => onPreviewExamChange({ kind: 'SUSPEND' })}
             >
               Suspender
             </button>
@@ -93,6 +141,29 @@ export function FinalStretch({ scenario, onChangeExamDate, onTransition, onClose
               </select>
             </label>
           </div>
+          {examPreview ? (
+            <div data-testid="exam-change-preview">
+              <p>
+                Prévia: prova em {examPreview.newScenario.examDate ?? 'sem data'} ·{' '}
+                {examPreview.affectedBlockIds.length} bloco(s) afetado(s) ·{' '}
+                {examPreview.preservedBlockIds.length} preservado(s).
+              </p>
+              {examPreview.warnings.length > 0 ? (
+                <p className="planning-warning">{examPreview.warnings.join(', ')}</p>
+              ) : null}
+              <button
+                type="button"
+                data-action="confirm-exam-change"
+                onClick={onConfirmExamChange}
+                disabled={locked}
+              >
+                Confirmar mudança
+              </button>
+              <button type="button" onClick={onCancelExamChange} disabled={locked}>
+                Cancelar
+              </button>
+            </div>
+          ) : null}
         </div>
       )}
     </section>

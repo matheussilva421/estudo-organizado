@@ -38,6 +38,12 @@ test('postponing_the_exam_date_updates_the_plan_with_a_preview', async ({ page }
   await expect(page.locator('[data-testid="final-stretch"]')).toContainText('2027-01-24');
   await page.getByLabel('Nova data').fill('2027-02-20');
   await page.locator('[data-action="postpone-exam"]').click();
+  await expect(page.getByTestId('exam-change-preview')).toBeVisible();
+  const beforeConfirm = await page.evaluate(() =>
+    (window as unknown as HarnessWindow).__v2E2E.planningLoad('local-default', 'scenario-rf'),
+  );
+  expect(beforeConfirm?.scenario.examDate).toBe('2027-01-24');
+  await page.locator('[data-action="confirm-exam-change"]').click();
   await expect(page.locator('[data-testid="final-stretch"]')).toContainText('2027-02-20');
 
   const stored = await page.evaluate(() =>
@@ -63,6 +69,8 @@ test('suspending_a_final_stretch_removes_the_date_without_false_success', async 
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
 
   await page.locator('[data-action="suspend-final-stretch"]').click();
+  await expect(page.getByTestId('exam-change-preview')).toBeVisible();
+  await page.locator('[data-action="confirm-exam-change"]').click();
   await expect(page.locator('[data-testid="final-stretch"]')).toContainText('SUSPENDED');
 
   const stored = await page.evaluate(() =>
@@ -113,6 +121,8 @@ test('a_cycle_can_propose_a_final_stretch_and_keeps_the_cycle', async ({ page })
 
   await page.getByLabel('Data da prova', { exact: false }).fill('2027-03-15');
   await page.locator('[data-action="preview-transition"]').click();
+  await expect(page.getByTestId('transition-preview')).toBeVisible();
+  await page.locator('[data-action="confirm-transition"]').click();
   await expect(page.locator('[data-testid="planning-dashboard"]')).toContainText('Reta Final · Ciclo TJPB');
   await expect(page.locator('[data-testid="planning-dashboard"]')).toContainText('Ciclo TJPB');
 

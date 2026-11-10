@@ -15,6 +15,8 @@ import {
   previewExamDateChange,
   previewFinalStretchTransition,
   type ExamDateChange,
+  type ExamDateChangePreview,
+  type TransitionPreview,
 } from '../domain/planning-final-stretch';
 import type { MergeConflict } from '../domain/planning-merge';
 import { previewCompensation, type PlanningCheckpointRecord } from '../domain/planning-history';
@@ -94,6 +96,9 @@ export function PlanningWorkspace({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activationPreview, setActivationPreview] =
     useState<ScenarioActivationPreview | null>(null);
+  const [examPreview, setExamPreview] = useState<ExamDateChangePreview | null>(null);
+  const [transitionPreview, setTransitionPreview] =
+    useState<TransitionPreview | null>(null);
   const [view, setView] = useState<CalendarView>('week');
   const [availability, setAvailability] = useState<PlanningAvailability>(
     DEFAULT_PLANNING_AVAILABILITY,
@@ -482,7 +487,7 @@ export function PlanningWorkspace({
     await refresh();
   }
 
-  async function changeExamDate(change: ExamDateChange): Promise<void> {
+  function previewExamChange(change: ExamDateChange): void {
     if (!selected) return;
     const preview = previewExamDateChange({
       scenario: selected,
@@ -491,6 +496,15 @@ export function PlanningWorkspace({
       referenceDate: selected.examDate ?? '2027-01-04',
       operationId: 'exam-change',
     });
+    setExamPreview(preview);
+    onNotice(
+      `Prévia: ${preview.affectedBlockIds.length} bloco(s) afetado(s); nada foi gravado.`,
+    );
+  }
+
+  async function confirmExamChange(): Promise<void> {
+    if (!selected || !examPreview) return;
+    const preview = examPreview;
     const result = await repository().commit({
       scope: { profileId, operationId: `exam-${selected.id}-${selected.localRevision}` },
       scenarioId: selected.id,
@@ -502,6 +516,7 @@ export function PlanningWorkspace({
         ),
       },
     });
+    setExamPreview(null);
     onNotice(
       result.kind === 'LOCAL_COMMITTED'
         ? `Prova atualizada. ${preview.affectedBlockIds.length} bloco(s) precisam de replanejamento.`
@@ -510,7 +525,12 @@ export function PlanningWorkspace({
     await refresh();
   }
 
-  async function transitionToFinalStretch(examDate: string): Promise<void> {
+  function cancelExamChange(): void {
+    setExamPreview(null);
+    onNotice('Alteração da prova cancelada; nenhum bloco foi tocado.');
+  }
+
+  function previewTransition(examDate: string): void {
     if (!selected || selected.kind !== 'CYCLE' || !selected.cycle) return;
     const nextScenarioId = `rf-${selected.id}`;
     const preview = previewFinalStretchTransition({
@@ -535,34 +555,53 @@ export function PlanningWorkspace({
       ),
       operationId: `transition-${nextScenarioId}`,
     });
+    setTransitionPreview(preview);
+    onNotice(
+      `Prévia: ${preview.blocks.length} bloco(s) na Reta Final; o Ciclo atual será preservado.`,
+    );
+  }
+
+  async function confirmTransition(): Promise<void> {
+    if (!selected || !transitionPreview) return;
+    const preview = transitionPreview;
+    const nextScenarioId = preview.newScenario.id;
+    const operationId = `transition-${nextScenarioId}-${selected.localRevision}`;
     const created = await repository().commit({
-      scope: { profileId, operationId: `transition-${nextScenarioId}` },
+      scope: { profileId, operationId },
       scenarioId: nextScenarioId,
       baseRevision: null,
       changes: { scenario: preview.newScenario },
     });
     if (created.kind !== 'LOCAL_COMMITTED') {
+      setTransitionPreview(null);
       onNotice('Não foi possível criar a Reta Final.');
       return;
     }
     if (preview.blocks.length > 0) {
       const blocksResult = await repository().commit({
-        scope: { profileId, operationId: `transition-blocks-${nextScenarioId}` },
+        scope: { profileId, operationId: `${operationId}-blocks` },
         scenarioId: nextScenarioId,
         baseRevision: 1,
         changes: { upsertBlocks: preview.blocks },
       });
       if (blocksResult.kind !== 'LOCAL_COMMITTED') {
+        setTransitionPreview(null);
         onNotice('Falha ao gravar os blocos da Reta Final; o cenário ficou em rascunho.');
         await refresh();
         return;
       }
     }
+    setTransitionPreview(null);
     await refresh();
     setSelectedId(nextScenarioId);
     onNotice(
       `Reta Final proposta com ${preview.blocks.length} bloco(s); o Ciclo anterior foi preservado.`,
     );
+  }
+
+  function cancelTransition(): void {
+    setTransitionPreview(null);
+    onNotice('Transição cancelada; o Ciclo permanece intacto.');
   }
 
   async function closeStretch(outcome: 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED'): Promise<void> {
@@ -857,8 +896,14 @@ export function PlanningWorkspace({
       <StudyCycle scenario={selected} onDecision={(decision) => void applyCycleDecision(decision)} locked={locked} />
       <FinalStretch
         scenario={selected}
-        onChangeExamDate={(change) => void changeExamDate(change)}
-        onTransition={(examDate) => void transitionToFinalStretch(examDate)}
+        examPreview={examPreview}
+        transitionPreview={transitionPreview}
+        onPreviewExamChange={previewExamChange}
+        onConfirmExamChange={() => void confirmExamChange()}
+        onCancelExamChange={cancelExamChange}
+        onPreviewTransition={previewTransition}
+        onConfirmTransition={() => void confirmTransition()}
+        onCancelTransition={cancelTransition}
         onClose={(outcome) => void closeStretch(outcome)}
         locked={locked}
       />
