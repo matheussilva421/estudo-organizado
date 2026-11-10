@@ -39,9 +39,9 @@ HEAD de código: 8f2fee85. A tabela acima descreve a rodada anterior (0d2ee339);
 | npm run lint | PASS, exit 0 | log final |
 | npm run test:unit (foco) | PASS, 56 testes / 7 arquivos; depois 42 testes / 4 arquivos após correções P1 | execução local |
 | E2E focais (planejamento, revisões, Home) | PASS, 8 testes | execução local na porta 18432 |
-| npm run test:unit (completo) | ver log final | logs/unit.log |
-| npm run build | ver log final | logs/build.log |
-| npm run test:e2e (completo) | ver log final | logs/final-e2e.log |
-| Firebase Emulator (demo) | ver log final | logs/firebase.log |
+| npm run test:unit (completo) | PASS, 861 testes / 124 arquivos | logs/unit.log |
+| npm run build | PASS, exit 0 | logs/build.log |
+| npm run test:e2e (completo) | PASS, 195 + 3 skips / 198 | logs/final-e2e.log |
+| Firebase Emulator (demo) | BLOCKED, exit 1: java não encontrado no PATH | logs/firebase.log |
 
-A porta 18431 do preview ficou presa nesta sessão; a configuração aceita PLAYWRIGHT_PORT e a rodada final usa 18432, registrada no log.
+A porta 18431 do preview ficou presa nesta sessão; a configuração aceita PLAYWRIGHT_PORT e a rodada final usa 18432, registrada no log. O emulador Firebase não foi executado porque o ambiente não tem Java; nenhum projeto real foi acessado e o gate permanece NOT_RUN.

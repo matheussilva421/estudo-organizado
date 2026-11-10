@@ -7,7 +7,7 @@
 | G-EXT | NOT_RUN | Firebase/Auth/Firestore/Cloudflare/KV reais não foram acessados |
 | G-STAGING | NOT_RUN | Nenhuma URL ou deploy de avaliação foi publicado |
 | G-F7 / UX-H | PENDING_HUMAN | revisão e aceite do proprietário ainda necessários |
-| G-VALIDATION | PASS_LOCAL | suíte local documentada em `TEST-RESULTS.md` |
+| G-VALIDATION | PASS_LOCAL / FIREBASE_BLOCKED | typecheck, lint, unit, build e E2E passam em `TEST-RESULTS.md`; emulador Firebase não roda porque falta Java no ambiente |
 | G-MAIN / F8 | BLOCKED_BY_SCOPE | `main`/V1, cutover e F8 intocados |
 
 ## Riscos residuais
@@ -24,7 +24,8 @@
 10. P1 de UX-17: a disponibilidade semanal continua fixa em PlanningWorkspace.tsx:53. A store planning_availability existe no schema, mas não tem leitura/escrita nem editor; exceções e metas também não são editáveis.
 11. P1 de UX-20: não há estado persistido de “revisão iniciada”. Abrir a fila não executa nem conclui, mas iniciar e avaliar continuam no mesmo comando de execução.
 12. P2 de acessibilidade: quatro links de texto na Home em 320 px medem menos de 24 px de altura. São links inline e ficaram documentados em HOME-320-AUDIT.md.
-13. A porta 18431 do preview ficou presa durante esta sessão. A configuração do Playwright agora aceita PLAYWRIGHT_PORT; os logs finais indicam a porta efetiva.
+13. A porta 18431 do preview ficou presa durante esta sessão. A configuração do Playwright agora aceita PLAYWRIGHT_PORT; os logs finais indicam a porta efetiva (18432).
+14. O Firebase Emulator retornou exit 1 com “Could not spawn java -version”: Java não está instalado/exposto no PATH. Os testes de regras/transação remota ficam NOT_RUN nesta máquina; nenhum projeto real foi usado.
 
 ## Proteção antes da implementação
 
