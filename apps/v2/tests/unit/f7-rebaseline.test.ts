@@ -176,6 +176,25 @@ describe('F7 rebaseline', () => {
     expect(rows[0]?.snapshot?.title).toBe('RECUPERÁVEL');
   });
 
+  it('f7_rebaseline_rejects_a_remote_hierarchy_orphan', async () => {
+    await seed();
+    const preview = await prepareRebaseline(profileId, [
+      entity({
+        entityId: 'link-1',
+        entityType: 'edital-discipline',
+        payload: {
+          id: 'link-1',
+          profileId,
+          editalId: 'missing-edital',
+          subjectId: 'missing-subject',
+          orderKey: '000001',
+          localRevision: 1,
+        } as never,
+      }),
+    ]);
+    expect(preview).toMatchObject({ kind: 'INVALID', reason: 'HIERARCHY:link-1' });
+  });
+
   it('f7_rebaseline_applies_live_entities_to_the_store', async () => {
     await seed();
     const preview = await prepareRebaseline(profileId, [entity()]);

@@ -75,6 +75,10 @@ type StoredPreview = {
 const previews = new Map<string, StoredPreview>();
 const committed = new Set<string>();
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 function previewId(): string {
   const cryptoApi = globalThis.crypto;
   if (cryptoApi && typeof cryptoApi.randomUUID === 'function') return cryptoApi.randomUUID();
@@ -83,6 +87,62 @@ function previewId(): string {
 
 function entityKey(entity: Pick<RemoteEntity, 'entityType' | 'entityId'>): string {
   return `${entity.entityType}:${entity.entityId}`;
+}
+
+function referentialProblem(snapshot: readonly RemoteEntity[]): string | null {
+  const live = snapshot.filter((entity) => !entity.deleted && isRecord(entity.payload));
+  const ids = (type: string): Set<string> =>
+    new Set(
+      live
+        .filter((entity) => entity.entityType === type)
+        .map((entity) => entity.entityId),
+    );
+  const editais = ids('edital');
+  const subjects = ids('subject');
+  const links = ids('edital-discipline');
+  const assuntos = ids('assunto');
+  const aulas = ids('aula');
+  const scenarios = ids('planning-scenario');
+  const scenarioEdital = new Map<string, string>();
+  for (const entity of live) {
+    if (entity.entityType === 'planning-scenario' && isRecord(entity.payload)) {
+      const editalId = (entity.payload as Record<string, unknown>).editalId;
+      if (typeof editalId === 'string') scenarioEdital.set(entity.entityId, editalId);
+    }
+  }
+  const has = (set: Set<string>, value: unknown): boolean =>
+    typeof value === 'string' && set.has(value);
+  for (const entity of live) {
+    const payload = entity.payload as Record<string, unknown>;
+    if (entity.entityType === 'edital-discipline') {
+      if (!has(editais, payload.editalId) || !has(subjects, payload.subjectId)) {
+        return `HIERARCHY:${entity.entityId}`;
+      }
+    } else if (entity.entityType === 'assunto') {
+      if (!has(links, payload.editalDisciplineId)) return `HIERARCHY:${entity.entityId}`;
+      if (payload.parentId !== null && payload.parentId !== undefined && !has(assuntos, payload.parentId)) {
+        return `HIERARCHY:${entity.entityId}`;
+      }
+    } else if (entity.entityType === 'aula') {
+      if (!has(links, payload.editalDisciplineId)) return `HIERARCHY:${entity.entityId}`;
+    } else if (entity.entityType === 'lesson-topic-link') {
+      if (!has(aulas, payload.aulaId) || !has(assuntos, payload.assuntoId)) {
+        return `HIERARCHY:${entity.entityId}`;
+      }
+    } else if (entity.entityType === 'planning-scenario') {
+      if (!has(editais, payload.editalId)) return `HIERARCHY:${entity.entityId}`;
+    } else if (entity.entityType === 'plan-block') {
+      if (
+        !has(scenarios, payload.scenarioId) ||
+        !has(editais, payload.editalId) ||
+        scenarioEdital.get(String(payload.scenarioId)) !== payload.editalId ||
+        (payload.editalDisciplineId !== 'unmapped' && !has(links, payload.editalDisciplineId))
+      ) {
+        return `HIERARCHY:${entity.entityId}`;
+      }
+    }
+  }
+  return null;
 }
 
 function sortedEntities(snapshot: readonly RemoteEntity[]): RemoteEntity[] {
@@ -224,6 +284,8 @@ export async function prepareRebaseline(
     const validation = validateRemoteEnvelope(entity);
     if (!validation.ok) return { kind: 'INVALID', reason: validation.reason };
   }
+  const hierarchy = referentialProblem(remoteSnapshot);
+  if (hierarchy) return { kind: 'INVALID', reason: hierarchy };
   if (context) {
     if (!validCheckpoint(context.checkpoint)) return { kind: 'INVALID', reason: 'CHECKPOINT_INVALID' };
     if (typeof context.backupChecksum !== 'string' || !/^[a-fA-F0-9]{64}$/.test(context.backupChecksum)) {
