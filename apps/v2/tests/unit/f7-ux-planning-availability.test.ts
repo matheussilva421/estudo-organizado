@@ -78,6 +78,14 @@ describe('F7-UX planning availability persistence', () => {
     expect(stale.kind).toBe('CONFLICT');
     const loaded = await repository.loadAvailability(profileId);
     expect(loaded?.exceptions).toHaveLength(1);
+
+    // A tab that mounted before the record existed also conflicts.
+    const freshTab = await repository.saveAvailability({
+      profileId,
+      availability: availability({ exceptions: [] }),
+      expectedRevision: null,
+    });
+    expect(freshTab.kind).toBe('CONFLICT');
   });
 
   it('rejects malformed windows and negative goals', async () => {

@@ -134,7 +134,7 @@ export function PlanningCalendar({
         >
           Próximo
         </button>
-        <span data-testid="calendar-window">
+        <span data-testid="calendar-window" aria-live="polite">
           {visible[0]?.civilDate} → {visible[visible.length - 1]?.civilDate}
         </span>
       </div>

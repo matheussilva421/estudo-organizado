@@ -125,6 +125,11 @@ function importReasonLabel(reason: string): string {
     return 'o arquivo pertence a outro perfil; remapeie os IDs antes de importar';
   }
   if (reason === 'INVALID_JSON') return 'o conteúdo não é JSON válido';
+  if (reason === 'FILE_TOO_LARGE') return 'o arquivo excede o limite de tamanho';
+  if (reason === 'UNSUPPORTED_FORMAT') return 'o formato do arquivo não é suportado';
+  if (reason.startsWith('INVALID_')) {
+    return `campo inválido: ${reason.slice('INVALID_'.length).toLowerCase()}`;
+  }
   if (reason === 'UNSUPPORTED_VERSION') {
     return 'a versão do arquivo é incompatível com esta política';
   }

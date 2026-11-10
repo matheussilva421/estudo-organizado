@@ -338,10 +338,13 @@ export class LocalPlanningRepository implements PlanningRepository {
       const current = (await requestResult(
         store.get([input.profileId, 'default']),
       )) as PlanningAvailabilityRecord | undefined;
-      if (
-        input.expectedRevision !== null &&
-        (current?.localRevision ?? 0) !== input.expectedRevision
-      ) {
+      // A tab that loaded "no record" must not overwrite a record created in
+      // another tab; null is a real expected state, not a wildcard.
+      const revisionMatches =
+        input.expectedRevision === null
+          ? current === undefined
+          : current?.localRevision === input.expectedRevision;
+      if (!revisionMatches) {
         transaction.abort();
         return { kind: 'CONFLICT', current };
       }

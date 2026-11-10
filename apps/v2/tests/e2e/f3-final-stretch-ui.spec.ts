@@ -133,3 +133,44 @@ test('a_cycle_can_propose_a_final_stretch_and_keeps_the_cycle', async ({ page })
   const cycle = scenarios.find((item) => item.kind === 'CYCLE');
   expect(cycle?.cycle?.cursorIndex).toBe(0);
 });
+
+test('an exam preview never leaks into another scenario', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await page.evaluate(async (seed) => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    await harness.resetDb();
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'op-rf-a' },
+      scenarioId: 'scenario-rf-a',
+      baseRevision: null,
+      changes: { scenario: { ...seed, id: 'scenario-rf-a', name: 'RF A' } },
+    });
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'op-rf-b' },
+      scenarioId: 'scenario-rf-b',
+      baseRevision: null,
+      changes: {
+        scenario: {
+          ...seed,
+          id: 'scenario-rf-b',
+          name: 'RF B',
+          status: 'DRAFT',
+          examDate: '2027-02-10',
+        },
+      },
+    });
+  }, scenario);
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await page.getByLabel('Nova data').fill('2027-03-01');
+  await page.locator('[data-action="postpone-exam"]').click();
+  await expect(page.getByTestId('exam-change-preview')).toBeVisible();
+
+  await page.locator('[data-testid="scenario-scenario-rf-b"] [data-action="select-scenario"]').click();
+  await expect(page.getByTestId('exam-change-preview')).toHaveCount(0);
+  const storedB = await page.evaluate(() =>
+    (window as unknown as HarnessWindow).__v2E2E.planningLoad('local-default', 'scenario-rf-b'),
+  );
+  expect(storedB?.scenario.examDate).toBe('2027-02-10');
+});

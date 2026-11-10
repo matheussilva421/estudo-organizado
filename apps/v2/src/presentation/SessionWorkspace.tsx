@@ -7,7 +7,7 @@ import {
 import { LocalSessionHabitService } from '../application/session-habit-service';
 import { querySessionHistory } from '../application/session-queries';
 import { exportSessionHistory } from '../application/session-portability';
-import { createSystemClock } from '../domain/session-clock';
+import { createSystemClock, sumVerifiedFocusMs } from '../domain/session-clock';
 import { getHabitEvidence, type StudyHabit } from '../domain/session-habits';
 import type {
   SessionAllocation,
@@ -2109,7 +2109,7 @@ export function SessionWorkspace({
                 <details data-testid={`session-details-${item.id}`}>
                   <summary>Detalhes da sessão</summary>
                   <p>
-                    Verificado: {formatMs(sessionTotalFocusMs(item))} · manual:{' '}
+                    Verificado: {formatMs(sumVerifiedFocusMs(item.intervals))} · manual:{' '}
                     {formatMs(item.manualDeclaredMs ?? 0)} · incerto:{' '}
                     {formatMs(
                       item.intervals

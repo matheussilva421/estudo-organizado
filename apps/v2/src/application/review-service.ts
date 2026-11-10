@@ -1060,6 +1060,9 @@ export class ReviewService {
       (item) => item.id === commitmentId,
     );
     if (!commitment) return { kind: 'INVALID', code: 'COMMITMENT_NOT_FOUND' };
+    if (commitment.status === 'CANCELLED' || commitment.status === 'FULFILLED') {
+      return { kind: 'INVALID', code: 'INVALID_TRANSITION' };
+    }
     // Revalidate the proposal against current data: another tab may have
     // occupied the slot or changed the scenario after the preview.
     const fresh = await this.previewPlacement(

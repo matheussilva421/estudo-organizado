@@ -37,6 +37,7 @@ import {
   lastDayOfMonth,
 } from '../domain/planning-time';
 import { LocalPlanningRepository } from '../platform/local-planning-repository';
+import { subscribePlanningChanges } from '../platform/local-events';
 import { LocalPlanningImportCommitter } from '../platform/planning-import-commit';
 import { PlanningDashboard } from './components/PlanningDashboard';
 import { PlanningWizard, type WizardInput } from './components/PlanningWizard';
@@ -149,6 +150,27 @@ export function PlanningWorkspace({
     };
   }, [profileId, repository]);
 
+  useEffect(() => {
+    // Availability is shared by wizard, calendar and review placement; a save
+    // in another tab must not leave this tab on an older capacity.
+    return subscribePlanningChanges(profileId, (change) => {
+      if (change.scenarioId !== 'default') return;
+      void repository()
+        .loadAvailability(profileId)
+        .then((record) => {
+          if (!record) return;
+          setAvailability({
+            zone: record.zone,
+            weekly: record.weekly,
+            exceptions: record.exceptions,
+            goals: record.goals,
+          });
+          setAvailabilityRevision(record.localRevision);
+        })
+        .catch(() => undefined);
+    });
+  }, [profileId, repository]);
+
   const selected = scenarios.find((item) => item.id === selectedId) ?? null;
 
   useEffect(() => {
@@ -168,6 +190,14 @@ export function PlanningWorkspace({
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileId, repository, selected?.id, selected?.localRevision]);
+
+  useEffect(() => {
+    // A preview belongs to one scenario and one base revision.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExamPreview(null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTransitionPreview(null);
+  }, [selectedId]);
 
   const selectedBlocks = useMemo(
     () => blocks.filter((block) => block.scenarioId === selectedId),
@@ -503,7 +533,16 @@ export function PlanningWorkspace({
   }
 
   async function confirmExamChange(): Promise<void> {
-    if (!selected || !examPreview) return;
+    if (
+      !selected ||
+      !examPreview ||
+      examPreview.newScenario.id !== selected.id ||
+      examPreview.newScenario.localRevision !== selected.localRevision + 1
+    ) {
+      setExamPreview(null);
+      onNotice('A prévia não corresponde ao cenário atual; gere outra.');
+      return;
+    }
     const preview = examPreview;
     const result = await repository().commit({
       scope: { profileId, operationId: `exam-${selected.id}-${selected.localRevision}` },
@@ -562,7 +601,16 @@ export function PlanningWorkspace({
   }
 
   async function confirmTransition(): Promise<void> {
-    if (!selected || !transitionPreview) return;
+    if (
+      !selected ||
+      selected.kind !== 'CYCLE' ||
+      !transitionPreview ||
+      transitionPreview.newScenario.id !== `rf-${selected.id}`
+    ) {
+      setTransitionPreview(null);
+      onNotice('A prévia da Reta Final não corresponde ao cenário atual.');
+      return;
+    }
     const preview = transitionPreview;
     const nextScenarioId = preview.newScenario.id;
     const operationId = `transition-${nextScenarioId}-${selected.localRevision}`;

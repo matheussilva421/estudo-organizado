@@ -52,6 +52,7 @@ export function FinalStretch({
             <input
               type="date"
               value={transitionDate}
+              disabled={locked || Boolean(transitionPreview)}
               onChange={(event) => setTransitionDate(event.target.value)}
             />
           </label>
@@ -64,7 +65,7 @@ export function FinalStretch({
             Propor Reta Final
           </button>
           {transitionPreview ? (
-            <div data-testid="transition-preview">
+            <div data-testid="transition-preview" role="status" aria-live="polite">
               <p>
                 Prévia: {transitionPreview.blocks.length} bloco(s) na nova Reta Final,{' '}
                 {transitionPreview.preservedBlockIds.length} preservado(s),{' '}
@@ -99,7 +100,12 @@ export function FinalStretch({
           </p>
           <label>
             Nova data
-            <input type="date" value={nextDate} onChange={(event) => setNextDate(event.target.value)} />
+            <input
+              type="date"
+              value={nextDate}
+              disabled={locked || Boolean(examPreview)}
+              onChange={(event) => setNextDate(event.target.value)}
+            />
           </label>
           <div className="planning-actions">
             <button
@@ -142,7 +148,7 @@ export function FinalStretch({
             </label>
           </div>
           {examPreview ? (
-            <div data-testid="exam-change-preview">
+            <div data-testid="exam-change-preview" role="status" aria-live="polite">
               <p>
                 Prévia: prova em {examPreview.newScenario.examDate ?? 'sem data'} ·{' '}
                 {examPreview.affectedBlockIds.length} bloco(s) afetado(s) ·{' '}

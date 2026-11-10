@@ -99,7 +99,12 @@ export function PlanningAvailabilityPanel({
         onNotice(`Horário inválido em ${LABELS[day]}: o início deve ser anterior ao fim.`);
         return;
       }
-      nextDays[day] = [{ start: draft.start, end: draft.end }];
+      // The editor exposes the first window; additional shifts are preserved
+      // so saving the panel does not silently delete a second turn.
+      nextDays[day] = [
+        { start: draft.start, end: draft.end },
+        ...(availability.weekly.days[day]?.slice(1) ?? []),
+      ];
     }
     const goal = Number(weeklyGoal);
     if (!Number.isFinite(goal) || goal < 0) {
@@ -136,7 +141,8 @@ export function PlanningAvailabilityPanel({
       </p>
       <div className="planning-form">
         {ORDER.map((day) => (
-          <div key={day} className="settings-row" data-day={day}>
+          <fieldset key={day} className="settings-row" data-day={day}>
+            <legend>{LABELS[day]}</legend>
             <label>
               <input
                 type="checkbox"
@@ -149,12 +155,16 @@ export function PlanningAvailabilityPanel({
                   }))
                 }
               />
-              {LABELS[day]}
+              Ativo
             </label>
             <label>
               Abre
               <input
                 type="time"
+                aria-label={`Abre ${LABELS[day]}`}
+                aria-invalid={
+                  days[day].enabled && days[day].start >= days[day].end
+                }
                 value={days[day].start}
                 disabled={locked || !days[day].enabled}
                 onChange={(event) =>
@@ -169,6 +179,10 @@ export function PlanningAvailabilityPanel({
               Fecha
               <input
                 type="time"
+                aria-label={`Fecha ${LABELS[day]}`}
+                aria-invalid={
+                  days[day].enabled && days[day].start >= days[day].end
+                }
                 value={days[day].end}
                 disabled={locked || !days[day].enabled}
                 onChange={(event) =>
@@ -179,7 +193,7 @@ export function PlanningAvailabilityPanel({
                 }
               />
             </label>
-          </div>
+          </fieldset>
         ))}
         <label>
           Meta semanal (min)
