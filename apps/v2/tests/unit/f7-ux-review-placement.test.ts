@@ -135,6 +135,8 @@ describe('F7-UX review placement integrity', () => {
 
     const preview = await review.previewPlacement(profileId, commitmentId, '2026-11-02', '08:30', 30);
     expect(preview.kind).toBe('READY');
+    // A preview only proposes a block; nothing is written before applyPlacement.
+    expect(await planning.listBlocks(profileId, 'scenario-1')).toHaveLength(1);
     if (preview.kind === 'READY') {
       expect(preview.block.localStart).toBe('08:30');
       expect(preview.block.localEnd).toBe('09:00');

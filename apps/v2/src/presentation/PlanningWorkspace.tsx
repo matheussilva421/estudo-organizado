@@ -18,7 +18,12 @@ import {
 } from '../domain/planning-final-stretch';
 import type { MergeConflict } from '../domain/planning-merge';
 import { previewCompensation, type PlanningCheckpointRecord } from '../domain/planning-history';
-import type { PlanBlock, PlanningScenario } from '../domain/planning';
+import {
+  previewScenarioActivation,
+  type PlanBlock,
+  type PlanningScenario,
+  type ScenarioActivationPreview,
+} from '../domain/planning';
 import { selectOfficialReservations, type WeeklyAvailability } from '../domain/planning-capacity';
 import { LocalPlanningRepository } from '../platform/local-planning-repository';
 import { LocalPlanningImportCommitter } from '../platform/planning-import-commit';
@@ -89,6 +94,8 @@ export function PlanningWorkspace({
     blocks: PlanBlock[];
   } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activationPreview, setActivationPreview] =
+    useState<ScenarioActivationPreview | null>(null);
   const [view, setView] = useState<CalendarView>('week');
   useFocusScroll(focusId, scenarios.length);
 
@@ -308,25 +315,59 @@ export function PlanningWorkspace({
     return true;
   }
 
-  async function activate(scenarioId: string): Promise<void> {
+  function previewActivation(scenarioId: string): void {
     const scenario = scenarios.find((item) => item.id === scenarioId);
     if (!scenario) return;
-    const checkpointId = `checkpoint-activate-${scenarioId}`;
-    await repository().createCheckpoint({
+    try {
+      const preview = previewScenarioActivation({
+        profileId,
+        editalId: scenario.editalId,
+        nextScenarioId: scenarioId,
+        scenarios,
+        blocks,
+      });
+      setActivationPreview(preview);
+      onNotice(null);
+    } catch {
+      setActivationPreview(null);
+      onNotice('Este cenário não pode ser ativado no estado atual.');
+    }
+  }
+
+  async function confirmActivation(): Promise<void> {
+    if (!activationPreview) return;
+    const scenario = scenarios.find(
+      (item) => item.id === activationPreview.nextScenarioId,
+    );
+    if (!scenario) return;
+    const checkpointId = `checkpoint-activate-${scenario.id}-${scenario.localRevision}`;
+    const checkpoint = await repository().createCheckpoint({
       profileId,
-      scenarioId,
+      scenarioId: scenario.id,
       checkpointId,
       kind: 'MANUAL',
-      operationId: `checkpoint-activate-${scenarioId}`,
+      operationId: checkpointId,
     });
+    if (checkpoint.kind !== 'LOCAL_COMMITTED') {
+      onNotice('Não foi possível criar o checkpoint de ativação.');
+      return;
+    }
     const result = await repository().activateScenario({
       profileId,
-      operationId: `activate-now-${scenarioId}`,
+      operationId: newId(),
       editalId: scenario.editalId,
-      scenarioId,
+      scenarioId: scenario.id,
       checkpointId,
+      baseRevision: scenario.localRevision,
     });
-    onNotice(result.kind === 'LOCAL_COMMITTED' ? 'Cenário ativado.' : 'Ativação bloqueada ou recusada.');
+    setActivationPreview(null);
+    if (result.kind === 'LOCAL_COMMITTED') {
+      onNotice('Cenário ativado com checkpoint restaurável.');
+    } else if (result.kind === 'CONFLICT') {
+      onNotice('O cenário mudou desde a prévia. Revise e tente novamente.');
+    } else {
+      onNotice('Ativação bloqueada ou recusada.');
+    }
     await refresh();
   }
 
@@ -698,7 +739,10 @@ export function PlanningWorkspace({
         scenarios={scenarios}
         selectedId={selectedId}
         onSelect={setSelectedId}
-        onActivate={(id) => void activate(id)}
+        onPreviewActivate={previewActivation}
+        activationPreview={activationPreview}
+        onConfirmActivate={() => void confirmActivation()}
+        onCancelActivate={() => setActivationPreview(null)}
         locked={locked}
       />
       <PlanningWizard
@@ -713,7 +757,13 @@ export function PlanningWorkspace({
         }}
         locked={locked}
       />
-      <PlanningCalendar days={calendarDays} view={view} onView={setView} focusId={focusId} />
+      <PlanningCalendar
+        days={calendarDays}
+        view={view}
+        onView={setView}
+        focusId={focusId}
+        unscheduled={selectedBlocks.filter((block) => !block.civilDate)}
+      />
       <StudyCycle scenario={selected} onDecision={(decision) => void applyCycleDecision(decision)} locked={locked} />
       <FinalStretch
         scenario={selected}

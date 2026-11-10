@@ -12,6 +12,9 @@ export type CheckpointManifest = {
   blockCount: number;
   scenarioRevision: number;
   digest: string;
+  /** Present when the checkpoint was taken by a scenario activation. */
+  activationOf?: string;
+  deactivated?: string[];
 };
 
 export type PlanningCheckpointRecord = {

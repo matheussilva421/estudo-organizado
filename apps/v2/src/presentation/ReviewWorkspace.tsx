@@ -113,6 +113,13 @@ function formatInstant(value: string | undefined): string {
   }).format(date);
 }
 
+function factorLabel(name: 'deficiency' | 'board' | 'urgency' | 'override'): string {
+  if (name === 'deficiency') return 'Lacuna';
+  if (name === 'board') return 'Banca';
+  if (name === 'urgency') return 'Urgência';
+  return 'Ajuste manual';
+}
+
 export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId = null }: Props) {
   const service = useMemo(
     () =>
@@ -143,6 +150,12 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   const [assessmentByCommitment, setAssessmentByCommitment] = useState<Record<string, ReviewAssessment>>({});
   const [rescheduleDates, setRescheduleDates] = useState<Record<string, string>>({});
   const [placement, setPlacement] = useState<{ commitmentId: string; preview: ReviewPlacementPreview } | null>(null);
+  const [queueBucket, setQueueBucket] = useState<
+    'PENDING' | 'OVERDUE' | 'TODAY' | 'UPCOMING' | 'DONE' | 'ALL'
+  >('PENDING');
+  const [queueEditalId, setQueueEditalId] = useState('');
+  const [queueDisciplineId, setQueueDisciplineId] = useState('');
+  const [queueByPriority, setQueueByPriority] = useState(false);
   const [boardTitle, setBoardTitle] = useState(() => initialBoardDraft?.title ?? '');
   const [suggestionLimit, setSuggestionLimit] = useState(REVIEW_PAGE_SIZE);
   const [agendaLimit, setAgendaLimit] = useState(REVIEW_PAGE_SIZE);
@@ -220,7 +233,42 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
     : [];
 
   const suggestionPage = pageItems(suggestions, suggestionLimit);
-  const agendaPage = pageItems(commitments, agendaLimit);
+  const today = service.today();
+  const priorityByTopic = new Map(
+    (priority?.rows ?? []).map((row) => [row.canonicalTopicKey, row]),
+  );
+  const queueFiltered = commitments.filter((commitment) => {
+    const open =
+      commitment.status !== 'FULFILLED' && commitment.status !== 'CANCELLED';
+    const bucket = !open
+      ? 'DONE'
+      : commitment.currentDueDate < today
+        ? 'OVERDUE'
+        : commitment.currentDueDate === today
+          ? 'TODAY'
+          : 'UPCOMING';
+    if (queueBucket === 'PENDING' && !open) return false;
+    if (queueBucket !== 'PENDING' && queueBucket !== 'ALL' && bucket !== queueBucket) {
+      return false;
+    }
+    if (queueEditalId && commitment.editalId !== queueEditalId) return false;
+    if (queueDisciplineId) {
+      const topic = topics.find(
+        (item) => item.canonicalTopicKey === commitment.canonicalTopicKey,
+      );
+      if (topic?.editalDisciplineId !== queueDisciplineId) return false;
+    }
+    return true;
+  });
+  const queueSorted = queueByPriority
+    ? [...queueFiltered].sort((left, right) => {
+        const leftRank = priorityByTopic.get(left.canonicalTopicKey)?.rank ?? 9999;
+        const rightRank = priorityByTopic.get(right.canonicalTopicKey)?.rank ?? 9999;
+        if (leftRank !== rightRank) return leftRank - rightRank;
+        return left.currentDueDate.localeCompare(right.currentDueDate);
+      })
+    : queueFiltered;
+  const agendaPage = pageItems(queueSorted, agendaLimit);
   const reminderPage = pageItems(reminderItems, reminderLimit);
 
   const refresh = useCallback(async () => {
@@ -1101,7 +1149,71 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
 
       <article className="session-card" data-testid="review-agenda">
         <h3>Agenda de compromissos</h3>
-        {commitments.length === 0 ? (
+        <div className="session-actions" role="group" aria-label="Filtros da fila de revisão">
+          <label>
+            Situação
+            <select
+              value={queueBucket}
+              onChange={(event) =>
+                setQueueBucket(event.target.value as typeof queueBucket)
+              }
+              data-testid="review-queue-bucket"
+            >
+              <option value="PENDING">Pendentes</option>
+              <option value="OVERDUE">Atrasadas</option>
+              <option value="TODAY">Hoje</option>
+              <option value="UPCOMING">Futuras</option>
+              <option value="DONE">Concluídas/canceladas</option>
+              <option value="ALL">Todas</option>
+            </select>
+          </label>
+          <label>
+            Edital
+            <select
+              value={queueEditalId}
+              onChange={(event) => setQueueEditalId(event.target.value)}
+              data-testid="review-queue-edital"
+            >
+              <option value="">Todos</option>
+              {editais.map((edital) => (
+                <option key={edital.id} value={edital.id}>
+                  {edital.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Disciplina
+            <select
+              value={queueDisciplineId}
+              onChange={(event) => setQueueDisciplineId(event.target.value)}
+              data-testid="review-queue-discipline"
+            >
+              <option value="">Todas</option>
+              {content.links
+                .filter((link) => link.status === 'ACTIVE')
+                .map((link) => (
+                  <option key={link.id} value={link.id}>
+                    {content.subjects.find((subject) => subject.id === link.subjectId)
+                      ?.title ?? link.displayAlias ?? link.id}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={queueByPriority}
+              onChange={(event) => setQueueByPriority(event.target.checked)}
+              data-testid="review-queue-priority"
+            />
+            Ordenar por prioridade calculada
+          </label>
+          <span data-testid="review-queue-count">
+            {queueSorted.length} de {commitments.length}
+          </span>
+        </div>
+        {queueSorted.length === 0 ? (
           <p className="hint">Nenhum compromisso confirmado.</p>
         ) : (
           <>
@@ -1168,7 +1280,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
               type="button"
               className="button-ghost"
               onClick={() =>
-                setAgendaLimit((current) => nextPageLimit(current, commitments.length))
+                setAgendaLimit((current) => nextPageLimit(current, queueSorted.length))
               }
             >
               Mostrar mais {agendaPage.remaining} compromisso(s)
@@ -1178,7 +1290,13 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         )}
         {placement ? (
           <div data-testid="review-placement-preview">
-            <p className="hint">{placement.preview.kind === 'READY' ? placement.preview.explanation : placement.preview.kind === 'UNALLOCATED' ? placement.preview.explanation : placement.preview.reason}</p>
+            <p className="hint">
+              {placement.preview.kind === 'READY' ||
+              placement.preview.kind === 'UNALLOCATED'
+                ? placement.preview.explanation
+                : (placement.preview.explanation ??
+                  placement.preview.reason)}
+            </p>
             {placement.preview.kind === 'READY' ? (
               <button type="button" onClick={() => void applyPlacement()} disabled={locked || busy}>
                 Aplicar encaixe F3
@@ -1301,8 +1419,15 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
           <ol>
             {priority.rows.map((row) => (
               <li key={row.canonicalTopicKey} data-insufficient={row.insufficient}>
-                {row.label} · score {row.score} · {row.explanation}
+                <strong>{row.label}</strong> · score {row.score} · {row.explanation}
                 {row.insufficient ? ' · evidência insuficiente' : ''}
+                <ul className="priority-factors">
+                  {row.factors.map((factor) => (
+                    <li key={factor.name} data-factor={factor.name}>
+                      {factorLabel(factor.name)}: {factor.explanation}
+                    </li>
+                  ))}
+                </ul>
               </li>
             ))}
           </ol>

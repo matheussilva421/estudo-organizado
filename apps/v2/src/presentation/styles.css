@@ -587,6 +587,7 @@ textarea {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
   min-height: 84px;
   padding: 12px;
   border: 1px solid var(--border);
@@ -599,6 +600,7 @@ textarea {
   font-size: 1.55rem;
   font-weight: 700;
   line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .count-label {
@@ -607,6 +609,7 @@ textarea {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
 }
 
 .section-header {
@@ -779,6 +782,8 @@ textarea {
   font-family: var(--font-mono);
   font-size: 1.8rem;
   line-height: 1.1;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-list {
@@ -968,6 +973,42 @@ textarea {
 
   .dashboard-widget {
     grid-column: auto !important;
+  }
+
+  /* At narrow widths the academic widgets come before the personalization
+     controls, so the next action is not buried under three settings rows. */
+  .home-view {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .home-view > * {
+    order: 4;
+  }
+
+  .home-view > .view-header {
+    order: 0;
+  }
+
+  .home-view > .dashboard-grid {
+    order: 1;
+  }
+
+  .home-view > .home-counts {
+    order: 2;
+  }
+
+  .home-view > .home-controls {
+    order: 3;
+  }
+
+  .home-view > .context-inspector,
+  .home-view > .empty-state {
+    order: 5;
+  }
+
+  .home-view > .inline-notice {
+    order: -1;
   }
 }
 

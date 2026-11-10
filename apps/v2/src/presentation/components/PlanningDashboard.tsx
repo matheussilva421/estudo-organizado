@@ -1,10 +1,16 @@
-import type { PlanningScenario } from '../../domain/planning';
+import type {
+  PlanningScenario,
+  ScenarioActivationPreview,
+} from '../../domain/planning';
 
 type Props = {
   scenarios: PlanningScenario[];
   selectedId: string | null;
   onSelect: (scenarioId: string) => void;
-  onActivate: (scenarioId: string) => void;
+  onPreviewActivate: (scenarioId: string) => void;
+  activationPreview: ScenarioActivationPreview | null;
+  onConfirmActivate: () => void;
+  onCancelActivate: () => void;
   locked: boolean;
 };
 
@@ -12,7 +18,10 @@ export function PlanningDashboard({
   scenarios,
   selectedId,
   onSelect,
-  onActivate,
+  onPreviewActivate,
+  activationPreview,
+  onConfirmActivate,
+  onCancelActivate,
   locked,
 }: Props) {
   return (
@@ -50,10 +59,46 @@ export function PlanningDashboard({
                   scenario.status === 'ARCHIVED' ||
                   (scenario.kind === 'FINAL_STRETCH' && !scenario.examDate)
                 }
-                onClick={() => onActivate(scenario.id)}
+                onClick={() => onPreviewActivate(scenario.id)}
               >
-                Ativar com checkpoint
+                Pré-visualizar ativação
               </button>
+              {activationPreview?.nextScenarioId === scenario.id ? (
+                <div
+                  className="planning-activation-preview"
+                  role="group"
+                  aria-label="Prévia da ativação do cenário"
+                  data-testid={`activation-preview-${scenario.id}`}
+                >
+                  <p>
+                    {activationPreview.deactivatedScenarioIds.length === 0
+                      ? 'Nenhum cenário ativo será substituído.'
+                      : `Substitui ${activationPreview.deactivatedScenarioIds.length} cenário(s) ativo(s): ${activationPreview.deactivatedScenarioIds.join(', ')}.`}
+                  </p>
+                  <p>
+                    {activationPreview.affectedBlockIds.length} bloco(s) do cenário
+                    substituído deixam de reservar capacidade. O checkpoint atual
+                    continua restaurável.
+                  </p>
+                  {activationPreview.warnings.includes(
+                    'ACTIVATION_REQUIRES_CONFIRMATION',
+                  ) ? <p>A ativação exige confirmação explícita.</p> : null}
+                  <button
+                    type="button"
+                    data-action="confirm-activate"
+                    onClick={onConfirmActivate}
+                  >
+                    Confirmar ativação
+                  </button>
+                  <button
+                    type="button"
+                    data-action="cancel-activate"
+                    onClick={onCancelActivate}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>

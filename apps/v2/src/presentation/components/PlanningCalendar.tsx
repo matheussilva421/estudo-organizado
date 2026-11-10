@@ -1,18 +1,26 @@
 import type { CalendarDay } from '../../application/planning-queries';
+import type { PlanBlock } from '../../domain/planning';
 import { useEffect, useState } from 'react';
 
-export type CalendarView = 'day' | 'week' | 'month';
+export type CalendarView = 'day' | 'week' | 'month' | 'list';
 
 type Props = {
   days: CalendarDay[];
   view: CalendarView;
   onView: (view: CalendarView) => void;
   focusId?: string | null;
+  unscheduled?: PlanBlock[];
 };
 
-export function PlanningCalendar({ days, view, onView, focusId = null }: Props) {
+export function PlanningCalendar({
+  days,
+  view,
+  onView,
+  focusId = null,
+  unscheduled = [],
+}: Props) {
   const [offset, setOffset] = useState(0);
-  const size = view === 'day' ? 1 : view === 'week' ? 7 : 30;
+  const size = view === 'day' ? 1 : view === 'week' ? 7 : view === 'month' ? 30 : days.length;
   const maxOffset = Math.max(0, days.length - size);
   const start = Math.min(offset, maxOffset);
   const visible = days.slice(start, start + size);
@@ -42,7 +50,7 @@ export function PlanningCalendar({ days, view, onView, focusId = null }: Props) 
     <section className="panel" aria-labelledby="calendar-title" data-testid="planning-calendar">
       <h2 id="calendar-title">Calendário</h2>
       <div role="group" aria-label="Escopo do calendário" className="planning-views">
-        {(['day', 'week', 'month'] as CalendarView[]).map((option) => (
+        {(['day', 'week', 'month', 'list'] as CalendarView[]).map((option) => (
           <button
             key={option}
             type="button"
@@ -50,10 +58,17 @@ export function PlanningCalendar({ days, view, onView, focusId = null }: Props) 
             aria-pressed={view === option}
             onClick={() => onView(option)}
           >
-            {option === 'day' ? 'Dia' : option === 'week' ? 'Semana' : 'Mês'}
+            {option === 'day'
+              ? 'Dia'
+              : option === 'week'
+                ? 'Semana'
+                : option === 'month'
+                  ? 'Mês'
+                  : 'Lista'}
           </button>
         ))}
       </div>
+      {view !== 'list' ? (
       <div className="planning-actions">
         <button
           type="button"
@@ -75,7 +90,51 @@ export function PlanningCalendar({ days, view, onView, focusId = null }: Props) 
           {visible[0]?.civilDate} → {visible[visible.length - 1]?.civilDate}
         </span>
       </div>
-      {visible.length === 0 ? (
+      ) : null}
+      {view === 'list' ? (
+        <div data-testid="calendar-list">
+          {days.every((day) => day.blocks.length === 0) && unscheduled.length === 0 ? (
+            <p className="empty-state">Nenhum bloco no cenário selecionado.</p>
+          ) : (
+            <ul className="planning-calendar-list">
+              {days.flatMap((day) =>
+                day.blocks.map((block) => (
+                  <li
+                    key={`${day.civilDate}-${block.id}`}
+                    data-date={day.civilDate}
+                    data-allocation={block.allocation}
+                    data-entity-id={block.id}
+                  >
+                    <strong>{day.civilDate}</strong>
+                    {block.localStart
+                      ? ` · ${block.localStart}${block.localEnd ? `–${block.localEnd}` : ''}`
+                      : ' · sem horário'}
+                    {' · '}
+                    {block.label ?? block.editalDisciplineId} · {block.plannedMinutes} min
+                    {block.allocation !== 'CONFIRMED_DAY' ? ` · ${block.allocation}` : ''}
+                  </li>
+                )),
+              )}
+              {unscheduled.map((block) => (
+                <li
+                  key={`unscheduled-${block.id}`}
+                  data-date=""
+                  data-allocation={block.allocation}
+                  data-entity-id={block.id}
+                >
+                  <strong>Sem data</strong> · sem horário · {block.label ?? block.editalDisciplineId} ·{' '}
+                  {block.plannedMinutes} min
+                  {block.reason ? ` · ${block.reason}` : ''}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p data-testid="calendar-conflicts">
+            {days.reduce((total, day) => total + day.conflicts.length, 0)} conflito(s) de
+            capacidade no intervalo.
+          </p>
+        </div>
+      ) : visible.length === 0 ? (
         <p className="empty-state">Nenhum dia no intervalo selecionado.</p>
       ) : (
         <ul className="planning-calendar-days" data-days={visible.length}>

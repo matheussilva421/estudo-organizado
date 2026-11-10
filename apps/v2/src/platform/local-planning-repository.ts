@@ -440,20 +440,34 @@ export class LocalPlanningRepository implements PlanningRepository {
         status: 'PENDING',
       });
 
-      transaction.objectStore(STORES.planningCheckpoints).put({
+      const checkpointStore = transaction.objectStore(STORES.planningCheckpoints);
+      const existingCheckpoint = (await requestResult(
+        checkpointStore.get([input.profileId, input.checkpointId]),
+      )) as PlanningCheckpointRecord | undefined;
+      const checkpointSnapshot: PlanningScenarioSnapshot = {
+        scenario: next,
+        blocks: [...registeredBlocks].sort(byId),
+      };
+      checkpointStore.put({
         checkpointId: input.checkpointId,
         profileId: input.profileId,
         scenarioId: input.scenarioId,
-        kind: 'AUTO',
+        kind: existingCheckpoint?.kind ?? 'AUTO',
         manifest: {
+          ...(existingCheckpoint?.manifest ?? {}),
           activationOf: input.scenarioId,
           deactivated: deactivated.map((item) => item.id),
-          blockIds: registeredBlocks.map((item) => item.id),
-          blockCount: registeredBlocks.length,
+          blockIds: checkpointSnapshot.blocks.map((item) => item.id),
+          blockCount: checkpointSnapshot.blocks.length,
+          scenarioRevision: next.localRevision,
+          digest: checkpointDigest(checkpointSnapshot),
         },
         operationId: input.operationId,
-        createdAt: this.now(),
-      });
+        createdAt: existingCheckpoint?.createdAt ?? this.now(),
+        // Activation used to overwrite a full checkpoint with a manifest-only
+        // record, which turned "Restaurar" into a no-op.
+        snapshot: existingCheckpoint?.snapshot ?? checkpointSnapshot,
+      } satisfies PlanningCheckpointRecord);
 
       const snapshot: PlanningScenarioSnapshot = {
         scenario: activated,
