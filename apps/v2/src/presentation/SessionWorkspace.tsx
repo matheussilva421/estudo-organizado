@@ -9,7 +9,12 @@ import { querySessionHistory } from '../application/session-queries';
 import { exportSessionHistory } from '../application/session-portability';
 import { createSystemClock } from '../domain/session-clock';
 import { getHabitEvidence, type StudyHabit } from '../domain/session-habits';
-import type { SessionAllocation, StudySession } from '../domain/session';
+import type {
+  SessionAllocation,
+  SessionOrigin,
+  SessionState,
+  StudySession,
+} from '../domain/session';
 import { sessionTotalFocusMs } from '../domain/session-accounting';
 import type { PlanBlock } from '../domain/planning';
 import {
@@ -124,6 +129,15 @@ function todayInZone(): string {
     month: '2-digit',
     day: '2-digit',
   }).format(new Date());
+}
+
+function formatInstant(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(date);
 }
 
 type ManualDraftValue = {
@@ -252,6 +266,10 @@ export function SessionWorkspace({
     { linkId: string; assuntoId?: string; minutes: number }[]
   >([]);
   const [historyFilterAssunto, setHistoryFilterAssunto] = useState('');
+  const [historyFrom, setHistoryFrom] = useState('');
+  const [historyTo, setHistoryTo] = useState('');
+  const [historyOrigin, setHistoryOrigin] = useState<SessionOrigin | ''>('');
+  const [historyState, setHistoryState] = useState<SessionState | ''>('');
   const [emergencyRaw, setEmergencyRaw] = useState('');
   const [emergencyPreview, setEmergencyPreview] = useState<EmergencyPreview | null>(
     null,
@@ -332,7 +350,14 @@ export function SessionWorkspace({
     }
     const page = await querySessionHistory(
       repository,
-      { profileId, assuntoId: historyFilterAssunto || undefined },
+      {
+        profileId,
+        assuntoId: historyFilterAssunto || undefined,
+        from: historyFrom || undefined,
+        to: historyTo || undefined,
+        origin: historyOrigin || undefined,
+        state: historyState || undefined,
+      },
       undefined,
       50,
     );
@@ -358,6 +383,10 @@ export function SessionWorkspace({
     coordinator,
     habitService,
     historyFilterAssunto,
+    historyFrom,
+    historyTo,
+    historyOrigin,
+    historyState,
     holderId,
     profileId,
     repository,
@@ -1194,7 +1223,34 @@ export function SessionWorkspace({
 
   async function exportHistory(format: 'CSV' | 'JSON'): Promise<void> {
     const allSessions = await repository.listSessions(profileId);
-    const exported = exportSessionHistory(format, { profileId }, allSessions);
+    // Exporting must respect the visible filters; otherwise the file would
+    // contain sessions the user is not looking at.
+    const filtered = allSessions.filter((item) => {
+      if (
+        historyFrom &&
+        (!item.recordedAtCivilDate || item.recordedAtCivilDate < historyFrom)
+      ) {
+        return false;
+      }
+      if (
+        historyTo &&
+        (!item.recordedAtCivilDate || item.recordedAtCivilDate > historyTo)
+      ) {
+        return false;
+      }
+      if (historyOrigin && item.origin !== historyOrigin) return false;
+      if (historyState && item.state !== historyState) return false;
+      if (
+        historyFilterAssunto &&
+        !(item.allocations ?? []).some(
+          (allocation) => allocation.assuntoId === historyFilterAssunto,
+        )
+      ) {
+        return false;
+      }
+      return true;
+    });
+    const exported = exportSessionHistory(format, { profileId }, filtered);
     const blob = new Blob([exported.content], { type: exported.mimeType });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -1290,7 +1346,14 @@ export function SessionWorkspace({
     try {
       const page = await querySessionHistory(
         repository,
-        { profileId, assuntoId: historyFilterAssunto || undefined },
+        {
+          profileId,
+          assuntoId: historyFilterAssunto || undefined,
+          from: historyFrom || undefined,
+          to: historyTo || undefined,
+          origin: historyOrigin || undefined,
+          state: historyState || undefined,
+        },
         historyCursor,
         50,
       );
@@ -1966,9 +2029,68 @@ export function SessionWorkspace({
             ))}
           </select>
         </label>
+        <div className="session-grid" data-testid="session-history-filters">
+          <label>
+            De
+            <input
+              type="date"
+              value={historyFrom}
+              onChange={(event) => setHistoryFrom(event.target.value)}
+              data-testid="session-history-from"
+            />
+          </label>
+          <label>
+            Até
+            <input
+              type="date"
+              value={historyTo}
+              onChange={(event) => setHistoryTo(event.target.value)}
+              data-testid="session-history-to"
+            />
+          </label>
+          <label>
+            Origem
+            <select
+              value={historyOrigin}
+              onChange={(event) =>
+                setHistoryOrigin(event.target.value as SessionOrigin | '')
+              }
+              data-testid="session-history-origin"
+            >
+              <option value="">Todas</option>
+              <option value="TIMER">Cronômetro</option>
+              <option value="POMODORO">Pomodoro</option>
+              <option value="MANUAL">Manual</option>
+            </select>
+          </label>
+          <label>
+            Estado
+            <select
+              value={historyState}
+              onChange={(event) =>
+                setHistoryState(event.target.value as SessionState | '')
+              }
+              data-testid="session-history-state"
+            >
+              <option value="">Todos</option>
+              <option value="DRAFT">Rascunho</option>
+              <option value="RUNNING">Em andamento</option>
+              <option value="PAUSED">Pausada</option>
+              <option value="RECOVERY_REQUIRED">Recuperação</option>
+              <option value="COMPLETED">Concluída</option>
+              <option value="CANCELLED">Cancelada</option>
+            </select>
+          </label>
+        </div>
         {history.length === 0 ? (
           <p className="empty-state">
-            Nenhuma sessão registrada ainda. Inicie o cronômetro ou registre manualmente.
+            {historyFilterAssunto ||
+            historyFrom ||
+            historyTo ||
+            historyOrigin ||
+            historyState
+              ? 'Nenhuma sessão corresponde aos filtros atuais.'
+              : 'Nenhuma sessão registrada ainda. Inicie o cronômetro ou registre manualmente.'}
           </p>
         ) : (
           <ul>
@@ -1984,6 +2106,110 @@ export function SessionWorkspace({
                   {item.state} ·{' '}
                   {formatMs(sessionTotalFocusMs(item))}
                 </div>
+                <details data-testid={`session-details-${item.id}`}>
+                  <summary>Detalhes da sessão</summary>
+                  <p>
+                    Verificado: {formatMs(sessionTotalFocusMs(item))} · manual:{' '}
+                    {formatMs(item.manualDeclaredMs ?? 0)} · incerto:{' '}
+                    {formatMs(
+                      item.intervals
+                        .filter((interval) => interval.recoveryFlag)
+                        .reduce((sum, interval) => sum + interval.verifiedMs, 0),
+                    )}
+                  </p>
+                  {item.intervals.length > 0 ? (
+                    <ul data-testid={`session-intervals-${item.id}`}>
+                      {item.intervals.map((interval) => (
+                        <li key={interval.id}>
+                          {interval.kind === 'FOCUS' ? 'Foco' : 'Descanso'} ·{' '}
+                          {formatMs(interval.verifiedMs)}
+                          {interval.recoveryFlag ? ' · incerto/não creditado' : ''}
+                          {interval.startedAt
+                            ? ` · início ${formatInstant(interval.startedAt)}`
+                            : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {(item.allocations ?? []).length > 0 ? (
+                    <ul data-testid={`session-allocations-${item.id}`}>
+                      {item.allocations!.map((allocation) => {
+                        const link = content.links.find(
+                          (candidate) =>
+                            candidate.id === allocation.editalDisciplineId,
+                        );
+                        const subject = content.subjects.find(
+                          (candidate) => candidate.id === link?.subjectId,
+                        );
+                        const assunto = content.assuntos.find(
+                          (candidate) => candidate.id === allocation.assuntoId,
+                        );
+                        return (
+                          <li key={allocation.allocationId}>
+                            {subject?.title ?? 'Disciplina'} ·{' '}
+                            {assunto?.title ?? 'sem assunto'} ·{' '}
+                            {formatMs(allocation.durationMs)}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                  {(item.measurements ?? []).length > 0 ? (
+                    <ul>
+                      {item.measurements!.map((measurement) => (
+                        <li key={measurement.id}>
+                          {measurement.questions ?? 0} questões ·{' '}
+                          {measurement.correctAnswers ?? 0} acertos
+                          {measurement.pages
+                            ? ` · páginas ${measurement.pages.from}–${measurement.pages.to}`
+                            : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {(item.materials ?? []).length > 0 ? (
+                    <ul>
+                      {item.materials!.map((material) => (
+                        <li key={material.id}>
+                          {material.kind} · {material.title}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {item.note ? <p>Nota: {item.note}</p> : null}
+                  {item.planBlockIds.length > 0 ? (
+                    <p>
+                      Blocos:{' '}
+                      {item.planBlockIds.map((blockId) => (
+                        <a
+                          key={blockId}
+                          href={`#/planning/${encodeURIComponent(blockId)}`}
+                        >
+                          {blockId}
+                        </a>
+                      ))}
+                    </p>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="button-ghost"
+                    onClick={() => void loadRevisions(item.id)}
+                    data-testid={`session-revisions-${item.id}`}
+                  >
+                    Carregar revisões
+                  </button>
+                  {revisions[item.id]?.length ? (
+                    <ul>
+                      {revisions[item.id]!.map((revision) => (
+                        <li key={revision.operationId}>
+                          {revision.mutationKind} · {revision.source} ·{' '}
+                          {formatInstant(revision.createdAt)}
+                          {revision.reason ? ` · ${revision.reason}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </details>
                 {item.planBlockIds.length === 0 && planBlocks.length > 0 ? (
                   <div className="session-actions">
                     <select

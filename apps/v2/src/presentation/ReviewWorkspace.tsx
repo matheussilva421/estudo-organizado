@@ -171,6 +171,9 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   const [overrideInterval, setOverrideInterval] = useState('');
   const [overrideNote, setOverrideNote] = useState('');
   const [policyImpact, setPolicyImpact] = useState<ReviewPolicyImpactPreview | null>(null);
+  const [policyPreview, setPolicyPreview] = useState<ReviewPolicyImpactPreview | null>(
+    null,
+  );
   const [overrideMode, setOverrideMode] = useState<'SET' | 'REMOVE'>('SET');
   const [boardDraftFailed, setBoardDraftFailed] = useState(false);
 
@@ -354,7 +357,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
     }
   }
 
-  async function savePolicy(): Promise<void> {
+  async function previewPolicy(): Promise<void> {
     if (locked || busy) return;
     const minutes = Number(defaultDuration);
     if (!Number.isFinite(minutes) || minutes < 5 || minutes > 180) {
@@ -364,18 +367,52 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
       return;
     }
     setPolicyError(null);
+    const preview = await service.previewPolicyChange(profileId, {
+      defaultDurationMinutes: Math.round(minutes),
+      autoApprove,
+    });
+    if (preview.kind !== 'READY') {
+      setPolicyPreview(null);
+      onNotice('Não foi possível calcular a prévia da política.');
+      return;
+    }
+    setPolicyPreview(preview);
+    onNotice(
+      `Prévia pronta: ${preview.changedCount} assunto(s) com mudança; nada foi gravado.`,
+    );
+  }
+
+  async function savePolicy(): Promise<void> {
+    if (locked || busy) return;
+    if (!policyPreview) {
+      onNotice('Pré-visualize a mudança da política antes de gravar.');
+      return;
+    }
+    const minutes = Number(defaultDuration);
+    if (
+      Math.round(minutes) !== policyPreview.nextPolicy.defaultDurationMinutes ||
+      autoApprove !== policyPreview.nextPolicy.autoApprove
+    ) {
+      setPolicyPreview(null);
+      onNotice('Os campos mudaram após a prévia; gere uma nova prévia.');
+      return;
+    }
     setBusy(true);
     try {
-      const result = await service.updatePolicy(
+      const result = await service.applyPolicyChange(
         profileId,
-        { defaultDurationMinutes: Math.round(minutes), autoApprove },
+        policyPreview,
         newId(),
       );
-      onNotice(
-        result.kind === 'LOCAL_COMMITTED'
-          ? 'Política de revisão versionada neste perfil.'
-          : 'Não foi possível salvar a política.',
-      );
+      if (result.kind === 'LOCAL_COMMITTED') {
+        setPolicyPreview(null);
+        onNotice('Política de revisão versionada neste perfil.');
+      } else if (result.kind === 'CONFLICT') {
+        setPolicyPreview(null);
+        onNotice('A política mudou em outra aba; gere uma nova prévia.');
+      } else {
+        onNotice('Não foi possível salvar a política.');
+      }
       await refresh();
     } finally {
       setBusy(false);
@@ -919,14 +956,20 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
               value={defaultDuration}
               aria-invalid={policyError !== null}
               aria-describedby={policyError ? 'review-policy-error' : undefined}
-              onChange={(event) => setDefaultDuration(event.target.value)}
+              onChange={(event) => {
+                setDefaultDuration(event.target.value);
+                setPolicyPreview(null);
+              }}
             />
           </label>
           <label>
             <input
               type="checkbox"
               checked={autoApprove}
-              onChange={(event) => setAutoApprove(event.target.checked)}
+              onChange={(event) => {
+                setAutoApprove(event.target.checked);
+                setPolicyPreview(null);
+              }}
             />
             Autoaprovar sugestões no horizonte (opt-in, desligado por padrão)
           </label>
@@ -936,9 +979,50 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
             {policyError}
           </p>
         ) : null}
+        <div data-testid="review-policy-base-preview" aria-live="polite">
+          {policyPreview ? (
+            <>
+              <p className="hint">
+                {policyPreview.explanation} Versão v{policyPreview.baseVersion} → v
+                {policyPreview.nextPolicy.version}; {policyPreview.changedCount}{' '}
+                assunto(s) com mudança. Nada foi gravado.
+              </p>
+              <ul>
+                <li>
+                  Duração:{' '}
+                  {policy?.defaultDurationMinutes ?? policyPreview.nextPolicy.defaultDurationMinutes}{' '}
+                  → {policyPreview.nextPolicy.defaultDurationMinutes} min
+                </li>
+                <li>
+                  Autoaprovar:{' '}
+                  {(policy?.autoApprove ?? policyPreview.nextPolicy.autoApprove)
+                    ? 'ligado'
+                    : 'desligado'}{' '}
+                  → {policyPreview.nextPolicy.autoApprove ? 'ligado' : 'desligado'}
+                </li>
+              </ul>
+            </>
+          ) : (
+            <p className="hint">
+              Gere a prévia para comparar a política vigente antes de gravar.
+            </p>
+          )}
+        </div>
         <div className="session-actions">
-          <button type="button" onClick={() => void savePolicy()} disabled={locked || busy}>
-            Gravar política
+          <button
+            type="button"
+            onClick={() => void previewPolicy()}
+            disabled={locked || busy}
+            data-testid="review-policy-preview"
+          >
+            Pré-visualizar mudança
+          </button>
+          <button
+            type="button"
+            onClick={() => void savePolicy()}
+            disabled={locked || busy || !policyPreview}
+          >
+            Aplicar política
           </button>
           <button
             type="button"
@@ -1253,6 +1337,36 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                     {' '}· iniciada em {formatInstant(commitment.startedAt)}
                   </span>
                 ) : null}
+                <details data-testid={`review-history-${commitment.id}`}>
+                  <summary>Histórico e versões</summary>
+                  <p>
+                    Política v{commitment.policyVersion} · criado em{' '}
+                    {commitment.history[0]
+                      ? formatInstant(commitment.history[0].at)
+                      : 'sem registro'}
+                  </p>
+                  <ul>
+                    {commitment.history.map((entry, index) => (
+                      <li key={`${entry.type}-${index}`}>
+                        {entry.type} · {formatInstant(entry.at)}
+                        {entry.dueDate ? ` · ${entry.dueDate}` : ''}
+                        {entry.note ? ` · ${entry.note}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                  {commitment.planBlockId ? (
+                    <a
+                      href={`#/planning/${encodeURIComponent(commitment.planBlockId)}`}
+                    >
+                      Abrir bloco no Planejamento
+                    </a>
+                  ) : (
+                    <p className="hint">Sem bloco F3 vinculado.</p>
+                  )}
+                  {commitment.tombstone ? (
+                    <p className="hint">Compromisso arquivado; histórico preservado.</p>
+                  ) : null}
+                </details>
                 {commitment.status !== 'CANCELLED' && commitment.status !== 'FULFILLED' ? (
                   <div className="session-actions">
                     <button
