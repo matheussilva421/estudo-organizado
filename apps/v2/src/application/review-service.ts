@@ -483,6 +483,48 @@ export class ReviewService {
     }
   }
 
+  /**
+   * Opening a commitment changes nothing; this explicit command records the
+   * human decision to start. Repeating it is idempotent: the first proof wins.
+   */
+  async startReview(
+    profileId: string,
+    commitmentId: string,
+    operationId: string,
+  ): Promise<ReviewOutcome<ReviewCommitment>> {
+    const commitment = (await this.repository.listCommitments(profileId)).find(
+      (item) => item.id === commitmentId,
+    );
+    if (!commitment || commitment.tombstone) {
+      return { kind: 'INVALID', code: 'COMMITMENT_NOT_FOUND' };
+    }
+    if (commitment.status === 'FULFILLED' || commitment.status === 'CANCELLED') {
+      return { kind: 'INVALID', code: 'INVALID_TRANSITION' };
+    }
+    if (commitment.startedAt) {
+      return { kind: 'LOCAL_COMMITTED', value: commitment };
+    }
+    const at = this.now();
+    const next: ReviewCommitment = {
+      ...commitment,
+      startedAt: at,
+      localRevision: commitment.localRevision + 1,
+      history: [...commitment.history, { type: 'STARTED', at }],
+    };
+    const result = await this.repository.commit({
+      type: 'SAVE_COMMITMENT',
+      scope: {
+        profileId,
+        operationId,
+        baseRevision: commitment.localRevision,
+      },
+      commitment: next,
+    });
+    return result.kind === 'LOCAL_COMMITTED'
+      ? { kind: 'LOCAL_COMMITTED', value: result.value as ReviewCommitment }
+      : result;
+  }
+
   async reschedule(
     profileId: string,
     commitmentId: string,

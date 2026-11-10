@@ -151,7 +151,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   const [rescheduleDates, setRescheduleDates] = useState<Record<string, string>>({});
   const [placement, setPlacement] = useState<{ commitmentId: string; preview: ReviewPlacementPreview } | null>(null);
   const [queueBucket, setQueueBucket] = useState<
-    'PENDING' | 'OVERDUE' | 'TODAY' | 'UPCOMING' | 'DONE' | 'ALL'
+    'PENDING' | 'STARTED' | 'OVERDUE' | 'TODAY' | 'UPCOMING' | 'DONE' | 'ALL'
   >('ALL');
   const [queueEditalId, setQueueEditalId] = useState('');
   const [queueDisciplineId, setQueueDisciplineId] = useState('');
@@ -248,7 +248,13 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
           ? 'TODAY'
           : 'UPCOMING';
     if (queueBucket === 'PENDING' && !open) return false;
-    if (queueBucket !== 'PENDING' && queueBucket !== 'ALL' && bucket !== queueBucket) {
+    if (queueBucket === 'STARTED' && !(open && commitment.startedAt)) return false;
+    if (
+      queueBucket !== 'PENDING' &&
+      queueBucket !== 'STARTED' &&
+      queueBucket !== 'ALL' &&
+      bucket !== queueBucket
+    ) {
       return false;
     }
     if (queueEditalId && commitment.editalId !== queueEditalId) return false;
@@ -655,6 +661,24 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
             ? 'Revisão concluída com cobertura integral.'
             : 'Execução parcial registrada; saldo preservado.'
           : 'Não foi possível registrar a execução.',
+      );
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function startReview(commitment: ReviewCommitment): Promise<void> {
+    if (locked || busy) return;
+    setBusy(true);
+    try {
+      const result = await service.startReview(profileId, commitment.id, newId());
+      onNotice(
+        result.kind === 'LOCAL_COMMITTED'
+          ? commitment.startedAt
+            ? 'Revisão retomada a partir do início já registrado.'
+            : 'Revisão iniciada; o compromisso continua pendente até a execução.'
+          : 'Não foi possível iniciar a revisão.',
       );
       await refresh();
     } finally {
@@ -1160,6 +1184,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
               data-testid="review-queue-bucket"
             >
               <option value="PENDING">Pendentes</option>
+              <option value="STARTED">Em andamento</option>
               <option value="OVERDUE">Atrasadas</option>
               <option value="TODAY">Hoje</option>
               <option value="UPCOMING">Futuras</option>
@@ -1223,8 +1248,21 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                 {commitment.label} · {commitmentLabel(commitment.status)} · vence{' '}
                 {commitment.currentDueDate} · cobertura {commitment.coverage}
                 {commitment.planBlockId ? ' · bloco F3 vinculado' : ''}
+                {commitment.startedAt ? (
+                  <span data-testid={`review-started-${commitment.id}`}>
+                    {' '}· iniciada em {formatInstant(commitment.startedAt)}
+                  </span>
+                ) : null}
                 {commitment.status !== 'CANCELLED' && commitment.status !== 'FULFILLED' ? (
                   <div className="session-actions">
+                    <button
+                      type="button"
+                      onClick={() => void startReview(commitment)}
+                      disabled={locked || busy}
+                      data-testid={`review-start-${commitment.id}`}
+                    >
+                      {commitment.startedAt ? 'Retomar revisão' : 'Iniciar revisão'}
+                    </button>
                     <label>
                       Avaliação
                       <select

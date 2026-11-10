@@ -508,9 +508,17 @@ export type ReviewCommitment = {
   policyVersion: number;
   source: 'MANUAL' | 'OPT_IN';
   planBlockId?: string;
+  /** Durable proof that the review was explicitly started, not just opened. */
+  startedAt?: string;
   localRevision: number;
   history: {
-    type: 'CREATED' | 'RESCHEDULED' | 'EXECUTED' | 'CANCELLED' | 'RECONCILED';
+    type:
+      | 'CREATED'
+      | 'STARTED'
+      | 'RESCHEDULED'
+      | 'EXECUTED'
+      | 'CANCELLED'
+      | 'RECONCILED';
     at: string;
     dueDate?: CivilDate;
     note?: string;

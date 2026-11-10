@@ -42,3 +42,25 @@ test('opening the queue does not execute or complete a review', async ({ page })
   await expect(page.getByTestId('review-queue-count')).toHaveText('0 de 3');
 });
 
+test('starting a review is durable and distinct from executing it', async ({ page }) => {
+  await seed(page);
+  await page.getByTestId('review-start-review-seed-0').click();
+  await expect(page.getByTestId('review-started-review-seed-0')).toContainText(
+    'iniciada em',
+  );
+  await expect(page.getByTestId('review-agenda')).toContainText('Pendente');
+
+  await page.getByTestId('review-queue-bucket').selectOption('STARTED');
+  await expect(page.getByTestId('review-queue-count')).toHaveText('1 de 3');
+
+  await page.reload();
+  await expect(page.getByTestId('review-workspace')).toBeVisible();
+  await expect(page.getByTestId('review-started-review-seed-0')).toContainText(
+    'iniciada em',
+  );
+  await page.getByTestId('review-queue-bucket').selectOption('STARTED');
+  await expect(page.getByTestId('review-queue-count')).toHaveText('1 de 3');
+  await page.getByTestId('review-start-review-seed-0').click();
+  await expect(page.getByTestId('review-queue-count')).toHaveText('1 de 3');
+});
+
