@@ -3,7 +3,7 @@
 **Data:** 09/11/2026, atualizada em 10/11/2026
 **Branch:** v2
 **Base recuperada:** d069bf4f8624cee9b9617131401a5e525eb8d2cf + merge 75079e4e48025a33778ea26895de06b451890eb6
-**HEAD de código validado:** 0197ebd5
+**HEAD de código validado:** eb74f4fb
 **Estado:** F7_LOCAL_VALIDATED_FOR_UX / BLOCKED_G-EXT_G-STAGING
 **Não é:** F7_ACCEPTED, F7_READY_FOR_HUMAN_REVIEW ou autorização de F8/G5.
 
@@ -37,8 +37,8 @@ Rawls e Maxwell executaram correções delimitadas (migração V1 e contrato KV)
 | Recuperação | Marcador RECOVERY_REQUIRED persistido em IndexedDB, consultado antes de qualquer flush; pull executado antes da primeira escrita; nova instância do coordenador continua bloqueada | f7-sync-coordinator 17 PASS |
 | Rebaseline | Commit não grava entidade viva quando tombstone local tem epoch maior/igual; cursor/epoch completos continuam PARTIAL e o flush permanece bloqueado | f7-rebaseline 7 PASS |
 | Conflito visível | SyncHealth expõe conflictCount/mode CONFLICT; Settings lista conflitos; resolveRemoteConflict ligado à UI; resolução LOCAL preserva intenção de delete | f7-sync-view, App/Settings, f7-sync-conflicts |
-| V1 | Qualquer conteúdo não vazio fora dos marcadores de versão vira AMBIGUOUS e snapshot null; habitos, retaFinal e campo string desconhecido cobertos | f7-v1-migration 12 PASS |
-| Restore | FK efetiva calculada por fechamento transitivo; pai tombstoned/inválido propaga para filhos; outbox antiga vira BLOCKED, cursor é removido e recovery-required é gravado | f7-restore 12 PASS |
+| V1 | Qualquer conteúdo não vazio fora dos marcadores de versão vira AMBIGUOUS e snapshot null; habitos, retaFinal e campo string desconhecido cobertos | f7-v1-migration 13 PASS |
+| Restore | FK efetiva calculada por fechamento transitivo; pai tombstoned/inválido propaga para filhos; outbox antiga vira BLOCKED, cursor é removido e recovery-required é gravado | f7-restore 13 PASS |
 | Identidade/backup | Sessão Google B com perfil A pausa remote/sync/backup, bloqueia createBackup e preview divergente; token e UID são revalidados antes e depois do upload | f7-runtime 7 PASS; f7-kv-storage 9 PASS |
 | Preview tardio | Token de geração no runtime descarta prévia antiga; confirmação continua exigindo UID atual | f7-runtime |
 | KV | list usa {prefix, cursor}, keys[].name e paginação list_complete; GET e DELETE percorrem todas as páginas; lista incompleta falha fechada | f7-kv-auth 11 PASS |
