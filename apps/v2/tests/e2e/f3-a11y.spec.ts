@@ -33,8 +33,8 @@ test('planning_controls_are_keyboard_reachable_in_every_theme', async ({ page })
     await expect(button).toBeFocused();
 
     const views = page.locator('[data-testid="planning-calendar"] [role="group"] button');
-    await expect(views).toHaveCount(3);
-    for (let index = 0; index < 3; index += 1) {
+    await expect(views).toHaveCount(4);
+    for (let index = 0; index < 4; index += 1) {
       await expect(views.nth(index)).toHaveAttribute('aria-pressed');
     }
   }

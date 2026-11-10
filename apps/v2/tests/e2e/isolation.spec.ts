@@ -5,7 +5,8 @@ test('serves V2 on its own origin with its own storage names', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'Estudo Organizado V2' })).toBeVisible();
 
   const origin = new URL(page.url()).origin;
-  expect(origin).toBe('http://127.0.0.1:18431');
+  const expected = new URL(test.info().project.use.baseURL ?? page.url()).origin;
+  expect(origin).toBe(expected);
 
   const databases = await page.evaluate(async () => {
     if (!('databases' in indexedDB)) return [];

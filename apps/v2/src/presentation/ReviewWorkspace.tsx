@@ -152,7 +152,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   const [placement, setPlacement] = useState<{ commitmentId: string; preview: ReviewPlacementPreview } | null>(null);
   const [queueBucket, setQueueBucket] = useState<
     'PENDING' | 'OVERDUE' | 'TODAY' | 'UPCOMING' | 'DONE' | 'ALL'
-  >('PENDING');
+  >('ALL');
   const [queueEditalId, setQueueEditalId] = useState('');
   const [queueDisciplineId, setQueueDisciplineId] = useState('');
   const [queueByPriority, setQueueByPriority] = useState(false);

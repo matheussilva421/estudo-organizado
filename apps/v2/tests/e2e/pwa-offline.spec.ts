@@ -13,7 +13,8 @@ test('v2_sw_scope_does_not_intersect_v1', async ({ page }) => {
     return { scope: registration.scope, cachesKeys };
   });
 
-  expect(result.scope).toBe('http://127.0.0.1:18431/');
+  const expectedScope = new URL(test.info().project.use.baseURL ?? page.url()).origin + '/';
+  expect(result.scope).toBe(expectedScope);
   expect(result.cachesKeys.every((key) => key.startsWith('estudo-organizado-v2-'))).toBe(true);
   expect(result.cachesKeys.join(' ')).not.toContain('EstudoOrganizado');
 });

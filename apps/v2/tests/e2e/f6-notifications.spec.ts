@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const BASE = 'http://127.0.0.1:18431';
+const BASE = `http://127.0.0.1:${process.env.PLAYWRIGHT_PORT ?? '18431'}`;
 
 test('f6 attention reflects notification permission and opt-in state', async ({ browser }) => {
   const real = await browser.newContext();
