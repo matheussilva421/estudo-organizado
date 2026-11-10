@@ -1,10 +1,10 @@
 # F7 — estabilização pós-recuperação e validação local final
 
-**Data:** 09/11/2026  
-**Branch:** v2  
-**Base recuperada:** d069bf4f8624cee9b9617131401a5e525eb8d2cf + merge 75079e4e48025a33778ea26895de06b451890eb6  
-**HEAD de código validado:** 5183a285 (após o segundo delta do parecer Lorentz)  
-**Estado:** F7_LOCAL_STABILIZED_WITH_BLOCKERS / BLOCKED_G-EXT_G-STAGING  
+**Data:** 09/11/2026, atualizada em 10/11/2026
+**Branch:** v2
+**Base recuperada:** d069bf4f8624cee9b9617131401a5e525eb8d2cf + merge 75079e4e48025a33778ea26895de06b451890eb6
+**HEAD de código validado:** 0197ebd5
+**Estado:** F7_LOCAL_VALIDATED_FOR_UX / BLOCKED_G-EXT_G-STAGING
 **Não é:** F7_ACCEPTED, F7_READY_FOR_HUMAN_REVIEW ou autorização de F8/G5.
 
 ## 1. Escopo
@@ -23,6 +23,7 @@ Validação local da F7 funcional após a recuperação pós-formatação: audit
 | 714d7fe9 | Ptolemy | Sync/concorrência pós-correção | not ready |
 | 2be6257d | Lorentz | delta 6317ee6f..2be6257d | not ready; 2 Critical e 6 High locais |
 | 5183a285 | Lorentz | segundo delta corretivo, revisão focada | sync/restore FIXED_VERIFIED; resta recovery sem ação de saída |
+| aabbfdfd + delta recovery | Hume | recovery/rebaseline em duas rodadas | FIXED; sem bloqueador material no segundo delta |
 
 Rawls e Maxwell executaram correções delimitadas (migração V1 e contrato KV), com testes focados; não substituem o parecer independente.
 
@@ -81,7 +82,19 @@ Rawls e Maxwell executaram correções delimitadas (migração V1 e contrato KV)
 
 Permanecem como bloqueios declarados: rebaseline completo de cursor/epoch e fluxo de UI de rebaseline; entity/change/head ainda podem ser escritos diretamente fora do recibo (exige contrato de operationId determinístico); contagem remota real no consentimento; serviços reais e multi-cliente. Nenhum desses caminhos é apresentado como sincronizado ou validado em produção.
 
-O parecer Lorentz do HEAD 5183a285 fechou como FIXED_VERIFIED os cinco bloqueadores técnicos de conflito/restore e manteve um único bloqueador local: não existe botão/runtime/UI que execute rebaseline ou limpe RECOVERY_REQUIRED. Após um restore, a sincronização permanece fail-closed e o usuário só recupera o fluxo em um GOAL de recuperação/rebaseline. Por isso o estado final é F7_LOCAL_STABILIZED_WITH_BLOCKERS, não F7_LOCAL_VALIDATED_FOR_UX.
+O parecer Lorentz do HEAD 5183a285 fechou os bloqueadores técnicos de conflito/restore. O delta posterior implementou recovery acionável com snapshot estável, backup pré-recovery, checkpoint, clearRecovery com prova e UI operacional; Hume revisou o delta em duas rodadas e não encontrou bloqueador material no segundo parecer. O estado final local é F7_LOCAL_VALIDATED_FOR_UX, ainda BLOCKED_G-EXT_G-STAGING.
+
+### Recovery acionável (2026-11-10)
+
+O bloqueador de saída foi tratado sem botão de limpeza direta:
+
+- FirebaseRemotePort.captureRecoverySnapshot lê o head antes e depois da coleção de entidades; qualquer mudança concorrente produz STALE. O snapshot só é aceito com identidade, epoch, head e envelopes válidos.
+- prepareRecovery exige RECOVERY_REQUIRED ativo, perfil vinculado e sessão Google da mesma UID; grava um backup local íntegro (F2-F6, outbox, conflitos e tombstones) antes de criar a prévia com checkpoint/hash.
+- commitRecovery revalida identidade e snapshot, adquire o mesmo Web Lock de flush, aplica a transação, grava cursor/epoch e só remove o marcador após read-back de cursor e recibo. Falha, quota, crash ou mudança de head mantêm RECOVERY_REQUIRED.
+- clearRecovery deixou de ser uma limpeza direta: exige previewId e checksum de snapshot conferidos contra o recibo de rebaseline verificado.
+- A UI em Configurações oferece Verificar, Exportar cópia e Aplicar rebaseline verificado; não existe botão de "desbloquear". Oito testes unitários de recovery e quatro E2E cobrem preview, identidade, snapshot stale, backup, pendência offline e duas abas.
+
+O estado de aceite só muda após o parecer independente do delta e os gates finais no HEAD congelado.
 
 ## 4. Testes no HEAD final
 
@@ -89,9 +102,9 @@ O parecer Lorentz do HEAD 5183a285 fechou como FIXED_VERIFIED os cinco bloqueado
 |---|---|
 | npm run typecheck | PASS |
 | npm run lint | PASS |
-| npm run test:unit | 799 PASS / 113 arquivos |
+| npm run test:unit | 817 PASS / 115 arquivos |
 | npm run build | PASS (Vite 8.3.5; chunks Firebase lazy) |
-| npm run test:e2e | 164 PASS + 2 skips / 166 |
+| npm run test:e2e | 168 PASS + 2 skips / 170 |
 | Firebase Emulator demo-estudo-v2 | 12 PASS / 2 arquivos |
 
 O JDK 21 portátil foi usado apenas para o emulador local. A porta 18431 estava ocupada por preview órfão da própria rodada; listeners foram identificados e encerrados, e o E2E canônico passou na porta original. As imagens F4 regravadas foram revertidas para os blobs do HEAD; o estado atual difere do snapshot de 2026-11-04 porque os blobs foram atualizados por commits posteriores (d3c15448, d4e273b4, 670df66c).
