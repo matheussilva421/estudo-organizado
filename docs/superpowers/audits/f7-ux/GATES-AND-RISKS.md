@@ -20,6 +20,7 @@
 6. O token GitHub anterior estava inválido; PRs e rulesets foram consultados somente pela API pública (0 PRs, 0 rulesets). Proteções privadas não foram inferidas.
 7. O perfil desta entrega permanece `local-default`; a UI organiza preferências por perfil, mas troca/migração de múltiplos perfis reais não foi exercitada.
 8. A classificação F1/F2 usa a época real e impede falsa alegação de `SAFE`, mas importar/migrar formatos legados permanece fora do contrato F7-UX e exige fluxo próprio.
+9. A cópia pré-restore é emitida como download antes do commit; o navegador pode bloquear ou o usuário pode não salvar o arquivo, e a aplicação não tem como autenticar que a cópia externa foi preservada. O snapshot, a detecção stale e o read-back transacional continuam obrigatórios.
 
 ## Proteção antes da implementação
 

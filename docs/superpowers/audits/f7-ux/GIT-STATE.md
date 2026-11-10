@@ -27,4 +27,10 @@ Branches encontradas: `v2`, `main`, `recovery/f7-preformat-20261104`, `recovery/
 
 ## Entrega local
 
-Os commits finais são registrados em `SHA256SUMS.txt` e no fechamento da sessão. A árvore de trabalho no momento do ZIP é limpa e os commits permanecem locais; `origin/v2` não foi alterado.
+| Commit | Conteúdo |
+|---|---|
+| `6d51b328` | contratos puros, testes de evidência, widgets, rotas e analytics |
+| `9ecf7afc` | shell, Home, Atenção, Análises, Configurações, Conteúdo, recovery e pacote de evidências |
+| commit documental final | ajustes finais desta matriz/estado, se necessários após a revisão |
+
+A árvore foi limpa após o commit de implementação; o commit documental final e o HEAD exato do ZIP estão registrados em `HEAD.txt` no pacote. Os commits permanecem locais; `origin/v2` não foi alterado.
