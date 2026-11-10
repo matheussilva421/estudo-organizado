@@ -21,12 +21,12 @@
 | UX-13 | PASS_LOCAL | cards e comandos explícitos; foco de procedência; testes de ação/render e regressões F2–F5 |
 | UX-14 | PASS_LOCAL | explorador F2 reutilizado; navegação por ID, arquivo somente leitura e árvore incremental F6 |
 | UX-15 | PASS_LOCAL | reordenação por drag/teclado, movimentação hierárquica, rejeição de ciclo e preservação de vínculos |
-| UX-16 | PASS_LOCAL | cenários/calendário/capacidade F3 reutilizados; testes F3 de calendário e conflito |
-| UX-17 | PASS_LOCAL | assistente, ciclo, Reta Final, histórico e replanejamento cobertos pela suíte F3 |
-| UX-18 | PASS_LOCAL | cronômetro e registro manual F4; separação foco/pausa, manual/verificado e vínculo/conclusão |
-| UX-19 | PASS_LOCAL | histórico, hábitos e recuperação F4; tempos incertos e conflitos preservados |
-| UX-20 | PASS_LOCAL | fila, execução e política F5; prévia de política sem reescrita de histórico |
-| UX-21 | PASS_LOCAL | evidências, amostra, agenda e portabilidade F5; encaixe sem alteração automática do plano |
+| UX-16 | PARTIAL_LOCAL | prévia de ativação, baseRevision, calendário em lista e não alocados provados em f7-ux-planning-workspace.spec.ts e f7-ux-planning-activation.test.ts; “mês” é janela de 30 dias e metas/progresso seguem ausentes. Ver UX16-UX21-TRACEABILITY.md |
+| UX-17 | PARTIAL_LOCAL | prévia determinística, Reta Final e checkpoint restaurável cobertos; disponibilidade/exceções/metas editáveis continuam hardcoded (PlanningWorkspace.tsx:53) — P1 em aberto |
+| UX-18 | PARTIAL_LOCAL | pausa/conclusão não creditam lacuna (f7-ux-session-integrity.test.ts); E2E F4 cobre foco, manual, duas abas e vínculo. Alocação valida soma e sessionId; existência/arquivamento só na UI |
+| UX-19 | PARTIAL_LOCAL | recuperação sem tempo inventado provada; conflitos preservam variantes; falta inspetor/filtros de histórico — P2 |
+| UX-20 | PARTIAL_LOCAL | filtros de fila, buckets e ordenação provados em f7-ux-reviews-queue.spec.ts; estado “revisão iniciada” não existe (P1) e diff da política base falta (P2) |
+| UX-21 | PARTIAL_LOCAL | encaixe é prévia, recusa sobreposição e não grava antes de aplicar (f7-ux-review-placement.test.ts); fatores têm explicação, mas histórico de compromisso e rastro por evidência faltam |
 | UX-22 | PASS_LOCAL | `f7-ux-analytics.test.ts` e `f7-ux-analytics-cache.test.ts`; medições/alocações invalidam cache |
 | UX-23 | PASS_LOCAL | editor de métricas, validação de unidades, barras/linha e tabela equivalente |
 | UX-24 | PASS_LOCAL | snapshot congelado em profundidade, exportação CSV/JSON com metodologia e escape de fórmula |

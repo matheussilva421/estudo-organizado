@@ -28,3 +28,20 @@
 ## Interpretação
 
 `PASS` local não significa homologação de Firebase/KV/Cloudflare, staging, multi-dispositivo físico, quota real, leitor de tela ou hardware modesto. Esses itens permanecem fora deste resultado.
+
+## Rodada de aderência UX-16 a UX-21 (10/11/2026)
+
+HEAD de código: 906ef7c6. A tabela acima descreve a rodada anterior (0d2ee339); os números finais desta rodada estão nos logs externos e na cópia empacotada deste arquivo.
+
+| Verificação | Resultado | Evidência |
+|---|---|---|
+| npm run typecheck | PASS, exit 0 | log final |
+| npm run lint | PASS, exit 0 | log final |
+| npm run test:unit (foco) | PASS, 56 testes / 7 arquivos; depois 42 testes / 4 arquivos após correções P1 | execução local |
+| E2E focais (planejamento, revisões, Home) | PASS, 8 testes | execução local na porta 18432 |
+| npm run test:unit (completo) | ver log final | logs/unit.log |
+| npm run build | ver log final | logs/build.log |
+| npm run test:e2e (completo) | ver log final | logs/final-e2e.log |
+| Firebase Emulator (demo) | ver log final | logs/firebase.log |
+
+A porta 18431 do preview ficou presa nesta sessão; a configuração aceita PLAYWRIGHT_PORT e a rodada final usa 18432, registrada no log.

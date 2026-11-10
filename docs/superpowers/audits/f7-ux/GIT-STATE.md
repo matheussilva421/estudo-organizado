@@ -34,3 +34,19 @@ Branches encontradas: `v2`, `main`, `recovery/f7-preformat-20261104`, `recovery/
 | commit documental final | ajustes finais desta matriz/estado, se necessários após a revisão |
 
 A árvore foi limpa após o commit de implementação; o commit documental final e o HEAD exato do ZIP estão registrados em `HEAD.txt` no pacote. Os commits permanecem locais; `origin/v2` não foi alterado.
+
+## Rodada de aderência UX-16 a UX-21 (10/11/2026)
+
+| Item | Valor |
+|---|---|
+| HEAD de código | `906ef7c6` |
+| commits novos | `34487e30`, `51cc4a40`, `906ef7c6` (+ commit documental desta rodada) |
+| vantagem sobre origin/v2 | 79 commits à frente, 0 atrás, após os três commits de código |
+| origin/v2 | `7a7df0f2f9911a0d5956cb9b94ffa03659d24905` (intacto) |
+| main / origin/main | `9046cfa2283cd293b38df9d52fabfcd5de9ac67c` (intactos) |
+| PRs / rulesets | 0 e 0 pela API pública |
+| worktrees | principal na main e `_v2-candidate` na v2 |
+| stash | nenhum |
+| bundle | `_resgate-estudo-organizado/f7-ux-preflight-20261110.bundle`, verificado |
+
+Os PNGs F4 regravados pela suíte serão restaurados ao HEAD após os gates finais, como na rodada anterior. Nenhum push, merge, deploy ou PR foi executado.

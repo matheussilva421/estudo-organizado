@@ -53,3 +53,24 @@ A pasta `evidence/baseline/` contém a captura anterior à mudança: 31 imagens 
 Firebase/Auth/Firestore/Cloudflare/KV reais, multi-dispositivo físico, cotas reais, HTTPS/staging, hardware modesto, NVDA/Narrator e migração V1 real continuam `NOT_RUN` ou bloqueados pelos gates externos. A validação E2E usa fake remote determinístico, IndexedDB, Web Locks e BroadcastChannel reais apenas no navegador local.
 
 As preferências visuais e snapshots de relatório ficam no armazenamento local deste navegador, fora das stores canônicas coletadas pelo backup F7. A UI informa que são artefatos locais; não foram declarados sincronizados ou recuperáveis pelo backup operacional. A chave de recuperação continua vinculada à sessão do runtime F7 e precisa ser configurada novamente após fechar a aba.
+
+## Rodada 2026-11-10 — aderência UX-16 a UX-21
+
+Classificação final desta rodada: **F7_UX_ADHERENCE_PARTIAL_WITH_EXACT_GAPS**. A matriz anterior marcava UX-16 a UX-21 como PASS_LOCAL; a auditoria dirigida mostrou que quatro delas tinham lacunas materiais e duas eram apenas parciais.
+
+Correções verificadas:
+
+- encaixe de revisão recusa sobreposição, horário inválido e travessia de meia-noite, e faz prévia sem gravar bloco;
+- pausa/conclusão de sessão não creditam lacuna não observada; conclusão incerta vai para recuperação;
+- correção manual fecha o episódio de recuperação em vez de somar o mesmo tempo a cada clique;
+- alocação valida sessionId e a UI bloqueia disciplina arquivada/assunto removido;
+- Pomodoro usa continuidade real em vez de forçar VALID;
+- ativação de cenário exige prévia explícita, usa baseRevision e preserva snapshot restaurável do checkpoint;
+- calendário ganhou modo lista com blocos sem data/horário e conflitos;
+- fila de revisões ganhou filtros por situação, edital, disciplina e ordenação por prioridade;
+- fatores de prioridade passaram a exibir rótulo e explicação;
+- Home em 320 px foi corrigida: próxima ação em y=183 e nenhum overflow com texto a 200%.
+
+Provas novas: f7-ux-review-placement.test.ts (4), f7-ux-session-integrity.test.ts (4), f7-ux-planning-activation.test.ts (2), f7-ux-planning-workspace.spec.ts (2), f7-ux-reviews-queue.spec.ts (2) e f7-ux-home-320.spec.ts (1). Detalhes por requisito em UX16-UX21-TRACEABILITY.md.
+
+Lacunas mantidas: disponibilidade semanal/exceções editáveis (P1), estado “revisão iniciada” (P1), diff da política base, histórico de compromissos/conflito de importação, inspetor de histórico de sessão e mês civil no calendário (P2). Nenhuma foi mascarada como PASS.
