@@ -31,7 +31,7 @@
 
 ## Rodada de aderência UX-16 a UX-21 (10/11/2026)
 
-HEAD de código: 906ef7c6. A tabela acima descreve a rodada anterior (0d2ee339); os números finais desta rodada estão nos logs externos e na cópia empacotada deste arquivo.
+HEAD de código: 8f2fee85. A tabela acima descreve a rodada anterior (0d2ee339); os números finais desta rodada estão nos logs externos e na cópia empacotada deste arquivo.
 
 | Verificação | Resultado | Evidência |
 |---|---|---|

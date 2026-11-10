@@ -55,4 +55,4 @@ P2 documentados, não bloqueadores:
 - Lista do calendário usa enums crus e datas ISO; a mensagem vazia fala do cenário selecionado, mas a consulta inclui cenários oficiais.
 - Filtro de revisão sem resultado mostra “Nenhum compromisso confirmado”; a contagem não tem aria-live.
 
-Nenhum P0 foi encontrado. O HEAD final de código após as correções é 906ef7c6.
+Nenhum P0 foi encontrado. O HEAD final de código após as correções é 8f2fee85; o commit 8f2fee85 ajusta o default da fila para “Todas” (preserva itens concluídos visíveis) e torna os testes de origem/SW portáveis pela variável PLAYWRIGHT_PORT.

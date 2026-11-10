@@ -39,9 +39,9 @@ A árvore foi limpa após o commit de implementação; o commit documental final
 
 | Item | Valor |
 |---|---|
-| HEAD de código | `906ef7c6` |
-| commits novos | `34487e30`, `51cc4a40`, `906ef7c6` (+ commit documental desta rodada) |
-| vantagem sobre origin/v2 | 79 commits à frente, 0 atrás, após os três commits de código |
+| HEAD de código | `8f2fee85` |
+| commits novos | `34487e30`, `51cc4a40`, `906ef7c6`, `59f07f89`, `8f2fee85` |
+| vantagem sobre origin/v2 | 81 commits à frente, 0 atrás, após os cinco commits |
 | origin/v2 | `7a7df0f2f9911a0d5956cb9b94ffa03659d24905` (intacto) |
 | main / origin/main | `9046cfa2283cd293b38df9d52fabfcd5de9ac67c` (intactos) |
 | PRs / rulesets | 0 e 0 pela API pública |
