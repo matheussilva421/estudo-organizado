@@ -3,6 +3,8 @@ import { expect, test } from '@playwright/test';
 test('f4 keyboard reaches the session controls without a trap', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await page.goto('/#/sessions');
+  await expect(page.getByTestId('session-workspace')).toBeVisible();
 
   const reached = new Set<string>();
   for (let step = 0; step < 80; step += 1) {

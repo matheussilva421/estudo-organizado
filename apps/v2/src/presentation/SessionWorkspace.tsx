@@ -2194,7 +2194,7 @@ export function SessionWorkspace({
                     type="button"
                     className="button-ghost"
                     onClick={() => void loadRevisions(item.id)}
-                    data-testid={`session-revisions-${item.id}`}
+                    data-testid={`session-load-revisions-${item.id}`}
                   >
                     Carregar revisões
                   </button>

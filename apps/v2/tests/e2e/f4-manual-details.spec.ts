@@ -93,7 +93,7 @@ test('f4 manual session records measurements materials and allocation', async ({
   await expect(page.locator('[data-testid="session-history"]')).toContainText('MANUAL');
   await page.getByTestId('session-history-filter-assunto').selectOption('assunto-2');
   await expect(page.locator('[data-testid="session-history"]')).toContainText(
-    'Nenhuma sessão registrada',
+    'Nenhuma sessão corresponde aos filtros atuais',
   );
   await page.getByTestId('session-history-filter-assunto').selectOption('');
 

@@ -186,7 +186,8 @@ test('F5-T42 concurrent opt-in auto-approval publishes one commitment', async ({
 
   const policy = page.locator('[data-testid="review-policy"]');
   await policy.getByRole('checkbox').check();
-  await policy.getByRole('button', { name: 'Gravar política' }).click();
+  await policy.getByRole('button', { name: 'Pré-visualizar mudança' }).click();
+  await policy.getByRole('button', { name: 'Aplicar política' }).click();
   await expect(page.locator('p.inline-notice').last()).toContainText('Política de revisão versionada');
 
   const second = await context.newPage();

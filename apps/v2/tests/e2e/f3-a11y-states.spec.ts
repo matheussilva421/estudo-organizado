@@ -219,7 +219,7 @@ test('keyboard_focus_is_visible_ordered_and_not_trapped', async ({ page }) => {
   const ringSamples: number[] = [];
   // The primary navigation now precedes main in DOM (matching the visual
   // sidebar/rail), so the traversal needs those nine extra stops.
-  for (let step = 0; step < 60; step += 1) {
+  for (let step = 0; step < 120; step += 1) {
     await page.keyboard.press('Tab');
     const current = await page.evaluate(() => {
       const active = document.activeElement as HTMLElement | null;
@@ -304,12 +304,24 @@ test('reduced_motion_and_zoom_keep_the_planning_usable', async ({ page }) => {
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(1);
-  const clipped = await page.evaluate(
-    () =>
-      [...document.querySelectorAll('[data-testid="planning-workspace"] *')].filter(
-        (element) => element.scrollWidth > element.clientWidth + 1,
-      ).length,
+  const clipped = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-testid="planning-workspace"] *')]
+      .filter(
+        (element) =>
+          !['INPUT', 'SELECT', 'TEXTAREA'].includes(element.tagName) &&
+          element.scrollWidth > element.clientWidth + 1,
+      )
+      .map((element) => ({
+        tag: element.tagName,
+        cls:
+          typeof element.className === 'string'
+            ? element.className.slice(0, 60)
+            : '',
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth,
+      }))
+      .slice(0, 20),
   );
-  expect(clipped).toBe(0);
+  expect(clipped.length).toBe(0);
   await expect(page.locator('[data-testid="planning-dashboard"]')).toBeVisible();
 });

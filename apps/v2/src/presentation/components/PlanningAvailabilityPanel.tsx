@@ -259,7 +259,7 @@ export function PlanningAvailabilityPanel({
           disabled={locked || saving}
           data-testid="planning-availability-save"
         >
-          {saving ? 'Salvando…' : 'Salvar disponibilidade'}
+          {saving ? 'Salvando…' : 'Gravar disponibilidade'}
         </button>
       </div>
     </section>

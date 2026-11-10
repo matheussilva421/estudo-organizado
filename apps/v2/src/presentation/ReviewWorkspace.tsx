@@ -1368,15 +1368,15 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                       ? formatInstant(commitment.history[0].at)
                       : 'sem registro'}
                   </p>
-                  <ul>
+                  <div>
                     {commitment.history.map((entry, index) => (
-                      <li key={`${entry.type}-${index}`}>
+                      <div key={`${entry.type}-${index}`}>
                         {entry.type} · {formatInstant(entry.at)}
                         {entry.dueDate ? ` · ${entry.dueDate}` : ''}
                         {entry.note ? ` · ${entry.note}` : ''}
-                      </li>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                   {commitment.planBlockId ? (
                     <a
                       href={`#/planning/${encodeURIComponent(commitment.planBlockId)}`}

@@ -124,6 +124,8 @@ async function runJourney(page: Page): Promise<void> {
   // Final stretch: postpone the exam date.
   await page.getByLabel('Nova data').fill('2027-04-01');
   await page.locator('[data-action="postpone-exam"]').click();
+  await expect(page.getByTestId('exam-change-preview')).toBeVisible();
+  await page.locator('[data-action="confirm-exam-change"]').click();
   await expect(page.locator('[data-testid="final-stretch"]')).toContainText('2027-04-01');
 
   // Portability: export and import into the selected edital.

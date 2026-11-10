@@ -195,7 +195,6 @@ export function PlanningWorkspace({
     // A preview belongs to one scenario and one base revision.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setExamPreview(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTransitionPreview(null);
   }, [selectedId]);
 
