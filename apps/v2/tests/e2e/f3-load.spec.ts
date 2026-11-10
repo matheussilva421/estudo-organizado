@@ -69,8 +69,8 @@ test('one_hundred_and_eighty_blocks_stay_navigable', async ({ page }) => {
   await expect(page.locator('[data-testid="planning-calendar"] [data-days]')).toContainText(
     'Conteúdo',
   );
-  // The month window covers 30 real days of the plan, not a single exam day.
+  // A civil month covers the real calendar month (January has 31 days).
   await expect(
     page.locator('[data-testid="planning-calendar"] [data-days]'),
-  ).toHaveAttribute('data-days', '30');
+  ).toHaveAttribute('data-days', '31');
 });

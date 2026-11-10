@@ -4,6 +4,7 @@ import { LocalPlanningRepository } from '../../src/platform/local-planning-repos
 import { LocalReviewRepository } from '../../src/platform/local-review-repository';
 import { LocalSessionRepository } from '../../src/platform/local-session-repository';
 import { deleteV2DatabaseForTests } from '../../src/platform/indexeddb';
+import { DEFAULT_PLANNING_AVAILABILITY } from '../../src/domain/planning-capacity';
 
 const profileId = 'profile-f7-ux-placement';
 const today = '2026-11-01';
@@ -208,6 +209,47 @@ describe('F7-UX review placement integrity', () => {
     if (applied.kind === 'CONFLICT') expect(applied.code).toBe('OVERLAP');
     const blocks = await planning.listBlocks(profileId, 'scenario-1');
     expect(blocks.map((block) => block.id)).toEqual(['late-block']);
+  });
+
+  it('uses the stored availability instead of the legacy weekly default', async () => {
+    const review = service();
+    const commitmentId = await commitmentFor(review);
+    const planning = new LocalPlanningRepository();
+    await activeScenario(planning);
+
+    // 2026-11-07 is a Saturday; the legacy default opens it 08:00-10:00.
+    const before = await review.previewPlacement(
+      profileId,
+      commitmentId,
+      '2026-11-07',
+      '08:00',
+      30,
+    );
+    expect(before.kind).toBe('READY');
+
+    const saved = await planning.saveAvailability({
+      profileId,
+      availability: {
+        ...DEFAULT_PLANNING_AVAILABILITY,
+        weekly: {
+          ...DEFAULT_PLANNING_AVAILABILITY.weekly,
+          days: {
+            MON: [{ start: '08:00', end: '11:00' }],
+          },
+        },
+      },
+      expectedRevision: null,
+    });
+    expect(saved.kind).toBe('LOCAL_COMMITTED');
+
+    const after = await review.previewPlacement(
+      profileId,
+      commitmentId,
+      '2026-11-07',
+      '08:00',
+      30,
+    );
+    expect(after.kind).toBe('UNALLOCATED');
   });
 });
 

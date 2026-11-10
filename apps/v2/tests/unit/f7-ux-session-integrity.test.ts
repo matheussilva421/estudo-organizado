@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { deleteV2DatabaseForTests } from '../../src/platform/indexeddb';
+import {
+  deleteV2DatabaseForTests,
+  openV2Database,
+  STORES,
+} from '../../src/platform/indexeddb';
 import { LocalSessionCoordinator } from '../../src/platform/session-coordination';
 import { LocalSessionRepository } from '../../src/platform/local-session-repository';
 import { StudySessionService } from '../../src/application/session-service';
@@ -58,6 +62,29 @@ beforeEach(async () => {
   nowMs = 0;
   await deleteV2DatabaseForTests();
 });
+
+async function seedLink(
+  id = 'disc-1',
+  status: 'ACTIVE' | 'ARCHIVED' = 'ACTIVE',
+  subjectId = 'subject-1',
+): Promise<void> {
+  const database = await openV2Database(profileId);
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(STORES.editalDisciplines, 'readwrite');
+    transaction.objectStore(STORES.editalDisciplines).put({
+      id,
+      profileId,
+      editalId: 'edital-1',
+      subjectId,
+      orderKey: '000100',
+      localRevision: 1,
+      status,
+    });
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
 
 describe('F7-UX session time integrity', () => {
   it('does not credit an unobserved gap when pausing', async () => {
@@ -208,6 +235,62 @@ describe('F7-UX session time integrity', () => {
     if (edited.kind === 'INVALID') expect(edited.code).toBe('INVALID_ALLOCATION');
     const loaded = await repository.load(profileId, 'session-1');
     expect(loaded?.allocations ?? []).toHaveLength(0);
+  });
+
+  it('rejects missing, archived and mismatched allocation targets', async () => {
+    const { service, repository, authority } = await setup();
+    nowMs = 30 * 60_000;
+    await checkpointAt(service, repository, authority, 30 * 60_000, 'op-cp-targets');
+    const current = await repository.load(profileId, 'session-1');
+    const edit = (editalDisciplineId: string, assuntoId?: string) =>
+      service.editSessionFacts({
+        scope: { profileId, operationId: crypto.randomUUID(), baseRevision: current!.localRevision },
+        sessionId: 'session-1',
+        authority,
+        patch: {
+          allocations: [
+            {
+              sessionId: 'session-1',
+              allocationId: 'allocation-1',
+              editalDisciplineId,
+              ...(assuntoId ? { assuntoId } : {}),
+              durationMs: 10 * 60_000,
+            },
+          ],
+        },
+        reason: 'MANUAL_DETAILS',
+      });
+
+    const missing = await edit('missing-link');
+    expect(missing.kind).toBe('INVALID');
+    if (missing.kind === 'INVALID') expect(missing.code).toBe('ALLOCATION_TARGET_NOT_FOUND');
+
+    await seedLink('archived-link', 'ARCHIVED', 'subject-2');
+    const archived = await edit('archived-link');
+    expect(archived.kind).toBe('INVALID');
+    if (archived.kind === 'INVALID') expect(archived.code).toBe('ALLOCATION_TARGET_ARCHIVED');
+
+    const database = await openV2Database(profileId);
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(STORES.assuntos, 'readwrite');
+      transaction.objectStore(STORES.assuntos).put({
+        id: 'assunto-other',
+        profileId,
+        editalDisciplineId: 'other-link',
+        parentId: null,
+        parentKey: '',
+        title: 'Outro assunto',
+        orderKey: '',
+        localRevision: 1,
+      });
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+    await seedLink('disc-1', 'ACTIVE');
+    const mismatch = await edit('disc-1', 'assunto-other');
+    expect(mismatch.kind).toBe('INVALID');
+    if (mismatch.kind === 'INVALID') expect(mismatch.code).toBe('ALLOCATION_TARGET_MISMATCH');
   });
 });
 

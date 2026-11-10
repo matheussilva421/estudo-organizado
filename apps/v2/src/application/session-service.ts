@@ -5,6 +5,7 @@ import {
   type SessionOrigin,
   type SessionOutcome,
   type SessionScope,
+  type SessionAllocation,
   type SessionInterval,
   type StudySession,
 } from '../domain/session';
@@ -291,6 +292,66 @@ export class StudySessionService {
   }
 
   /**
+   * Allocation targets are content references, so they must exist, belong to
+   * the same profile and remain active when a new allocation is written.
+   */
+  private async validateAllocationTargets(
+    profileId: string,
+    allocations: readonly SessionAllocation[],
+  ): Promise<string | null> {
+    const needsLookup = allocations.some(
+      (allocation) =>
+        Boolean(allocation.editalDisciplineId) ||
+        Boolean(allocation.assuntoId) ||
+        Boolean(allocation.aulaId),
+    );
+    if (!needsLookup) return null;
+    const database = await openV2Database(profileId);
+    const transaction = database.transaction(
+      [STORES.editalDisciplines, STORES.assuntos, STORES.aulas],
+      'readonly',
+    );
+    const linkStore = transaction.objectStore(STORES.editalDisciplines);
+    const assuntoStore = transaction.objectStore(STORES.assuntos);
+    const aulaStore = transaction.objectStore(STORES.aulas);
+    for (const allocation of allocations) {
+      let link: { status?: string } | undefined;
+      if (allocation.editalDisciplineId) {
+        link = (await requestResult(
+          linkStore.get([profileId, allocation.editalDisciplineId]),
+        )) as { status?: string } | undefined;
+        if (!link) return 'ALLOCATION_TARGET_NOT_FOUND';
+        if (link.status !== 'ACTIVE') return 'ALLOCATION_TARGET_ARCHIVED';
+      }
+      if (allocation.assuntoId) {
+        const assunto = (await requestResult(
+          assuntoStore.get([profileId, allocation.assuntoId]),
+        )) as { editalDisciplineId?: string } | undefined;
+        if (!assunto) return 'ALLOCATION_TARGET_NOT_FOUND';
+        if (
+          allocation.editalDisciplineId &&
+          assunto.editalDisciplineId !== allocation.editalDisciplineId
+        ) {
+          return 'ALLOCATION_TARGET_MISMATCH';
+        }
+      }
+      if (allocation.aulaId) {
+        const aula = (await requestResult(
+          aulaStore.get([profileId, allocation.aulaId]),
+        )) as { editalDisciplineId?: string } | undefined;
+        if (!aula) return 'ALLOCATION_TARGET_NOT_FOUND';
+        if (
+          allocation.editalDisciplineId &&
+          aula.editalDisciplineId !== allocation.editalDisciplineId
+        ) {
+          return 'ALLOCATION_TARGET_MISMATCH';
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * A transition may only credit time that the monotonic clock observed
    * continuously. When continuity cannot be proven, the durable value wins and
    * the interval is flagged for assisted recovery.
@@ -556,6 +617,16 @@ export class StudySessionService {
           return invalid('INVALID_ALLOCATION');
         }
         allocateFocus(sessionTotalFocusMs(candidate), allocations);
+        // New or changed allocations must point at live content of this
+        // profile. Historical allocations are validated only when they are
+        // part of the patch, so archived facts are never rewritten silently.
+        if (input.patch.allocations !== undefined) {
+          const targetIssue = await this.validateAllocationTargets(
+            input.scope.profileId,
+            allocations,
+          );
+          if (targetIssue) return invalid(targetIssue);
+        }
       }
     } catch (error) {
       return validationFailure(error);

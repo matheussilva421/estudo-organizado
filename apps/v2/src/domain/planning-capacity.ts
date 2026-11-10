@@ -1,4 +1,9 @@
-import type { CivilDate, PlanBlock, PlanningScenario } from './planning';
+import {
+  PlanningValidationError,
+  type CivilDate,
+  type PlanBlock,
+  type PlanningScenario,
+} from './planning';
 import {
   addCivilDays,
   compareCivilDate,
@@ -37,6 +42,132 @@ export type AvailabilityException = {
   minutesOverride?: number | null;
   note?: string;
 };
+
+export type PlanningGoals = {
+  /** Weekly study target in minutes; zero means no target declared. */
+  weeklyMinutes?: number;
+  /** Default minutes per edital discipline when the wizard starts. */
+  disciplineMinutes?: Record<string, number>;
+};
+
+export type PlanningAvailability = {
+  zone: string;
+  weekly: WeeklyAvailability;
+  exceptions: AvailabilityException[];
+  goals?: PlanningGoals;
+};
+
+export const DEFAULT_PLANNING_AVAILABILITY: PlanningAvailability = {
+  zone: 'America/Fortaleza',
+  weekly: {
+    timeZone: 'America/Fortaleza',
+    days: {
+      MON: [{ start: '08:00', end: '11:00' }],
+      TUE: [{ start: '08:00', end: '11:00' }],
+      WED: [{ start: '08:00', end: '11:00' }],
+      THU: [{ start: '08:00', end: '11:00' }],
+      FRI: [{ start: '08:00', end: '11:00' }],
+      SAT: [{ start: '08:00', end: '10:00' }],
+    },
+  },
+  exceptions: [],
+  goals: { weeklyMinutes: 0, disciplineMinutes: {} },
+};
+
+const CLOCK = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+function clockMinutes(value: string): number | null {
+  const match = CLOCK.exec(value);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+}
+
+/**
+ * Validates an availability configuration before it is persisted. Defaults are
+ * allowed, but a partially malformed window is never normalized silently.
+ */
+export function validatePlanningAvailability(
+  value: PlanningAvailability,
+): PlanningAvailability {
+  if (!value || typeof value !== 'object') {
+    throw new PlanningValidationError('INVALID_AVAILABILITY');
+  }
+  if (typeof value.zone !== 'string' || !value.zone.trim()) {
+    throw new PlanningValidationError('INVALID_ZONE');
+  }
+  if (!value.weekly || value.weekly.timeZone !== value.zone) {
+    throw new PlanningValidationError('INVALID_ZONE');
+  }
+  for (const key of Object.keys(value.weekly.days)) {
+    if (!WEEKDAYS.includes(key as Weekday)) {
+      throw new PlanningValidationError('INVALID_WEEKDAY');
+    }
+  }
+  for (const day of WEEKDAYS) {
+    const windows = value.weekly.days[day] ?? [];
+    if (!Array.isArray(windows)) {
+      throw new PlanningValidationError('INVALID_AVAILABILITY');
+    }
+    let previousEnd = -1;
+    for (const window of windows) {
+      const start = clockMinutes(window?.start ?? '');
+      const end = clockMinutes(window?.end ?? '');
+      if (start === null || end === null || start >= end) {
+        throw new PlanningValidationError('INVALID_WINDOW');
+      }
+      if (start < previousEnd) {
+        throw new PlanningValidationError('OVERLAPPING_WINDOWS');
+      }
+      previousEnd = end;
+    }
+  }
+  const ids = new Set<string>();
+  for (const exception of value.exceptions ?? []) {
+    if (
+      !exception ||
+      typeof exception.exceptionId !== 'string' ||
+      !exception.exceptionId.trim() ||
+      ids.has(exception.exceptionId)
+    ) {
+      throw new PlanningValidationError('INVALID_EXCEPTION');
+    }
+    ids.add(exception.exceptionId);
+    if (exception.kind !== 'DATE' && exception.kind !== 'PERIOD') {
+      throw new PlanningValidationError('INVALID_EXCEPTION');
+    }
+    if (!isCivilDate(exception.startDate)) {
+      throw new PlanningValidationError('INVALID_CIVIL_DATE');
+    }
+    if (
+      exception.endDate !== undefined &&
+      (!isCivilDate(exception.endDate) ||
+        compareCivilDate(exception.endDate, exception.startDate) < 0)
+    ) {
+      throw new PlanningValidationError('INVALID_CIVIL_DATE');
+    }
+    if (
+      exception.minutesOverride !== undefined &&
+      exception.minutesOverride !== null &&
+      (!Number.isFinite(exception.minutesOverride) || exception.minutesOverride < 0)
+    ) {
+      throw new PlanningValidationError('INVALID_DURATION');
+    }
+  }
+  const goals = value.goals;
+  if (goals) {
+    if (
+      goals.weeklyMinutes !== undefined &&
+      (!Number.isFinite(goals.weeklyMinutes) || goals.weeklyMinutes < 0)
+    ) {
+      throw new PlanningValidationError('INVALID_GOAL');
+    }
+    for (const minutes of Object.values(goals.disciplineMinutes ?? {})) {
+      if (!Number.isFinite(minutes) || minutes < 0) {
+        throw new PlanningValidationError('INVALID_GOAL');
+      }
+    }
+  }
+  return value;
+}
 
 export type FixedCommitment = {
   commitmentId: string;

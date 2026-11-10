@@ -1,5 +1,6 @@
 import type { CalendarDay } from '../../application/planning-queries';
 import type { PlanBlock } from '../../domain/planning';
+import { monthKeyOf, shiftMonth } from '../../domain/planning-time';
 import { useEffect, useState } from 'react';
 
 export type CalendarView = 'day' | 'week' | 'month' | 'list';
@@ -20,10 +21,57 @@ export function PlanningCalendar({
   unscheduled = [],
 }: Props) {
   const [offset, setOffset] = useState(0);
-  const size = view === 'day' ? 1 : view === 'week' ? 7 : view === 'month' ? 30 : days.length;
+  const monthKey =
+    view === 'month' && days.length > 0
+      ? monthKeyOf(days[Math.min(offset, days.length - 1)]!.civilDate)
+      : null;
+  const monthFirstIndex = monthKey
+    ? days.findIndex((day) => monthKeyOf(day.civilDate) === monthKey)
+    : 0;
+  const monthCount = monthKey
+    ? days.filter((day) => monthKeyOf(day.civilDate) === monthKey).length
+    : 0;
+  const size =
+    view === 'day'
+      ? 1
+      : view === 'week'
+        ? 7
+        : view === 'month'
+          ? monthCount
+          : days.length;
   const maxOffset = Math.max(0, days.length - size);
-  const start = Math.min(offset, maxOffset);
-  const visible = days.slice(start, start + size);
+  const start =
+    view === 'month' ? Math.max(0, monthFirstIndex) : Math.min(offset, maxOffset);
+  const visible =
+    view === 'month'
+      ? days.slice(start, start + monthCount)
+      : days.slice(start, start + size);
+
+  function step(direction: -1 | 1): void {
+    if (view !== 'month') {
+      setOffset(Math.max(0, Math.min(maxOffset, start + direction * size)));
+      return;
+    }
+    const current = days[start]?.civilDate;
+    if (!current) return;
+    const target = monthKeyOf(shiftMonth(current, direction));
+    const index = days.findIndex((day) => day.civilDate.startsWith(target));
+    if (index >= 0) setOffset(index);
+  }
+
+  const canGoPrevious = start > 0;
+  const canGoNext =
+    view === 'month'
+      ? start + monthCount < days.length
+      : start + size < days.length;
+
+  useEffect(() => {
+    if (view !== 'month' || days.length === 0) return;
+    const firstWithBlock = days.findIndex((day) => day.blocks.length > 0);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOffset(firstWithBlock >= 0 ? firstWithBlock : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
 
   useEffect(() => {
     if (!focusId) return;
@@ -73,16 +121,16 @@ export function PlanningCalendar({
         <button
           type="button"
           data-action="calendar-previous"
-          disabled={start === 0}
-          onClick={() => setOffset(Math.max(0, start - size))}
+          disabled={!canGoPrevious}
+          onClick={() => step(-1)}
         >
           Anterior
         </button>
         <button
           type="button"
           data-action="calendar-next"
-          disabled={start + size >= days.length}
-          onClick={() => setOffset(Math.min(maxOffset, start + size))}
+          disabled={!canGoNext}
+          onClick={() => step(1)}
         >
           Próximo
         </button>

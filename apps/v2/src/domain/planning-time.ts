@@ -100,6 +100,37 @@ export function compareCivilDate(left: CivilDate, right: CivilDate): number {
   return left < right ? -1 : 1;
 }
 
+/** First civil day of the month containing value, with optional month offset. */
+export function firstDayOfMonth(value: CivilDate, monthDelta = 0): CivilDate {
+  const { year, month } = parseCivilDate(value);
+  const date = new Date(Date.UTC(year, month - 1 + monthDelta, 1));
+  return formatCivilDate({
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: 1,
+  });
+}
+
+/** Last civil day of the month containing value, with optional month offset. */
+export function lastDayOfMonth(value: CivilDate, monthDelta = 0): CivilDate {
+  const { year, month } = parseCivilDate(value);
+  const date = new Date(Date.UTC(year, month + monthDelta, 0));
+  return formatCivilDate({
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+  });
+}
+
+export function monthKeyOf(value: CivilDate): string {
+  const { year, month } = parseCivilDate(value);
+  return `${year}-${String(month).padStart(2, '0')}`;
+}
+
+export function shiftMonth(value: CivilDate, monthDelta: number): CivilDate {
+  return firstDayOfMonth(value, monthDelta);
+}
+
 export function enumerateCivilDates(start: CivilDate, end: CivilDate): CivilDate[] {
   const dates: CivilDate[] = [];
   if (compareCivilDate(start, end) > 0) return dates;

@@ -932,7 +932,12 @@ export class ReviewService {
         explanation: 'O encaixe ultrapassaria a meia-noite; escolha outro horário.',
       };
     }
-    const zone = active.referenceZone || this.zone;
+    // The user's configured availability wins over the legacy default; both
+    // planning and review placement must read the same capacity source.
+    const storedAvailability = await this.planning.loadAvailability(profileId);
+    const zone = storedAvailability?.zone ?? (active.referenceZone || this.zone);
+    const weekly = storedAvailability?.weekly ?? REVIEW_WEEKLY;
+    const exceptions = storedAvailability?.exceptions ?? [];
     // Two blocks cannot occupy the same minutes on the same civil day. The
     // previous preview only compared global remaining minutes and could offer
     // an overlapping slot.
@@ -959,8 +964,8 @@ export class ReviewService {
     const capacity = evaluateDailyCapacity({
       date: civilDate,
       zone,
-      weekly: { ...REVIEW_WEEKLY, timeZone: zone },
-      exceptions: [],
+      weekly: { ...weekly, timeZone: zone },
+      exceptions,
       reservations: official,
     });
     if (capacity.remainingMinutes < duration) {

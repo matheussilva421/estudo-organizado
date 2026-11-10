@@ -24,7 +24,16 @@ import {
   type PlanningScenario,
   type ScenarioActivationPreview,
 } from '../domain/planning';
-import { selectOfficialReservations, type WeeklyAvailability } from '../domain/planning-capacity';
+import {
+  DEFAULT_PLANNING_AVAILABILITY,
+  selectOfficialReservations,
+  type PlanningAvailability,
+} from '../domain/planning-capacity';
+import {
+  addCivilDays,
+  firstDayOfMonth,
+  lastDayOfMonth,
+} from '../domain/planning-time';
 import { LocalPlanningRepository } from '../platform/local-planning-repository';
 import { LocalPlanningImportCommitter } from '../platform/planning-import-commit';
 import { PlanningDashboard } from './components/PlanningDashboard';
@@ -36,6 +45,7 @@ import { PlanningEditor } from './components/PlanningEditor';
 import { PlanningHistory } from './components/PlanningHistory';
 import { PlanningConflicts } from './components/PlanningConflicts';
 import { PlanningPortability } from './components/PlanningPortability';
+import { PlanningAvailabilityPanel } from './components/PlanningAvailabilityPanel';
 import { useFocusScroll } from './use-focus-scroll';
 
 const ZONE = 'America/Fortaleza';
@@ -49,18 +59,6 @@ function todayInZone(zone: string): string {
     day: '2-digit',
   }).format(new Date());
 }
-
-const weekly: WeeklyAvailability = {
-  timeZone: ZONE,
-  days: {
-    MON: [{ start: '08:00', end: '11:00' }],
-    TUE: [{ start: '08:00', end: '11:00' }],
-    WED: [{ start: '08:00', end: '11:00' }],
-    THU: [{ start: '08:00', end: '11:00' }],
-    FRI: [{ start: '08:00', end: '11:00' }],
-    SAT: [{ start: '08:00', end: '10:00' }],
-  },
-};
 
 function newId(): string {
   return crypto.randomUUID();
@@ -97,6 +95,10 @@ export function PlanningWorkspace({
   const [activationPreview, setActivationPreview] =
     useState<ScenarioActivationPreview | null>(null);
   const [view, setView] = useState<CalendarView>('week');
+  const [availability, setAvailability] = useState<PlanningAvailability>(
+    DEFAULT_PLANNING_AVAILABILITY,
+  );
+  const [availabilityRevision, setAvailabilityRevision] = useState<number | null>(null);
   useFocusScroll(focusId, scenarios.length);
 
   const repository = useCallback(() => new LocalPlanningRepository(), []);
@@ -116,6 +118,31 @@ export function PlanningWorkspace({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh().catch(() => undefined);
   }, [refresh]);
+
+  useEffect(() => {
+    let cancelled = false;
+    repository()
+      .loadAvailability(profileId)
+      .then((record) => {
+        if (cancelled) return;
+        if (record) {
+          setAvailability({
+            zone: record.zone,
+            weekly: record.weekly,
+            exceptions: record.exceptions,
+            goals: record.goals,
+          });
+          setAvailabilityRevision(record.localRevision);
+        } else {
+          setAvailability(DEFAULT_PLANNING_AVAILABILITY);
+          setAvailabilityRevision(null);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId, repository]);
 
   const selected = scenarios.find((item) => item.id === selectedId) ?? null;
 
@@ -162,20 +189,44 @@ export function PlanningWorkspace({
       selected.kind === 'FINAL_STRETCH'
         ? (dated[0] ?? selected.examDate ?? today)
         : (dated[0] ?? today);
-    const endDate =
+    const lastDate =
       selected.kind === 'FINAL_STRETCH'
         ? (selected.examDate ?? dated[dated.length - 1] ?? startDate)
         : (dated[dated.length - 1] ?? startDate);
+    // A month view must show real calendar months (28-31 days, year rollover),
+    // not a rolling 30-day window. One adjacent month on each side keeps the
+    // pager useful even when the plan itself spans a single month.
+    const startDateForView =
+      view === 'month' ? firstDayOfMonth(startDate, -1) : startDate;
+    const endDateForView = view === 'month' ? lastDayOfMonth(lastDate, 1) : lastDate;
     return queryCalendar({
       profileId,
-      rangeStart: startDate,
-      rangeEnd: endDate,
+      rangeStart: startDateForView,
+      rangeEnd: endDateForView,
       activeOnly: false,
       blocks,
       scenarios,
-      availability: { zone: ZONE, weekly, exceptions: [] },
+      availability: {
+        zone: availability.zone,
+        weekly: availability.weekly,
+        exceptions: availability.exceptions,
+      },
     });
-  }, [blocks, profileId, scenarios, selected, selectedBlocks]);
+  }, [availability, blocks, profileId, scenarios, selected, selectedBlocks, view]);
+
+  const plannedNextWeek = useMemo(() => {
+    const today = todayInZone(ZONE);
+    const end = addCivilDays(today, 6);
+    return selectedBlocks
+      .filter(
+        (block) =>
+          block.civilDate !== undefined &&
+          block.civilDate >= today &&
+          block.civilDate <= end &&
+          block.allocation !== 'UNALLOCATED',
+      )
+      .reduce((total, block) => total + block.plannedMinutes, 0);
+  }, [selectedBlocks]);
 
   function wizardPreview(input: WizardInput) {
     try {
@@ -211,8 +262,8 @@ export function PlanningWorkspace({
         startDate: input.startDate,
         horizonDays: input.horizonDays,
         zone: ZONE,
-        weekly,
-        exceptions: [],
+        weekly: availability.weekly,
+        exceptions: availability.exceptions,
         // A new scenario for this edital replaces the one currently active,
         // so that plan's reservation is not counted against its successor.
         fixedBlocks: selectOfficialReservations(
@@ -371,6 +422,32 @@ export function PlanningWorkspace({
     await refresh();
   }
 
+  async function saveAvailability(
+    next: PlanningAvailability,
+    expectedRevision: number | null,
+  ): Promise<void> {
+    const result = await repository().saveAvailability({
+      profileId,
+      availability: next,
+      expectedRevision,
+    });
+    if (result.kind === 'LOCAL_COMMITTED') {
+      setAvailability({
+        zone: result.value.zone,
+        weekly: result.value.weekly,
+        exceptions: result.value.exceptions,
+        goals: result.value.goals,
+      });
+      setAvailabilityRevision(result.value.localRevision);
+      setActivationPreview(null);
+      onNotice('Disponibilidade salva; prévias dependentes foram invalidadas.');
+    } else if (result.kind === 'CONFLICT') {
+      onNotice('Outra aba alterou a disponibilidade. Recarregue antes de salvar.');
+    } else {
+      onNotice('Disponibilidade inválida; nada foi gravado.');
+    }
+  }
+
   async function applyCycleDecision(decision: CycleDecision): Promise<void> {
     if (!selected?.cycle) return;
     const next = advanceCycle(
@@ -448,8 +525,8 @@ export function PlanningWorkspace({
       examDate,
       startDate: todayInZone(ZONE),
       zone: ZONE,
-      weekly,
-      exceptions: [],
+      weekly: availability.weekly,
+      exceptions: availability.exceptions,
       fixedBlocks: selectedBlocks,
       capacityBlocks: selectOfficialReservations(
         scenarios.filter((item) => item.id !== selected.id),
@@ -633,8 +710,8 @@ export function PlanningWorkspace({
       startDate: todayInZone(ZONE),
       horizonDays: 45,
       zone: ZONE,
-      weekly,
-      exceptions: [],
+      weekly: availability.weekly,
+      exceptions: availability.exceptions,
       operationId: `redistribute-${selected.id}`,
     });
     setRedistribution({
@@ -745,6 +822,14 @@ export function PlanningWorkspace({
         onCancelActivate={() => setActivationPreview(null)}
         locked={locked}
       />
+      <PlanningAvailabilityPanel
+        availability={availability}
+        revision={availabilityRevision}
+        plannedMinutes={plannedNextWeek}
+        locked={locked}
+        onSave={saveAvailability}
+        onNotice={onNotice}
+      />
       <PlanningWizard
         editais={editais}
         links={links}
@@ -755,6 +840,11 @@ export function PlanningWorkspace({
           if ('error' in preview) return false;
           return createFromWizard(input, preview);
         }}
+        availabilitySignature={JSON.stringify({
+          weekly: availability.weekly,
+          exceptions: availability.exceptions,
+        })}
+        disciplineMinutes={availability.goals?.disciplineMinutes}
         locked={locked}
       />
       <PlanningCalendar

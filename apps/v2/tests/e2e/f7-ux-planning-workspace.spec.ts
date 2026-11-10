@@ -128,3 +128,26 @@ test('calendar list shows an unscheduled block without inventing a time', async 
   await expect(list).not.toContainText('00:00');
 });
 
+test('availability and weekly goal persist and drive the shared capacity', async ({ page }) => {
+  await seed(page);
+  const panel = page.getByTestId('planning-availability');
+  await expect(panel).toBeVisible();
+
+  const monday = panel.locator('[data-day="MON"]');
+  await monday.locator('input[type="time"]').nth(0).fill('19:00');
+  await monday.locator('input[type="time"]').nth(1).fill('21:30');
+  // Saturday becomes a declared day without study.
+  await panel.locator('[data-day="SAT"] input[type="checkbox"]').uncheck();
+  await page.getByTestId('planning-weekly-goal').fill('300');
+  await page.getByTestId('planning-availability-save').click();
+  await expect(page.getByTestId('planning-goal-progress')).toContainText('300 min');
+
+  await page.reload();
+  await expect(page.getByTestId('planning-workspace')).toBeVisible();
+  const reloaded = page.getByTestId('planning-availability');
+  await expect(reloaded.locator('[data-day="MON"] input[type="time"]').nth(0)).toHaveValue('19:00');
+  await expect(reloaded.locator('[data-day="MON"] input[type="time"]').nth(1)).toHaveValue('21:30');
+  await expect(reloaded.locator('[data-day="SAT"] input[type="checkbox"]')).not.toBeChecked();
+  await expect(page.getByTestId('planning-goal-progress')).toContainText('300 min');
+});
+

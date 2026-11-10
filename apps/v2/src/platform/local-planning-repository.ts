@@ -16,6 +16,10 @@ import type {
 import { PLANNING_ENTITY_SCHEMA_VERSION } from '../application/planning-service';
 import { checkpointDigest, type PlanningCheckpointRecord } from '../domain/planning-history';
 import {
+  validatePlanningAvailability,
+  type PlanningAvailability,
+} from '../domain/planning-capacity';
+import {
   openV2Database,
   requestResult,
   STORES,
@@ -29,6 +33,19 @@ type Fault = 'abort' | 'quota' | null;
 export type PlanningRepositoryOptions = {
   fault?: Fault;
   now?: () => string;
+};
+
+export type PlanningAvailabilityRecord = PlanningAvailability & {
+  id: 'default';
+  profileId: string;
+  localRevision: number;
+  updatedAt: string;
+};
+
+export type SaveAvailabilityInput = {
+  profileId: string;
+  availability: PlanningAvailability;
+  expectedRevision: number | null;
 };
 
 function stableStringify(value: unknown): string {
@@ -265,6 +282,82 @@ export class LocalPlanningRepository implements PlanningRepository {
 
       await transactionDone(transaction);
       return outcome;
+    } catch (error) {
+      try {
+        transaction.abort();
+      } catch {
+        // already aborted
+      }
+      return { kind: 'FAILED', reason: toLocalPersistenceError(error).kind };
+    }
+  }
+
+  async loadAvailability(
+    profileId: string,
+  ): Promise<PlanningAvailabilityRecord | null> {
+    const database = await openV2Database(profileId);
+    const transaction = database.transaction(STORES.planningAvailability, 'readonly');
+    const record = (await requestResult(
+      transaction
+        .objectStore(STORES.planningAvailability)
+        .get([profileId, 'default']),
+    )) as PlanningAvailabilityRecord | undefined;
+    return record ?? null;
+  }
+
+  /**
+   * Availability is a local planning preference, not a scenario fact. It is
+   * still revisioned so two tabs cannot overwrite each other silently, and the
+   * store is already included in the F7 backup.
+   */
+  async saveAvailability(
+    input: SaveAvailabilityInput,
+  ): Promise<PlanningOutcome<PlanningAvailabilityRecord>> {
+    if (
+      !input ||
+      typeof input.profileId !== 'string' ||
+      !input.profileId.trim()
+    ) {
+      return { kind: 'INVALID', code: 'INVALID_COMMAND' };
+    }
+    try {
+      validatePlanningAvailability(input.availability);
+    } catch (error) {
+      return {
+        kind: 'INVALID',
+        code:
+          error instanceof PlanningValidationError
+            ? error.code
+            : 'INVALID_AVAILABILITY',
+      };
+    }
+    const database = await openV2Database(input.profileId);
+    const transaction = database.transaction(STORES.planningAvailability, 'readwrite');
+    try {
+      const store = transaction.objectStore(STORES.planningAvailability);
+      const current = (await requestResult(
+        store.get([input.profileId, 'default']),
+      )) as PlanningAvailabilityRecord | undefined;
+      if (
+        input.expectedRevision !== null &&
+        (current?.localRevision ?? 0) !== input.expectedRevision
+      ) {
+        transaction.abort();
+        return { kind: 'CONFLICT', current };
+      }
+      if (this.fault === 'abort') throw new DOMException('forced abort', 'AbortError');
+      if (this.fault === 'quota') throw new DOMException('forced quota', 'QuotaExceededError');
+      const next: PlanningAvailabilityRecord = {
+        id: 'default',
+        profileId: input.profileId,
+        ...input.availability,
+        localRevision: (current?.localRevision ?? 0) + 1,
+        updatedAt: this.now(),
+      };
+      store.put(next);
+      await transactionDone(transaction);
+      notifyPlanningChange(input.profileId, 'default');
+      return { kind: 'LOCAL_COMMITTED', value: next };
     } catch (error) {
       try {
         transaction.abort();

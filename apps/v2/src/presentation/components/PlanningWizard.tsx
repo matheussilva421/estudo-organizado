@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PlanGenerationPreview } from '../../domain/planning-generator';
 import type { EditalDiscipline } from '../../domain/edital';
 import type { Assunto } from '../../domain/content';
@@ -19,10 +19,21 @@ type Props = {
   assuntos: Assunto[];
   onPreview: (input: WizardInput) => PlanGenerationPreview | { error: string };
   onConfirm: (input: WizardInput) => Promise<boolean>;
+  availabilitySignature: string;
+  disciplineMinutes?: Record<string, number>;
   locked: boolean;
 };
 
-export function PlanningWizard({ editais, links, assuntos, onPreview, onConfirm, locked }: Props) {
+export function PlanningWizard({
+  editais,
+  links,
+  assuntos,
+  onPreview,
+  onConfirm,
+  availabilitySignature,
+  disciplineMinutes = {},
+  locked,
+}: Props) {
   const [name, setName] = useState('');
   const [kind, setKind] = useState<'CYCLE' | 'FINAL_STRETCH'>('CYCLE');
   const [examDate, setExamDate] = useState('');
@@ -32,8 +43,10 @@ export function PlanningWizard({ editais, links, assuntos, onPreview, onConfirm,
   const [minutes, setMinutes] = useState(60);
   const [linkId, setLinkId] = useState(links[0]?.id ?? '');
   const [selectedLinkIds, setSelectedLinkIds] = useState<string[]>([]);
+  const [minutesByLink, setMinutesByLink] = useState<Record<string, number>>({});
   const [preview, setPreview] = useState<PlanGenerationPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const previousSignature = useRef(availabilitySignature);
   const storageKey = 'v2:f3:wizard';
 
   // Content arrives after mount (F2 snapshot), so the effective selection must
@@ -61,6 +74,11 @@ export function PlanningWizard({ editais, links, assuntos, onPreview, onConfirm,
       setHorizonDays(typeof saved.horizonDays === 'number' ? saved.horizonDays : 14);
       setMinutes(typeof saved.minutes === 'number' ? saved.minutes : 60);
       setSelectedLinkIds(Array.isArray(saved.selectedLinkIds) ? (saved.selectedLinkIds as string[]) : []);
+      setMinutesByLink(
+        saved.minutesByLink && typeof saved.minutesByLink === 'object'
+          ? (saved.minutesByLink as Record<string, number>)
+          : {},
+      );
     } catch {
       // A corrupted local draft is ignored; the wizard starts clean.
     }
@@ -79,12 +97,21 @@ export function PlanningWizard({ editais, links, assuntos, onPreview, onConfirm,
           horizonDays,
           minutes,
           selectedLinkIds,
+          minutesByLink,
         }),
       );
     } catch {
       // Storage may be unavailable; the wizard keeps working in memory.
     }
-  }, [name, kind, examDate, editalId, startDate, horizonDays, minutes, selectedLinkIds]);
+  }, [name, kind, examDate, editalId, startDate, horizonDays, minutes, selectedLinkIds, minutesByLink]);
+
+  useEffect(() => {
+    if (previousSignature.current === availabilitySignature) return;
+    previousSignature.current = availabilitySignature;
+    // Availability changed: a preview produced with the old capacity is stale.
+    setPreview(null);
+    setError(null);
+  }, [availabilitySignature]);
 
   function buildInput(): WizardInput {
     return {
@@ -100,7 +127,10 @@ export function PlanningWizard({ editais, links, assuntos, onPreview, onConfirm,
           editalDisciplineId: id,
           assuntoId: assunto?.id,
           label: assunto?.title ?? 'Conteúdo',
-          plannedMinutes: minutes,
+          plannedMinutes:
+            Number(minutesByLink[id]) > 0
+              ? Number(minutesByLink[id])
+              : (disciplineMinutes[id] ?? minutes),
         };
       }),
     };
@@ -148,23 +178,46 @@ export function PlanningWizard({ editais, links, assuntos, onPreview, onConfirm,
             <p className="empty-state">Vincule uma disciplina a este edital primeiro.</p>
           ) : (
             editalLinks.map((link) => (
-              <label key={link.id}>
-                <input
-                  type="checkbox"
-                  value={link.id}
-                  checked={effectiveSelection.includes(link.id)}
-                  onChange={(event) => {
-                    setLinkId(link.id);
-                    setSelectedLinkIds((current) => {
-                      const base = current.length > 0 ? current : [link.id];
-                      return event.target.checked
-                        ? [...new Set([...base, link.id])]
-                        : base.filter((id) => id !== link.id);
-                    });
-                  }}
-                />
-                {link.displayAlias ?? link.subjectId}
-              </label>
+              <div key={link.id} className="planning-discipline-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    value={link.id}
+                    checked={effectiveSelection.includes(link.id)}
+                    onChange={(event) => {
+                      setLinkId(link.id);
+                      setSelectedLinkIds((current) => {
+                        const base = current.length > 0 ? current : [link.id];
+                        return event.target.checked
+                          ? [...new Set([...base, link.id])]
+                          : base.filter((id) => id !== link.id);
+                      });
+                    }}
+                  />
+                  {link.displayAlias ?? link.subjectId}
+                </label>
+                {effectiveSelection.includes(link.id) ? (
+                  <label>
+                    Meta (min)
+                    <input
+                      type="number"
+                      min={5}
+                      max={480}
+                      value={
+                        minutesByLink[link.id] ??
+                        disciplineMinutes[link.id] ??
+                        minutes
+                      }
+                      onChange={(event) =>
+                        setMinutesByLink((current) => ({
+                          ...current,
+                          [link.id]: Number(event.target.value),
+                        }))
+                      }
+                    />
+                  </label>
+                ) : null}
+              </div>
             ))
           )}
         </fieldset>

@@ -78,7 +78,7 @@ async function runJourney(page: Page): Promise<void> {
   await page.locator('[data-action="calendar-month"]').click();
   await expect(page.locator('[data-testid="planning-calendar"] [data-days]')).toHaveAttribute(
     'data-days',
-    '30',
+    '31',
   );
   await expect(page.locator('[data-testid="planning-calendar"]')).toContainText('Conteúdo');
   const windowBefore = await page.locator('[data-testid="calendar-window"]').textContent();
