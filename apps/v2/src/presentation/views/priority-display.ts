@@ -1,5 +1,6 @@
 import type { PriorityCategory, PriorityTarget } from '../../application/experience-queries';
 import type { AppRoute } from '../routing';
+import { routeForTarget as contextualRouteForTarget } from '../context-navigation';
 
 export const PRIORITY_CATEGORY_LABELS: Record<PriorityCategory, string> = {
   SESSAO_ATIVA: 'Sessão ativa',
@@ -13,8 +14,11 @@ export const PRIORITY_CATEGORY_LABELS: Record<PriorityCategory, string> = {
   ORIENTACAO: 'Orientação',
 };
 
-export function routeForTarget(target: PriorityTarget): AppRoute {
-  return { module: target, entityId: null, query: {}, invalid: false };
+export function routeForTarget(
+  target: PriorityTarget,
+  entityId: string | null = null,
+): AppRoute {
+  return contextualRouteForTarget(target, entityId);
 }
 
 export function priorityTone(category: PriorityCategory): string {

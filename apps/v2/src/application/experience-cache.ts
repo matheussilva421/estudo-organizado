@@ -75,7 +75,34 @@ export function analyticsFingerprint(
           session.localRevision,
           session.recordedAtCivilDate ?? '',
           session.manualDeclaredMs ?? 0,
-          session.intervals.map((interval) => interval.verifiedMs).join('.'),
+          session.planReconciliation?.choice ?? '',
+          session.planReconciliation?.blockId ?? '',
+          session.intervals
+            .map((interval) =>
+              [interval.id, interval.verifiedMs, interval.recoveryFlag ? 'R' : 'V'].join(':'),
+            )
+            .join('.'),
+          (session.measurements ?? [])
+            .map((measurement) =>
+              [
+                measurement.questions,
+                measurement.correctAnswers,
+                measurement.id,
+                measurement.allocationId ?? '',
+              ].join(':'),
+            )
+            .join('.'),
+          (session.allocations ?? [])
+            .map((allocation) =>
+              [
+                allocation.allocationId,
+                allocation.editalDisciplineId ?? '',
+                allocation.assuntoId ?? '',
+                allocation.aulaId ?? '',
+                allocation.durationMs,
+              ].join(':'),
+            )
+            .join('.'),
         ].join(':'),
       )
       .sort()

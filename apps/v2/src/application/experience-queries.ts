@@ -322,6 +322,8 @@ export type PriorityItem = {
   detail: string;
   dueDate: string | null;
   target: PriorityTarget;
+  /** Opaque identity for a deep route; null means a module-level action. */
+  entityId?: string | null;
   severity: number;
 };
 
@@ -372,8 +374,14 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
     null;
 
   const completed = profileSessions.filter((session) => session.state === 'COMPLETED');
+  // A completed session that merely references a block is not proof that the
+  // block was fulfilled. Only an explicit F4 reconciliation can do that.
   const completedBlockIds = new Set(
-    completed.flatMap((session) => session.planBlockIds ?? []),
+    completed.flatMap((session) =>
+      session.planReconciliation?.choice === 'CONCLUDED'
+        ? [session.planReconciliation.blockId]
+        : [],
+    ),
   );
   const since = addCivilDays(today, -6);
   const completedLast7Days = completed.filter(
@@ -421,6 +429,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
         'Erro de leitura não é ausência de dados. Nenhum zero ou onboarding foi inferido; tente novamente.',
       dueDate: null,
       target: 'attention',
+      entityId: null,
       severity: 1.5,
     });
   }
@@ -433,6 +442,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       detail: `Registro por ${sessionLabel(activeSession)}. O cron\u00f4metro continua no m\u00f3dulo Sess\u00f5es.`,
       dueDate: activeSession.recordedAtCivilDate ?? null,
       target: 'sessions',
+      entityId: activeSession.id,
       severity: 0,
     });
   }
@@ -445,6 +455,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       detail: 'As edi\u00e7\u00f5es ficam bloqueadas at\u00e9 a outra aba liberar a atualiza\u00e7\u00e3o. Nada foi apagado.',
       dueDate: null,
       target: 'settings',
+      entityId: null,
       severity: 1,
     });
   }
@@ -457,6 +468,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       detail: 'Diagn\u00f3stico: o commit local est\u00e1 confirmado; envio remoto e converg\u00eancia n\u00e3o est\u00e3o comprovados nesta fase. Isto n\u00e3o substitui a pr\u00f3xima a\u00e7\u00e3o acad\u00eamica.',
       dueDate: null,
       target: 'attention',
+      entityId: null,
       severity: 6.5,
     });
   }
@@ -470,6 +482,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
         'Existem versões divergentes preservadas; uma decisão explícita é necessária antes de conciliar.',
       dueDate: null,
       target: 'sessions',
+      entityId: null,
       severity: 1.8,
     });
   }
@@ -483,6 +496,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
         'Os fatos importados foram aplicados, mas intervalos e v\u00ednculos locais continuam preservados. A concilia\u00e7\u00e3o integral n\u00e3o est\u00e1 comprovada; revise antes de tratar como consolidado.',
       dueDate: null,
       target: 'sessions',
+      entityId: null,
       severity: 6.6,
     });
   }
@@ -498,6 +512,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       detail: `Venceu em ${commitment.currentDueDate}. D\u00edvida de revis\u00e3o real, n\u00e3o sugest\u00e3o.`,
       dueDate: commitment.currentDueDate,
       target: 'reviews',
+      entityId: commitment.id,
       severity: 3,
     });
   }
@@ -507,9 +522,10 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       id: `block-late-${block.id}`,
       category: 'ATRASO_REAL',
       title: `Compromisso sem sess\u00e3o: ${block.label ?? 'bloco planejado'}`,
-      detail: `Planejado para ${block.civilDate} (${block.plannedMinutes} min) e sem sess\u00e3o conclu\u00edda vinculada.`,
+      detail: `Planejado para ${block.civilDate} (${block.plannedMinutes} min), sem concilia\u00e7\u00e3o que comprove o cumprimento do bloco.`,
       dueDate: block.civilDate ?? null,
       target: 'planning',
+      entityId: block.id,
       severity: 4,
     });
   }
@@ -522,6 +538,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       detail: 'Compromisso confirmado no F5; concluir a revis\u00e3o \u00e9 uma a\u00e7\u00e3o expl\u00edcita.',
       dueDate: commitment.currentDueDate,
       target: 'reviews',
+      entityId: commitment.id,
       severity: 5,
     });
   }
@@ -534,6 +551,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       detail: `${block.plannedMinutes} min previstos. Planejado n\u00e3o significa executado.`,
       dueDate: block.civilDate ?? null,
       target: 'planning',
+      entityId: block.id,
       severity: 6,
     });
   }
@@ -546,6 +564,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       detail: `Programada para ${commitment.currentDueDate}.`,
       dueDate: commitment.currentDueDate,
       target: 'reviews',
+      entityId: commitment.id,
       severity: 7,
     });
   }
@@ -558,6 +577,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       detail: `${block.civilDate} \u00b7 ${block.plannedMinutes} min.`,
       dueDate: block.civilDate ?? null,
       target: 'planning',
+      entityId: block.id,
       severity: 8,
     });
   }
@@ -569,7 +589,11 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
     !input.dataError &&
     input.content.editais.filter((edital) => edital.profileId === input.profileId).length === 0 &&
     profileSessions.length === 0 &&
-    input.blocks.filter((block) => block.profileId === input.profileId).length === 0;
+    input.blocks.filter((block) => block.profileId === input.profileId).length === 0 &&
+    input.scenarios.filter((scenario) => scenario.profileId === input.profileId).length === 0 &&
+    (input.reminders?.overdue.length ?? 0) === 0 &&
+    (input.reminders?.dueToday.length ?? 0) === 0 &&
+    (input.reminders?.upcoming.length ?? 0) === 0;
 
   if (empty) {
     push({
@@ -579,6 +603,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       detail: 'Cadastre um edital e vincule disciplinas. Nenhum dado de exemplo foi criado automaticamente.',
       dueDate: null,
       target: 'content',
+      entityId: null,
       severity: 9,
     });
   } else if (activeEditais.length > 0 && activeScenarioIds.size === 0) {
@@ -589,6 +614,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       detail: 'Voc\u00ea j\u00e1 tem conte\u00fado. O planejamento ainda n\u00e3o existe; nada foi gerado automaticamente.',
       dueDate: null,
       target: 'planning',
+      entityId: null,
       severity: 9,
     });
   } else if (activeScenarioIds.size > 0 && completed.length === 0) {
@@ -599,6 +625,7 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       detail: 'O plano est\u00e1 pronto. Inicie ou registre uma sess\u00e3o para produzir fatos reais.',
       dueDate: null,
       target: 'sessions',
+      entityId: null,
       severity: 9,
     });
   }

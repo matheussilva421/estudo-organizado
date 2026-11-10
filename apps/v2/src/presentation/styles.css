@@ -982,7 +982,7 @@ button {
   border-radius: var(--radius-control, 10px);
   border: 1px solid var(--control-border);
   background: var(--surface);
-  color: var(--text-primary);
+  color: var(--text);
   cursor: pointer;
   transition:
     background-color 0.2s ease,
@@ -1014,7 +1014,7 @@ input,
 select,
 textarea {
   font: inherit;
-  color: var(--text-primary);
+  color: var(--text);
   background: var(--card);
   border: 1px solid var(--control-border);
   border-radius: var(--radius-sm, 8px);
@@ -1069,7 +1069,7 @@ textarea:focus-visible {
 }
 
 .session-nav a:hover {
-  color: var(--text-primary);
+  color: var(--text);
   background: var(--surface);
 }
 
