@@ -45,3 +45,16 @@ HEAD de código: 8f2fee85. A tabela acima descreve a rodada anterior (0d2ee339);
 | Firebase Emulator (demo) | BLOCKED, exit 1: java não encontrado no PATH | logs/firebase.log |
 
 A porta 18431 do preview ficou presa nesta sessão; a configuração aceita PLAYWRIGHT_PORT e a rodada final usa 18432, registrada no log. O emulador Firebase não foi executado porque o ambiente não tem Java; nenhum projeto real foi acessado e o gate permanece NOT_RUN.
+
+## Rodada integrada final — HEAD 0c31e6ef
+
+| Comando | Resultado | Log |
+|---|---|---|
+| npm run typecheck | PASS, exit 0 | logs-final/typecheck.log |
+| npm run lint | PASS, exit 0, sem warnings | logs-final/lint.log |
+| npm run test:unit | PASS, 876 testes / 128 arquivos | logs-final/unit.log |
+| npm run build | PASS, exit 0 | logs-final/build.log |
+| npm run test:e2e | PASS, 201 + 3 skips / 204, porta 18432 | logs-final/final-e2e.log |
+| Firebase Emulator demo | NOT_RUN_ENVIRONMENT: java ausente no PATH, exit 1 | logs-final/firebase.log |
+
+Os três skips continuam sendo os gates de captura f3-t40, f6-evidence e f7-ux-evidence; nenhum skip novo.

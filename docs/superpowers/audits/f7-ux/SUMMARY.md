@@ -74,3 +74,17 @@ Correções verificadas:
 Provas novas: f7-ux-review-placement.test.ts (4), f7-ux-session-integrity.test.ts (4), f7-ux-planning-activation.test.ts (2), f7-ux-planning-workspace.spec.ts (2), f7-ux-reviews-queue.spec.ts (2) e f7-ux-home-320.spec.ts (1). Detalhes por requisito em UX16-UX21-TRACEABILITY.md.
 
 Lacunas mantidas: disponibilidade semanal/exceções editáveis (P1), estado “revisão iniciada” (P1), diff da política base, histórico de compromissos/conflito de importação, inspetor de histórico de sessão e mês civil no calendário (P2). Nenhuma foi mascarada como PASS.
+
+## Rodada integrada 2026-11-10 — P1 fechados
+
+HEAD de código 68e83479; 89 commits à frente de origin/v2. P-04 e R-02, os dois P1 restantes, foram resolvidos com persistência, UI e testes:
+
+- disponibilidade semanal, exceções, meta semanal e minutos por disciplina persistidos com CAS e usados por wizard, calendário, capacidade e encaixe de revisões;
+- revisão iniciada com startedAt durável, histórico STARTED e idempotência, separada de execução e avaliação;
+- validação de alvo de alocação no serviço (perfil, existência, arquivamento e vínculo);
+- prévia obrigatória para adiar/suspender/transicionar a Reta Final;
+- diff obrigatório da política base com STALE_POLICY;
+- filtros e inspetor de histórico de sessões e revisões;
+- mês civil real (28/29/30/31 e virada de ano) e jornada integrada F2 a F6.
+
+A classificação permanece F7_UX_ADHERENCE_PARTIAL_WITH_EXACT_GAPS por lacunas P2 de profundidade (diagnóstico de capacidade, comparação lado a lado de revisões, amostra por evidência e encerramento da Reta Final).

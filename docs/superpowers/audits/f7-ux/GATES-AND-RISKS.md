@@ -42,3 +42,9 @@ O bundle contém `v2`, `main`, `recovery/f7-preformat-20261104`, `recovery/v2-f7
 3. Para rollback apenas dos commits F7-UX, identificar os commits do relatório `GIT-STATE.md` e usar `git revert` em ordem inversa; preservar o bundle e o HEAD anterior.
 4. Não reutilizar a restauração de dados ou rebaseline como rollback de código. Restore de backup e rollback Git são operações distintas.
 5. Antes de qualquer remoção, verificar que o commit/branch está integrado e que não há refs exclusivas.
+
+## Rodada integrada (HEAD 68e83479)
+
+P-04 e R-02 resolvidos e testados; E-09, P-03, P-05, R-03, R-06 e R-08 corrigidos. P1 local restante: nenhum conhecido.
+P2 mantidos: diagnóstico de capacidade (P-01), encerramento direto da Reta Final (P-05), comparação lado a lado de revisões (P-06), amostra por evidência (R-04), aceite distribuído (P-09/R-09) e quatro links inline abaixo de 24 px.
+Firebase Emulator continua NOT_RUN_ENVIRONMENT sem Java; E2E usa PLAYWRIGHT_PORT=18432 porque 18431 está presa no ambiente.

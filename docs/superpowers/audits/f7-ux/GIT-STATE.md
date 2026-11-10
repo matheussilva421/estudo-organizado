@@ -50,3 +50,19 @@ A árvore foi limpa após o commit de implementação; o commit documental final
 | bundle | `_resgate-estudo-organizado/f7-ux-preflight-20261110.bundle`, verificado |
 
 Os PNGs F4 regravados pela suíte serão restaurados ao HEAD após os gates finais, como na rodada anterior. Nenhum push, merge, deploy ou PR foi executado.
+
+## Rodada integrada (HEAD 68e83479)
+
+| Item | Valor |
+|---|---|
+| HEAD de código | 68e83479 |
+| commits novos | a5ff467f, fb7c2f8e, e25e6ee7, 32417120, 68e83479 |
+| vantagem | 89 commits à frente de origin/v2, 0 atrás |
+| bundle | _resgate-estudo-organizado/f7-ux-integrated-68e83479.bundle, verify PASS, SHA-256 DF0077EC2D1DDC8BB0FCF5290A4FA14B33DE0AD2A9F8631AA9957135B091AE3C |
+| segunda cópia | C:/Projetos/outputs/f7-ux-aderencia-20261110/f7-ux-integrated-68e83479.bundle |
+
+main/origin/main e origin/v2 permanecem intactos; nenhum push ou PR foi executado.
+
+### Fechamento final
+
+HEAD de código validado: 0c31e6ef. 91 commits à frente de origin/v2, 0 atrás. Commits da rodada: a5ff467f, fb7c2f8e, e25e6ee7, 32417120, 68e83479, da329670, 0c31e6ef (+ commit documental final). Árvore limpa após restaurar os quatro PNGs F4 regravados. O HEAD documental exato está em HEAD.txt do pacote.

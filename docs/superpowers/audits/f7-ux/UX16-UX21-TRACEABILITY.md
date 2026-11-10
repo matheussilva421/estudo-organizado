@@ -70,3 +70,22 @@ Classificação: **F7_UX_ADHERENCE_PARTIAL_WITH_EXACT_GAPS**. Nenhum item abaixo
 
 Nenhuma dessas lacunas foi mascarada como PASS. A Home em 320 px foi corrigida e está comprovada em `HOME-320-AUDIT.md`.
 
+
+## Atualização integrada — HEAD 68e83479
+
+| ID | Status | Evidência |
+|---|---|---|
+| P-01 | PARTIAL | metas semanais/progresso no painel; diagnóstico de capacidade ainda resumido |
+| P-03 | PASS_VERIFIED | mês civil real, lista, não alocados e capacidade compartilhada |
+| P-04 | PASS_VERIFIED | disponibilidade/exceções/metas persistidas e usadas por wizard/calendário/revisão |
+| P-05 | PARTIAL | adiamento/suspensão/transição com prévia; encerramento ainda direto |
+| P-06 | PARTIAL | checkpoint restaurável e rascunhos; comparação lado a lado pendente |
+| P-09 | PARTIAL | jornada integrada e capacidade provadas; aceite único distribuído |
+| E-06 | PASS_VERIFIED | filtros e inspetor de histórico de sessões |
+| E-09 | PASS_VERIFIED | validação de alvo de alocação no serviço |
+| R-02 | PASS_VERIFIED | startedAt durável, idempotente e separado da execução |
+| R-03 | PASS_VERIFIED | prévia obrigatória da política base com STALE_POLICY |
+| R-04 | PARTIAL | fatores explicados; navegação por amostra parcial |
+| R-06 | PASS_VERIFIED | histórico, versões e links por ID |
+| R-08 | PASS_VERIFIED | mensagens específicas de importação/conflito |
+

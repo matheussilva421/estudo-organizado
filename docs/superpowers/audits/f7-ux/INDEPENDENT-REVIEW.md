@@ -56,3 +56,20 @@ P2 documentados, não bloqueadores:
 - Filtro de revisão sem resultado mostra “Nenhum compromisso confirmado”; a contagem não tem aria-live.
 
 Nenhum P0 foi encontrado. O HEAD final de código após as correções é 8f2fee85; o commit 8f2fee85 ajusta o default da fila para “Todas” (preserva itens concluídos visíveis) e torna os testes de origem/SW portáveis pela variável PLAYWRIGHT_PORT.
+
+## Revisão da rodada integrada (92d96016..68e83479)
+
+Dois revisores read-only: Socrates (integridade F3/F4/F5) e Planck (UX/acessibilidade/testes). Nenhum P0. Achados P1 corrigidos no commit da329670:
+
+- “Verificado” somava tempo manual; agora usa sumVerifiedFocusMs e separa manual/incerto.
+- Prévia de prova/transição sobrevivia à troca de cenário; o pai limpa as prévias e os confirmadores exigem o mesmo cenário e revisão.
+- CAS de disponibilidade aceitava expectedRevision nulo mesmo com registro existente; null agora exige ausência real.
+- Segundo turno diário era apagado ao salvar o painel; janelas extras são preservadas.
+- Campos “Abre/Fecha” não identificavam o dia; agora há fieldset/legend e aria-label por dia, com aria-invalid.
+- Prévia da Reta Final e política receberam role=status/aria-live; janela do calendário tem aria-live; inputs de data ficam bloqueados durante a prévia.
+- Motivos reais de importação (FILE_TOO_LARGE, UNSUPPORTED_FORMAT, INVALID_*) são traduzidos; applyPlacement recusa compromisso terminal.
+
+P2 mantidos: mensagem de conflito ao iniciar em duas abas, retomada da transição quando o commit de blocos conflita, validação visual campo a campo dos minutos do wizard, teste de export filtrado e foco após pager/prévia.
+
+
+Correções dos P1 revisados: da329670. Reconciliação de regressões de jornadas e layout a 200%: 0c31e6ef. Validação final: 201 E2E + 3 skips, 876 unitários.
