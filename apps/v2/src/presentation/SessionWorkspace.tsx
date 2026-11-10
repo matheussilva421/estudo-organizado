@@ -707,15 +707,21 @@ export function SessionWorkspace({
       const focusBase = session.intervals
         .filter((interval) => interval.kind === 'FOCUS')
         .reduce((sum, interval) => sum + interval.verifiedMs, 0);
+      const recoveryPreview = await service.getRecoveryPreview(profileId, session.id);
+      const continuity =
+        (recoveryPreview?.uncertainIntervals.length ?? 0) === 0
+          ? ('VALID' as const)
+          : ('UNCERTAIN' as const);
       const actualElapsed =
         pomodoroStage === 'FOCUS' && focus
-          ? focus.verifiedMs + Math.max(0, elapsedMs - focusBase)
+          ? focus.verifiedMs +
+            (continuity === 'VALID' ? Math.max(0, elapsedMs - focusBase) : 0)
           : config.breakMs;
       const step = await service.evaluatePomodoro({
         stage: pomodoroStage,
         elapsedVerifiedMs: actualElapsed,
         config,
-        continuity: 'VALID',
+        continuity,
         authorityValid: true,
       });
       if (step.kind === 'BEGIN_BREAK') {
@@ -860,6 +866,10 @@ export function SessionWorkspace({
       trackPersist(result);
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('A transição não foi aceita. Recarregue e revise o estado.');
+      } else if (action === 'complete' && result.value.state === 'RECOVERY_REQUIRED') {
+        onNotice(
+          'Há uma lacuna não observada: o tempo não foi creditado. Resolva a recuperação assistida antes de concluir.',
+        );
       } else if (action === 'complete') {
         await coordinator.releaseAuthority(
           session.id,
@@ -915,6 +925,13 @@ export function SessionWorkspace({
 
   async function registerManual(): Promise<void> {
     if (locked || busy) return;
+    const stale = allocationDrafts
+      .map((draft) => allocationDraftIssue(draft))
+      .find((issue): issue is string => issue !== null);
+    if (stale) {
+      onNotice(stale);
+      return;
+    }
     setBusy(true);
     onNotice(null);
     try {
@@ -1034,9 +1051,46 @@ export function SessionWorkspace({
     }
   }
 
+  function allocationDraftIssue(draft: {
+    linkId: string;
+    assuntoId?: string;
+    minutes: number;
+  }): string | null {
+    const link = content.links.find((item) => item.id === draft.linkId);
+    if (!link) {
+      return 'A disciplina escolhida não existe mais no conteúdo. Remova a alocação.';
+    }
+    if (link.status !== 'ACTIVE') {
+      return 'A disciplina escolhida está arquivada e não recebe novas alocações.';
+    }
+    if (
+      draft.assuntoId &&
+      !content.assuntos.some(
+        (assunto) =>
+          assunto.id === draft.assuntoId &&
+          assunto.editalDisciplineId === draft.linkId,
+      )
+    ) {
+      return 'O assunto escolhido não pertence mais a esta disciplina. Revise a alocação.';
+    }
+    if (!Number.isFinite(draft.minutes) || draft.minutes <= 0) {
+      return 'Informe uma duração válida para a alocação.';
+    }
+    return null;
+  }
+
   function addAllocation(): void {
     if (!allocationLinkId) {
       onNotice('Escolha a disciplina antes de adicionar a alocação.');
+      return;
+    }
+    const issue = allocationDraftIssue({
+      linkId: allocationLinkId,
+      ...(allocationAssuntoId ? { assuntoId: allocationAssuntoId } : {}),
+      minutes: Number(allocationMinutes) || 0,
+    });
+    if (issue) {
+      onNotice(issue);
       return;
     }
     const minutes = Number(allocationMinutes);
@@ -1733,7 +1787,9 @@ export function SessionWorkspace({
                 data-testid="session-allocation-link"
               >
                 <option value="">Parcela não atribuída</option>
-                {content.links.map((link) => {
+                {content.links
+                  .filter((link) => link.status === 'ACTIVE')
+                  .map((link) => {
                   const subject = content.subjects.find(
                     (item) => item.id === link.subjectId,
                   );

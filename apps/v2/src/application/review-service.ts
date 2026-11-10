@@ -82,7 +82,12 @@ export type ReviewPlacementPreview =
       remainingMinutes: number;
       explanation: string;
     }
-  | { kind: 'BLOCKED'; reason: string };
+  | {
+      kind: 'BLOCKED';
+      reason: string;
+      explanation?: string;
+      conflictingBlockIds?: string[];
+    };
 
 export type ReviewImportPreview =
   | {
@@ -903,10 +908,57 @@ export class ReviewService {
     const blocks = await this.planning.listBlocks(profileId);
     const official = selectOfficialReservations(allScenarios, blocks, profileId);
     const duration = durationMinutes ?? (await this.getPolicy(profileId)).defaultDurationMinutes;
+    const startMinutes = parseClockMinute(start);
+    if (startMinutes === null) {
+      return {
+        kind: 'BLOCKED',
+        reason: 'INVALID_START',
+        explanation: `Horário inválido: ${start}. Use HH:MM entre 00:00 e 23:59.`,
+      };
+    }
+    if (!Number.isFinite(duration) || duration <= 0) {
+      return {
+        kind: 'BLOCKED',
+        reason: 'INVALID_DURATION',
+        explanation: 'A duração do encaixe precisa ser positiva.',
+      };
+    }
+    const endMinutes = startMinutes + duration;
+    if (endMinutes > 24 * 60 - 1) {
+      return {
+        kind: 'BLOCKED',
+        reason: 'CROSSES_MIDNIGHT',
+        explanation: 'O encaixe ultrapassaria a meia-noite; escolha outro horário.',
+      };
+    }
+    const zone = active.referenceZone || this.zone;
+    // Two blocks cannot occupy the same minutes on the same civil day. The
+    // previous preview only compared global remaining minutes and could offer
+    // an overlapping slot.
+    const overlapping = official.filter((block) => {
+      if (block.civilDate !== civilDate) return false;
+      if (!block.localStart || !block.localEnd) return false;
+      if (block.timeZone && block.timeZone !== zone) return false;
+      const blockStart = parseClockMinute(block.localStart);
+      const blockEnd = parseClockMinute(block.localEnd);
+      if (blockStart === null || blockEnd === null) return false;
+      return startMinutes < blockEnd && blockStart < endMinutes;
+    });
+    if (overlapping.length > 0) {
+      const labels = overlapping
+        .map((block) => `${block.localStart}–${block.localEnd}`)
+        .join(', ');
+      return {
+        kind: 'BLOCKED',
+        reason: 'OVERLAP',
+        explanation: `O horário ${start}–${formatClockMinute(endMinutes)} sobrepõe ${labels}.`,
+        conflictingBlockIds: overlapping.map((block) => block.id),
+      };
+    }
     const capacity = evaluateDailyCapacity({
       date: civilDate,
-      zone: this.zone,
-      weekly: REVIEW_WEEKLY,
+      zone,
+      weekly: { ...REVIEW_WEEKLY, timeZone: zone },
       exceptions: [],
       reservations: official,
     });
@@ -930,8 +982,8 @@ export class ReviewService {
       allocation: 'CONFIRMED_DAY',
       civilDate,
       localStart: start,
-      localEnd: addMinutes(start, duration),
-      timeZone: this.zone,
+      localEnd: formatClockMinute(endMinutes),
+      timeZone: zone,
       priority: 0,
       localRevision: 1,
       sourceOperationId: `review-placement-${commitment.id}`,
@@ -1248,12 +1300,15 @@ export class ReviewService {
   }
 }
 
-function addMinutes(time: string, minutes: number): string {
-  const match = /^(\d{2}):(\d{2})$/.exec(time);
-  if (!match) return time;
-  const total = Number(match[1]) * 60 + Number(match[2]) + Math.max(1, minutes);
-  const bounded = Math.min(total, 23 * 60 + 59);
-  return `${String(Math.floor(bounded / 60)).padStart(2, '0')}:${String(bounded % 60).padStart(2, '0')}`;
+/** Minutes since midnight for a strict HH:MM clock; null when malformed. */
+function parseClockMinute(time: string): number | null {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function formatClockMinute(total: number): string {
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
 function localClock(zone: string, now: Date): string {

@@ -56,6 +56,8 @@ export type SessionControlInput = {
     verifiedMs: number;
     checkpoint: ClockObservation;
     endedAt?: string;
+    /** True when the checkpoint closes an unobserved gap without crediting it. */
+    recoveryFlag?: boolean;
   };
 };
 
@@ -221,6 +223,7 @@ export class StudySessionService {
       return { kind: 'LOCAL_COMMITTED', value: current };
     }
     if (current.state !== 'RUNNING') return invalid('INVALID_TRANSITION');
+    const guarded = this.guardCheckpoint(current, input.checkpoint);
     return this.repository.commit({
       kind: 'TRANSITION',
       scope: {
@@ -230,7 +233,7 @@ export class StudySessionService {
       sessionId: input.sessionId,
       authority: input.authority,
       nextState: 'PAUSED',
-      checkpoint: input.checkpoint,
+      checkpoint: guarded.checkpoint,
     });
   }
 
@@ -271,6 +274,7 @@ export class StudySessionService {
       return { kind: 'LOCAL_COMMITTED', value: current };
     }
     if (current.state === 'CANCELLED') return invalid('INVALID_TRANSITION');
+    const guarded = this.guardCheckpoint(current, input.checkpoint);
     return this.repository.commit({
       kind: 'TRANSITION',
       scope: {
@@ -279,9 +283,53 @@ export class StudySessionService {
       },
       sessionId: input.sessionId,
       authority: input.authority,
-      nextState: 'COMPLETED',
-      checkpoint: input.checkpoint,
+      // An unobserved gap is never credited. The session stays pending so the
+      // user can resolve the gap explicitly before completion.
+      nextState: guarded.uncertain ? 'RECOVERY_REQUIRED' : 'COMPLETED',
+      checkpoint: guarded.checkpoint,
     });
+  }
+
+  /**
+   * A transition may only credit time that the monotonic clock observed
+   * continuously. When continuity cannot be proven, the durable value wins and
+   * the interval is flagged for assisted recovery.
+   */
+  private guardCheckpoint(
+    current: StudySession,
+    checkpoint: SessionControlInput['checkpoint'],
+  ): { checkpoint: SessionControlInput['checkpoint']; uncertain: boolean } {
+    if (!checkpoint) return { checkpoint, uncertain: false };
+    const previous =
+      [...current.intervals]
+        .reverse()
+        .find((interval) => interval.checkpoint !== null)?.checkpoint ?? null;
+    const persisted =
+      current.intervals.find((interval) => interval.id === checkpoint.intervalId)
+        ?.verifiedMs ?? 0;
+    if (!previous) return { checkpoint, uncertain: false };
+    let continuity: ReturnType<typeof inspectContinuity>;
+    try {
+      continuity = inspectContinuity(
+        previous,
+        checkpoint.checkpoint,
+        this.recoveryPolicy,
+      );
+    } catch {
+      return {
+        checkpoint: { ...checkpoint, verifiedMs: persisted, recoveryFlag: true },
+        uncertain: true,
+      };
+    }
+    if (continuity.kind === 'VALID') return { checkpoint, uncertain: false };
+    return {
+      checkpoint: {
+        ...checkpoint,
+        verifiedMs: Math.min(checkpoint.verifiedMs, persisted),
+        recoveryFlag: true,
+      },
+      uncertain: true,
+    };
   }
 
   async checkpointSession(input: CheckpointSessionInput): Promise<SessionOutcome<StudySession>> {
@@ -504,6 +552,9 @@ export class StudySessionService {
       const candidate = { ...current, ...input.patch };
       const allocations = input.patch.allocations ?? candidate.allocations ?? [];
       if (allocations.length > 0) {
+        if (allocations.some((allocation) => allocation.sessionId !== current.id)) {
+          return invalid('INVALID_ALLOCATION');
+        }
         allocateFocus(sessionTotalFocusMs(candidate), allocations);
       }
     } catch (error) {
@@ -608,6 +659,40 @@ export class StudySessionService {
       ) {
         return invalid('INVALID_DURATION');
       }
+      // The correction acknowledges the gap: the last checkpoint moves to the
+      // correction instant and the interval stops being flagged. Without this,
+      // every extra click added the same minutes again.
+      const observation = this.clock.observe();
+      const intervals = current.intervals.map((interval, index) =>
+        index === current.intervals.length - 1
+          ? { ...interval, checkpoint: observation, recoveryFlag: false }
+          : interval,
+      );
+      const facts: SessionFactsPatch = {
+        manualDeclaredMs:
+          (current.manualDeclaredMs ?? 0) + input.manualAdjustmentMs,
+        intervals,
+      };
+      const last = intervals[intervals.length - 1];
+      if (last && current.state !== 'DRAFT') {
+        return this.repository.commit({
+          kind: 'TRANSITION',
+          scope: {
+            ...input.scope,
+            baseRevision: input.scope.baseRevision ?? current.localRevision,
+          },
+          sessionId: input.sessionId,
+          authority: input.authority,
+          nextState: 'PAUSED',
+          factsPatch: facts,
+          checkpoint: {
+            intervalId: last.id,
+            verifiedMs: last.verifiedMs,
+            checkpoint: observation,
+            endedAt: observation.wallInstant,
+          },
+        });
+      }
       return this.repository.commit({
         kind: 'EDIT_FACTS',
         scope: {
@@ -616,10 +701,7 @@ export class StudySessionService {
         },
         sessionId: input.sessionId,
         authority: input.authority,
-        patch: {
-          manualDeclaredMs:
-            (current.manualDeclaredMs ?? 0) + input.manualAdjustmentMs,
-        },
+        patch: facts,
         reason: 'MANUAL_RECOVERY',
       });
     }

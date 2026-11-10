@@ -102,9 +102,11 @@ export type SessionCommitInput =
         verifiedMs: number;
         checkpoint: ClockObservation;
         endedAt?: string;
+        recoveryFlag?: boolean;
       };
       newInterval?: SessionInterval;
       patchIntervals?: SessionInterval[];
+      factsPatch?: SessionFactsPatch;
     }
   | {
       kind: 'CHECKPOINT';
@@ -562,7 +564,7 @@ export class LocalSessionRepository {
                     contextId:
                       input.checkpoint?.checkpoint.contextId ?? interval.contextId,
                     checkpoint: input.checkpoint?.checkpoint ?? interval.checkpoint,
-                    recoveryFlag: false,
+                    recoveryFlag: input.checkpoint?.recoveryFlag ?? false,
                     endedAt: input.checkpoint?.endedAt ?? interval.endedAt,
                   }
                 : interval,
@@ -575,7 +577,10 @@ export class LocalSessionRepository {
             intervals = input.patchIntervals;
           }
           persisted = validateSession({
-            ...transitionSession({ ...current, intervals }, input.nextState),
+            ...transitionSession(
+              { ...current, ...input.factsPatch, intervals },
+              input.nextState,
+            ),
             localRevision: current.localRevision + 1,
           });
         } catch (error) {
