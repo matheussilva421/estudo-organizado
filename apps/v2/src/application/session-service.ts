@@ -674,7 +674,9 @@ export class StudySessionService {
         intervals,
       };
       const last = intervals[intervals.length - 1];
-      if (last && current.state !== 'DRAFT') {
+      // PAUSED cannot transition to itself; EDIT_FACTS below keeps the state
+      // while refreshing the acknowledged checkpoint.
+      if (last && current.state !== 'DRAFT' && current.state !== 'PAUSED') {
         return this.repository.commit({
           kind: 'TRANSITION',
           scope: {

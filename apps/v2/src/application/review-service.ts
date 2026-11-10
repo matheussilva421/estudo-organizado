@@ -72,6 +72,7 @@ export type ReviewPlacementPreview =
       durationMinutes: number;
       remainingMinutes: number;
       scenarioId: string;
+      scenarioRevision: number;
       block: PlanBlock;
       explanation: string;
     }
@@ -995,6 +996,7 @@ export class ReviewService {
       durationMinutes: duration,
       remainingMinutes: capacity.remainingMinutes,
       scenarioId: active.id,
+      scenarioRevision: active.localRevision,
       block,
       explanation: `Encaixe em ${civilDate} ${start}; capacidade global ${capacity.availableMinutes} min, ${capacity.remainingMinutes} livres.`,
     };
@@ -1011,13 +1013,39 @@ export class ReviewService {
       (item) => item.id === commitmentId,
     );
     if (!commitment) return { kind: 'INVALID', code: 'COMMITMENT_NOT_FOUND' };
+    // Revalidate the proposal against current data: another tab may have
+    // occupied the slot or changed the scenario after the preview.
+    const fresh = await this.previewPlacement(
+      profileId,
+      commitmentId,
+      preview.civilDate,
+      preview.block.localStart ?? '08:00',
+      preview.durationMinutes,
+    );
+    if (fresh.kind !== 'READY') {
+      return fresh.kind === 'UNALLOCATED'
+        ? { kind: 'BLOCKED', reason: 'CAPACITY_CONFLICT' }
+        : { kind: 'CONFLICT', code: fresh.reason };
+    }
+    if (
+      fresh.scenarioId !== preview.scenarioId ||
+      fresh.block.localEnd !== preview.block.localEnd
+    ) {
+      return { kind: 'CONFLICT', code: 'STALE_PLACEMENT' };
+    }
     const snapshot = await this.planning.loadScenario(profileId, preview.scenarioId);
     if (!snapshot) return { kind: 'BLOCKED', reason: 'NO_ACTIVE_SCENARIO' };
+    if (
+      snapshot.scenario.status !== 'ACTIVE' ||
+      snapshot.scenario.localRevision !== preview.scenarioRevision
+    ) {
+      return { kind: 'CONFLICT', code: 'STALE_PLACEMENT' };
+    }
     const planningResult = await this.planning.commit({
       scope: { profileId, operationId, baseRevision: snapshot.scenario.localRevision },
       scenarioId: preview.scenarioId,
       baseRevision: snapshot.scenario.localRevision,
-      changes: { upsertBlocks: [preview.block] },
+      changes: { upsertBlocks: [fresh.block] },
       summary: 'F5 review placement',
     });
     if (planningResult.kind !== 'LOCAL_COMMITTED') {
@@ -1027,7 +1055,7 @@ export class ReviewService {
     }
     const next: ReviewCommitment = {
       ...commitment,
-      planBlockId: preview.block.id,
+      planBlockId: fresh.block.id,
       localRevision: commitment.localRevision + 1,
       history: [
         ...commitment.history,

@@ -975,41 +975,6 @@ textarea {
     grid-column: auto !important;
   }
 
-  /* At narrow widths the academic widgets come before the personalization
-     controls, so the next action is not buried under three settings rows. */
-  .home-view {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .home-view > * {
-    order: 4;
-  }
-
-  .home-view > .view-header {
-    order: 0;
-  }
-
-  .home-view > .dashboard-grid {
-    order: 1;
-  }
-
-  .home-view > .home-counts {
-    order: 2;
-  }
-
-  .home-view > .home-controls {
-    order: 3;
-  }
-
-  .home-view > .context-inspector,
-  .home-view > .empty-state {
-    order: 5;
-  }
-
-  .home-view > .inline-notice {
-    order: -1;
-  }
 }
 
 .search-form {

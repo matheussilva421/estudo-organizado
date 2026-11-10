@@ -492,6 +492,49 @@ export function HomeView({
         </div>
       ) : null}
 
+
+
+      <section className="dashboard-grid" data-columns={layout.columns} aria-label="Widgets da Home">
+        {visibleLayoutWidgets.map((widget) => (
+          <article
+            key={widget.id}
+            className="dashboard-widget"
+            style={{ gridColumn: `span ${Math.min(widget.span, layout.columns)}` }}
+            data-widget={widget.id}
+          >
+            {renderWidget(widget.id)}
+          </article>
+        ))}
+        {customWidgets.map((widget) => {
+          const parsed = parseWidgetExpression(widget.formula);
+          const evaluated = parsed.ok ? evaluateWidgetExpression(parsed.ast, expressionMetrics) : parsed;
+          return (
+            <article key={widget.id} className="dashboard-widget" data-widget={widget.id} data-testid="custom-widget">
+              <h4>{widget.label}</h4>
+              <strong className="widget-value">{evaluated.ok ? formatMetric(typeof evaluated.value === 'number' ? evaluated.value : null, evaluated.unit) : 'Indisponível'}</strong>
+              <code>{widget.formula}</code>
+              <button type="button" className="button-ghost" onClick={() => removeCustomWidget(widget.id)}>
+                Remover widget
+              </button>
+            </article>
+          );
+        })}
+      </section>
+
+      <div className="home-counts" aria-label="Resumo do perfil local" data-visible-indicators={indicators.length}>
+        {indicators.map((indicator) => (
+          <div className="count-card" key={indicator.id} data-indicator={indicator.id}>
+            <span className="count-value">{indicator.value}</span>
+            <span className="count-label">{indicator.label.toLowerCase()}</span>
+          </div>
+        ))}
+        {indicators.length === 0 ? (
+          <p className="empty-state">
+            Todos os indicadores estão ocultos; prioridades e alertas continuam visíveis.
+          </p>
+        ) : null}
+      </div>
+
       <section className="home-controls" aria-label="Painel personalizável">
         <div className="settings-row">
           <label htmlFor="home-template">Modelo da Home</label>
@@ -602,47 +645,6 @@ export function HomeView({
             ))}
           </fieldset>
         </details>
-      </section>
-
-      <div className="home-counts" aria-label="Resumo do perfil local" data-visible-indicators={indicators.length}>
-        {indicators.map((indicator) => (
-          <div className="count-card" key={indicator.id} data-indicator={indicator.id}>
-            <span className="count-value">{indicator.value}</span>
-            <span className="count-label">{indicator.label.toLowerCase()}</span>
-          </div>
-        ))}
-        {indicators.length === 0 ? (
-          <p className="empty-state">
-            Todos os indicadores estão ocultos; prioridades e alertas continuam visíveis.
-          </p>
-        ) : null}
-      </div>
-
-      <section className="dashboard-grid" data-columns={layout.columns} aria-label="Widgets da Home">
-        {visibleLayoutWidgets.map((widget) => (
-          <article
-            key={widget.id}
-            className="dashboard-widget"
-            style={{ gridColumn: `span ${Math.min(widget.span, layout.columns)}` }}
-            data-widget={widget.id}
-          >
-            {renderWidget(widget.id)}
-          </article>
-        ))}
-        {customWidgets.map((widget) => {
-          const parsed = parseWidgetExpression(widget.formula);
-          const evaluated = parsed.ok ? evaluateWidgetExpression(parsed.ast, expressionMetrics) : parsed;
-          return (
-            <article key={widget.id} className="dashboard-widget" data-widget={widget.id} data-testid="custom-widget">
-              <h4>{widget.label}</h4>
-              <strong className="widget-value">{evaluated.ok ? formatMetric(typeof evaluated.value === 'number' ? evaluated.value : null, evaluated.unit) : 'Indisponível'}</strong>
-              <code>{widget.formula}</code>
-              <button type="button" className="button-ghost" onClick={() => removeCustomWidget(widget.id)}>
-                Remover widget
-              </button>
-            </article>
-          );
-        })}
       </section>
       {visibleLayoutWidgets.length === 0 ? (
         <p className="empty-state">Nenhum widget pertence ao filtro atual; os dados não foram alterados.</p>

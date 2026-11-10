@@ -564,7 +564,10 @@ export class LocalSessionRepository {
                     contextId:
                       input.checkpoint?.checkpoint.contextId ?? interval.contextId,
                     checkpoint: input.checkpoint?.checkpoint ?? interval.checkpoint,
-                    recoveryFlag: input.checkpoint?.recoveryFlag ?? false,
+                    // A valid checkpoint must not clear a flag created by
+                    // flagInactiveSession; only an explicit correction does.
+                    recoveryFlag:
+                      input.checkpoint?.recoveryFlag ?? interval.recoveryFlag,
                     endedAt: input.checkpoint?.endedAt ?? interval.endedAt,
                   }
                 : interval,

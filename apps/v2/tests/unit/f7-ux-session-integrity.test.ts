@@ -148,6 +148,41 @@ describe('F7-UX session time integrity', () => {
     expect(preview?.uncertainIntervals).toHaveLength(0);
   });
 
+  it('manual correction works when the gap was closed by a pause', async () => {
+    const { service, repository, authority } = await setup();
+    nowMs = 10 * 60_000;
+    await checkpointAt(service, repository, authority, 10 * 60_000, 'op-cp');
+    nowMs = 70 * 60_000;
+    const current = await repository.load(profileId, 'session-1');
+    const paused = await service.pauseSession({
+      scope: { profileId, operationId: 'op-pause', baseRevision: current!.localRevision },
+      sessionId: 'session-1',
+      authority,
+      checkpoint: {
+        intervalId: 'session-1~interval~1',
+        verifiedMs: 70 * 60_000,
+        checkpoint: clock.observe(),
+        endedAt: clock.observe().wallInstant,
+      },
+    });
+    expect(paused.kind).toBe('LOCAL_COMMITTED');
+    const before = await repository.load(profileId, 'session-1');
+    expect(before?.state).toBe('PAUSED');
+
+    const corrected = await service.recoverSession({
+      scope: { profileId, operationId: 'op-correct', baseRevision: before!.localRevision },
+      sessionId: 'session-1',
+      decision: 'CORRECT_MANUALLY',
+      manualAdjustmentMs: 4 * 60_000,
+      authority,
+    });
+    expect(corrected.kind).toBe('LOCAL_COMMITTED');
+    const after = await repository.load(profileId, 'session-1');
+    expect(after?.state).toBe('PAUSED');
+    expect(after?.manualDeclaredMs).toBe(4 * 60_000);
+    expect(after?.intervals[0]?.recoveryFlag).toBe(false);
+  });
+
   it('rejects allocations that point at another session', async () => {
     const { service, repository, authority } = await setup();
     nowMs = 30 * 60_000;

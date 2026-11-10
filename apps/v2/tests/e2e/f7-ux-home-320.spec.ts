@@ -54,6 +54,11 @@ test('home remains usable from 320px to desktop', async ({ page }) => {
         grid: box('.dashboard-grid'),
         nextAction: box('[data-widget="next-action"]'),
         agenda: box('[data-widget="agenda"]'),
+        domOrder: [...document.querySelectorAll('.home-view > *')].map((element) =>
+          typeof element.className === 'string' && element.className
+            ? element.className.split(' ')[0]
+            : element.tagName.toLowerCase(),
+        ),
         interactive: interactive.length,
         under24: tooSmall.length,
         smallTargets: tooSmall.slice(0, 8).map((element) => {
@@ -89,6 +94,18 @@ test('home remains usable from 320px to desktop', async ({ page }) => {
       measured.clientWidth + 1,
     );
     expect(measured.grid, `dashboard grid missing at ${viewport.name}`).not.toBeNull();
+    const indexOf = (name: string) => measured.domOrder.indexOf(name);
+    expect(indexOf('dashboard-grid'), 'widgets must precede controls in the DOM').toBeLessThan(
+      indexOf('home-controls'),
+    );
+    expect(indexOf('dashboard-grid'), 'widgets must precede counts in the DOM').toBeLessThan(
+      indexOf('home-counts'),
+    );
+    if (measured.controls && measured.grid) {
+      expect(measured.grid.top, 'visual order must match DOM order').toBeLessThan(
+        measured.controls.top,
+      );
+    }
     await page.screenshot({
       path: join(out, `home-${viewport.name}.png`),
       fullPage: false,

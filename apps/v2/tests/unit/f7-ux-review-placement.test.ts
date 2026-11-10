@@ -153,5 +153,61 @@ describe('F7-UX review placement integrity', () => {
     expect(preview.kind).toBe('BLOCKED');
     if (preview.kind === 'BLOCKED') expect(preview.reason).toBe('CROSSES_MIDNIGHT');
   });
+
+  it('refuses a preview whose slot was occupied before apply', async () => {
+    const review = service();
+    const commitmentId = await commitmentFor(review);
+    const planning = new LocalPlanningRepository();
+    await activeScenario(planning);
+    const preview = await review.previewPlacement(
+      profileId,
+      commitmentId,
+      '2026-11-02',
+      '09:00',
+      30,
+    );
+    expect(preview.kind).toBe('READY');
+    if (preview.kind !== 'READY') return;
+
+    // Another tab fills the slot after the preview.
+    const occupied = await planning.commit({
+      scope: { profileId, operationId: 'op-late-block', baseRevision: 1 },
+      scenarioId: 'scenario-1',
+      baseRevision: 1,
+      changes: {
+        upsertBlocks: [
+          {
+            id: 'late-block',
+            profileId,
+            editalId: 'edital-1',
+            scenarioId: 'scenario-1',
+            editalDisciplineId: 'disc-1',
+            plannedMinutes: 30,
+            allocation: 'CONFIRMED_DAY',
+            civilDate: '2026-11-02',
+            localStart: '09:15',
+            localEnd: '09:45',
+            timeZone: 'America/Fortaleza',
+            priority: 0,
+            localRevision: 1,
+            sourceOperationId: 'late',
+            label: 'Bloco concorrente',
+          },
+        ],
+      },
+    });
+    expect(occupied.kind).toBe('LOCAL_COMMITTED');
+
+    const applied = await review.applyPlacement(
+      profileId,
+      commitmentId,
+      preview,
+      'op-apply-stale',
+    );
+    expect(applied.kind).toBe('CONFLICT');
+    if (applied.kind === 'CONFLICT') expect(applied.code).toBe('OVERLAP');
+    const blocks = await planning.listBlocks(profileId, 'scenario-1');
+    expect(blocks.map((block) => block.id)).toEqual(['late-block']);
+  });
 });
 
