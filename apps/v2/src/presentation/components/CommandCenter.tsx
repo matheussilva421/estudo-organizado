@@ -83,8 +83,23 @@ export function CommandCenter({ open, commands, onClose, onNavigate, onSearch }:
           }
         }}
       >
-        <h2 id="command-center-title">Central de comandos</h2>
-        <input
+        <div className="command-head">
+          <div>
+            <p className="eyebrow">Navegação rápida</p>
+            <h2 id="command-center-title">Central de comandos</h2>
+          </div>
+          <span className="command-shortcut" aria-hidden="true">
+            <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>K</kbd>
+          </span>
+        </div>
+        <div className="command-search">
+          <span className="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m16 16 5 5" />
+            </svg>
+          </span>
+          <input
           ref={inputRef}
           type="search"
           role="combobox"
@@ -102,7 +117,8 @@ export function CommandCenter({ open, commands, onClose, onNavigate, onSearch }:
             setQuery(event.target.value);
             setSelected(0);
           }}
-        />
+          />
+        </div>
         <ul id="command-list" role="listbox" aria-label="Destinos">
           {filtered.map((command, index) => (
             <li

@@ -80,6 +80,18 @@ test('f7 ux sanitized visual evidence', async ({ page }) => {
     }
   }
 
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/#/home');
+  await page.getByTestId('command-center-open').click();
+  await expect(page.getByTestId('command-center')).toBeVisible();
+  await page.screenshot({ path: resolve(out!, 'modules', 'command-center-desktop.png') });
+  await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByTestId('command-center-open').click();
+  await expect(page.getByTestId('command-center')).toBeVisible();
+  await page.screenshot({ path: resolve(out!, 'modules', 'command-center-mobile.png') });
+  await page.keyboard.press('Escape');
+
   const manifest = {
     generatedAt: new Date().toISOString(),
     themes: THEMES,
