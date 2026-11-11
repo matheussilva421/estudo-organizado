@@ -40,6 +40,7 @@ import {
 import { browserLockPort, withSafeFlushLock } from './sync/coordination';
 import { flushPending } from './sync/flush';
 import { FakeRemotePort } from './sync/fake-remote';
+import { applyRemoteChange } from './sync/apply-remote';
 import { previewLink } from '../application/sync-policy';
 import { canDeliver } from './sync/delivery-policy';
 import { SyncCoordinator } from './sync/sync-coordinator';
@@ -63,6 +64,7 @@ import type { RecoverySnapshotResult } from './sync/firebase-remote';
 type Fault = E2EFault;
 
 export type V2E2EHarness = {
+  applyRemoteChange: typeof applyRemoteChange;
   resetDb: () => Promise<void>;
   seedLegacyV1: () => Promise<void>;
   releaseLegacyV1: () => void;
@@ -507,6 +509,7 @@ export function installE2EHarness(): void {
       );
       return result.kind === 'EXECUTED' ? { kind: 'EXECUTED' } : { kind: 'BLOCKED' };
     },
+    applyRemoteChange,
     seedDeliverableOutbox: async (profileId, operationId, entityId, title) => {
       const database = await openV2Database(profileId);
       const transaction = database.transaction(

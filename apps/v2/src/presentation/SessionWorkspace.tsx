@@ -114,6 +114,7 @@ type Props = {
   locked: boolean;
   onNotice: (message: string | null) => void;
   startBlockId?: string | null;
+  syncNeedsDecision?: boolean;
   onStartBlockConsumed?: () => void;
   focusId?: string | null;
 };
@@ -196,6 +197,7 @@ export function SessionWorkspace({
   locked,
   onNotice,
   startBlockId,
+  syncNeedsDecision,
   onStartBlockConsumed,
   focusId = null,
 }: Props) {
@@ -1559,6 +1561,11 @@ export function SessionWorkspace({
             {session.state}
             {focusBlock ? ' · ' + blockLabel(focusBlock, content) : ' · sem bloco vinculado'}
           </p>
+          {syncNeedsDecision ? (
+            <div className="inline-notice" role="alert">
+              Conflito exige decisão. <a href="#/settings">Ver conflito</a>
+            </div>
+          ) : null}
           {recovery ? (
             <p className="inline-notice" role="alert">
               Há tempo não observado. Resolva a recuperação ao sair do Modo Foco.

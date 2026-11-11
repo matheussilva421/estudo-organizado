@@ -1856,6 +1856,7 @@ export function App() {
             focusId={focusedId}
         onNotice={setNotice}
         startBlockId={startBlockId}
+        syncNeedsDecision={health.mode === 'CONFLICT'}
         onStartBlockConsumed={() => setStartBlockId(null)}
       />
 

@@ -1,5 +1,39 @@
 import { expect, test } from '@playwright/test';
 import { resetF7Ux } from './f7-ux-helpers';
+import type { V2E2EHarness } from '../../src/platform/e2e-harness';
+
+test('local reconciliation exposes a persistent conflict during compact mobile focus', async ({ page, context }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await resetF7Ux(page, '/#/settings');
+  await page.getByLabel('Densidade').selectOption('compact');
+  await page.goto('/#/sessions');
+  await page.getByTestId('session-start').click();
+  await page.getByTestId('session-focus-open').click();
+  const other = await context.newPage();
+  await other.goto('/#/home');
+  await expect(other.locator('[data-db-ready="true"]')).toBeVisible();
+  const result = await other.evaluate(async () => {
+    const h = (window as unknown as { __v2E2E: V2E2EHarness }).__v2E2E;
+    const profileId = 'local-default';
+    const entityId = 'conflicting-subject';
+    localStorage.setItem('v2-e2e-auth-uid', 'uid-e2e');
+    await h.execute({ type: 'create', profileId, operationId: 'create-conflicting-subject', subjectId: entityId, title: 'Local' });
+    await h.seedDeliverableOutbox(profileId, 'queued-conflicting-subject', entityId, 'Local');
+    return h.applyRemoteChange(profileId, { uid: 'uid-e2e', libraryId: 'library-e2e' },
+      { sequence: 1, entityId, revision: 2, deleted: true, epoch: 1 },
+      { entityType: 'subject', entityId, revision: 2, deleted: true, epoch: 1, schemaVersion: 1, payload: null });
+  });
+  expect(result).toBe('CONFLICT');
+  // A subsequent committed change refreshes the app through its existing local event channel.
+  await other.evaluate(async () => {
+    const h = (window as unknown as { __v2E2E: V2E2EHarness }).__v2E2E;
+    await h.execute({ type: 'create', profileId: 'local-default', operationId: 'after-conflict', subjectId: 'after-conflict', title: 'Outra disciplina' });
+  });
+  const focus = page.getByTestId('session-focus');
+  await expect(focus.getByRole('alert').filter({ hasText: 'Conflito exige decisão' })).toBeInViewport();
+  await expect(focus.getByRole('link', { name: 'Ver conflito' })).toBeVisible();
+  await expect(focus).toContainText('RUNNING');
+});
 
 test('focus mode uses the same session and clock without duplicating facts', async ({ page }) => {
   await resetF7Ux(page, '/#/sessions');
