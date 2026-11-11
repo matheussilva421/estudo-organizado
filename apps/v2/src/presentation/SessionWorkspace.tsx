@@ -435,6 +435,10 @@ export function SessionWorkspace({
       );
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('Não foi possível assumir o controle do cronômetro.');
+      } else if (typeof BroadcastChannel === 'function') {
+        const channel = new BroadcastChannel(UPDATE_CHANNEL);
+        channel.postMessage({ type: 'SESSION_AUTHORITY_CHANGED', profileId, from: holderId });
+        channel.close();
       }
       await refresh();
     } finally {
@@ -481,7 +485,11 @@ export function SessionWorkspace({
     if (typeof BroadcastChannel !== 'function') return;
     const channel = new BroadcastChannel(UPDATE_CHANNEL);
     channel.onmessage = (event: MessageEvent) => {
-      const message = event.data as { type?: string; from?: string };
+      const message = event.data as { type?: string; from?: string; profileId?: string };
+      if (message?.type === 'SESSION_AUTHORITY_CHANGED' && message.profileId === profileId && message.from !== holderId) {
+        void refresh().catch(() => onNotice('Não foi possível atualizar o controle do cronômetro.'));
+        return;
+      }
       if (message?.type === 'UPDATE_QUERY' && message.from !== holderId) {
         const ready =
           !(
@@ -502,7 +510,7 @@ export function SessionWorkspace({
       }
     };
     return () => channel.close();
-  }, [holderId, manualNote, manualMinutes, manualDate, recovery, session]);
+  }, [holderId, manualNote, manualMinutes, manualDate, onNotice, profileId, recovery, refresh, session]);
 
   async function applyUpdate(): Promise<void> {
     if (!('serviceWorker' in navigator) || busy) return;
