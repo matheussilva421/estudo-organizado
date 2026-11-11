@@ -1,32 +1,25 @@
-# F7-UX Redesign Premium — resumo local
+# F7-UX Premium — fechamento local
 
-Data: 11/11/2026. Branch v2. Base após merge documental: e160da5a. Código validado: f685425f.
+**Código validado:** 9457b7ca (v2 local, sem push)
+**Estado:** LOCAL_PREMIUM_CLOSURE_READY_FOR_UX_H / REMOTE_PUSH_NOT_AUTHORIZED / UX_HUMAN_PENDING
+**Escopo:** recomposição visual estrutural pedida no adendo prioritário, correções P1/P2 das revisões e cobertura VA/DV.
 
-## Entregue
+## Delta desta rodada
 
-- 12 temas: 8 originais + Neon Teal, Esmeralda e Dourado, Azul e Âmbar, Azul Glacial e Prata.
-- Galeria visual em Configurações → Aparência, com seleção, prévia, persistência e reset.
-- Preferências de glow, movimento, densidade (incluindo espaçosa) e aparência dos cards, aplicadas por data attributes.
-- Layered Premium: superfícies sólidas, sombras/glow seletivos, cards elevados/vidro e motion configurável.
-- Command Center acessível por botão e Ctrl+K, reutilizando rotas e busca existentes, sem mutação.
-- Home Bento com hero contextual: sessão ativa, primeiro uso/onboarding, Reta Final, desempenho e rotina diária.
-- Modo Foco opcional em Sessões: mesma sessão, mesmo relógio, sem nova persistência; pausa/retomada/conclusão reutilizados.
-- Planejamento com Semana/Mês/Lista em destaque, Dia acessível e preferência persistente.
-- Marcas de estúdio em Home, Planejamento, Sessões, Revisões, Análises e Configurações.
-- Acessibilidade: 12 temas com contraste amostrado ≥4.5, reduced motion respeitado, 320 px e 200% sem overflow.
+- Home recomposta: cabeçalho compacto com busca em pílula, ações de Atenção/Configurações, rail lateral emoldurado com ícones e citação, hero dominante com ilustração SVG temática, passos em faixa própria, bento com cartões de larguras diferentes, ícones por widget, minigráfico real de foco e seção Recursos principais.
+- Prioridade acadêmica: avisos operacionais deixaram de ocupar o hero e de se repetir nos cartões; diagnósticos ficam na Central de Atenção e na faixa de sincronização.
+- Densidade revisada: rail 214 px, hero reduzido, paddings de 14–24 px, tipografia menor, cartões mais baixos; comparações lado a lado em comparacoes/.
+- Correções de integridade: transferência de autoridade só ocorre após pause confirmado; resolução remota de sessão valida o snapshot e registra auditoria; checkpoints de 15 s não recarregam a projeção global.
+- Correções de UX: biblioteca abre a árvore por ID e sincroniza a troca de edital; filtros mobile com contagem viva, foco e zoom; sugestão de ordem com aceite explícito, foco e anúncio; alvos de toque da Home em 24 px.
 
-## Reaproveitado
+## Verificação
 
-Domínio F2–F7, repositórios, IndexedDB, sessão/clock, outbox, backup, políticas de revisão, calendário e projeções não foram reimplementados. Nenhum segundo design system, roteador ou motor foi criado.
+- typecheck, lint (0 avisos) e build: PASS.
+- Unidade: 880 testes em 129 arquivos: PASS.
+- E2E Chromium: 226 PASS, 5 SKIP, 0 FAIL em 231.
+- Capturas: 24 da Home (4 temas × vazio desktop/tablet/320/390 + dados desktop/390), 8 comparações lado a lado, 36 imagens de módulos.
+- Firebase Emulator, NVDA/Narrator e hardware físico: NOT_RUN.
 
-## Limitações
+## Limites preservados
 
-- Recomposição visual completa de Knowledge/Insights/Review Studios ficou parcial; as superfícies existentes foram preservadas e marcadas como estúdio, sem reescrita ampla.
-- Home adaptativa não reorganiza widgets automaticamente; layout escolhido permanece fixo (mitiga R-V01).
-- Mobile Layers usa a responsividade e os detalhes existentes; não houve novo sistema de bottom sheets.
-- VA-01–VA-20 e DV-01–DV-18 têm itens PARTIAL registrados na matriz; nenhum P0/P1 conhecido.
-
-## Classificação
-
-**LOCAL_REDESIGN_READY_FOR_HUMAN_REVIEW / TESTED_LOCAL / COMMITTED_V2_LOCAL / REMOTE_PUSH_NOT_AUTHORIZED / UX_HUMAN_ACCEPTED_NOT_OBTAINED.** Nenhum P0/P1 conhecido após a revisão independente.
-
+Ilustração é vetorial e não replica a fotocomposição dos mockups; cartões têm menos gráficos internos que a referência; Knowledge/Review/Insights mantêm inspetor e painéis existentes com nova linguagem, sem reengenharia profunda. UX-H, G-EXT, G-STAGING, push e F8 seguem não autorizados.

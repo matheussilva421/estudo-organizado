@@ -1,27 +1,27 @@
-# Revisão independente — Redesign Premium
+# Revisão independente — rodada final
 
-Revisores read-only: Bernoulli (integridade) e Lovelace (UX/acessibilidade/testes). Delta e160da5a..25b8ca0f. Nenhum P0. Correções em 4a6b2640 e f685425f.
+Dois revisores read-only analisaram o delta até fb1c8083. Os achados materiais foram corrigidos nesta rodada e revalidados.
 
-## P1 encontrados e resolvidos
+## Integridade (revisor 1)
 
-- Command Center usava aria-modal sem conter Tab e sem aria-activedescendant. Corrigido: Tab permanece no campo, opções têm IDs e o input anuncia a opção ativa; Escape é global.
-- Modo Foco desmontava o botão focado e não tinha Escape. Corrigido: foco inicial no Sair, Escape global, retorno ao gatilho e status aria-live.
-- Atalho Ctrl+K conflita com o navegador. O rótulo e aria-keyshortcuts passaram a anunciar Ctrl+Shift+K; o botão visível continua sendo a via principal.
-- Countdown da prova usava UTC e podia cair um dia à noite. Corrigido para data civil em America/Fortaleza antes do cálculo.
+- P1 — transferência de autoridade prosseguia após falha do pause: corrigido em 22de061d; o takeover aborta, avisa e recarrega. E2E novo: f4-two-tabs "takeover aborts when the durable session cannot be paused".
+- P1 — resolução remota de study-session gravava payload cru: corrigido em 22de061d com validateSession, auditoria em sessionAudit e notifySessionChange; dois testes unitários.
+- P2 — conflito dedicado F4 sem produtor de sync: documentado; o fluxo genérico é o caminho real e agora é validado.
+- P2 — edição INCOMING sem autoridade: segue documentado como risco latente; caminho genérico exige decisão explícita e não foi ampliado.
+- P3 — custo de refresh a cada checkpoint: corrigido com kind CHECKPOINT e projeção sem recarga global.
+- P3 — handoff desatualizado: atualizado no repositório.
 
-## P2 corrigidos
+## UX, a11y e desempenho (revisor 2)
 
-- Duplo confirm() ao navegar com rascunho sujo: agora um único guard com skipGuard.
-- Swatch da Platina era claro e não representava o tema escuro; corrigido.
-- Botões do Foco ignoravam locked; agora desabilitam e exibem aviso de autoridade estrangeira.
-- Cards sólidos não removiam sombra; glow/cards têm precedência definida.
-- Rótulo longo no Foco recebeu quebra de linha.
+- P2 — Biblioteca quebrava a troca de edital e usava aria-current: corrigido; seleção sincroniza rota e teste cobre a troca.
+- P2 — Biblioteca não levava à árvore: rolagem para tree-title e árvore aberta por ID.
+- P2/P3 — refresh de checkpoint: corrigido como acima.
+- P3 — contagem fora do diálogo modal: contagem viva adicionada dentro do sheet.
+- P3 — foco perdido ao trocar viewport com sheet aberto: gatilho recebe foco ao fechar; comportamento coberto em 320/390.
+- P3 — aplicar ordem removia o botão focado: foco vai ao primeiro widget e anúncio role=status.
+- P3 — Neon Teal azul demais: mantido o azul-marinho do mockup; contraste 18:1 no texto. Divergência estética fica para UX-H.
+- Alvos de toque da Home em 19,5 px: corrigidos para 24 px e testados.
 
-## P2 mantidos
+## Limites
 
-- CSS possui regras duplicadas antigas de .app-header/.theme-picker.
-- VA-03 não foi exercitado com sessão ativa durante troca de tema.
-- VA-19 não exercitou conflito real em tela pequena.
-- Bottom sheets dedicados de DV-17 não foram introduzidos.
-- NVDA/Narrator e hardware modesto NOT_RUN.
-
+As revisões foram estáticas, sem executar a suíte. Os testes e capturas desta rodada foram executados pelo implementador. NVDA/Narrator, toque físico e hardware modesto continuam NOT_RUN.
