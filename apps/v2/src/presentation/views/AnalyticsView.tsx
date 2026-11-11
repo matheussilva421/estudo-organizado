@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type {
   AnalyticsComparison,
   AnalyticsSummary,
@@ -48,6 +48,7 @@ function downloadReport(content: string, filename: string, mime: string): void {
 }
 
 export function AnalyticsView({ analytics, comparison, stale = false, days, onDaysChange }: Props) {
+  const editorHeading = useRef<HTMLHeadingElement>(null);
   const evidence = useMemo(() => buildAnalyticsEvidence(analytics), [analytics]);
   const [chartType, setChartType] = useState<'line' | 'bar'>('bar');
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['focus-time', 'planned-time']);
@@ -100,10 +101,116 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
         </span>
       </header>
 
+      {stale ? (
+        <div className="inline-notice" role="alert" data-testid="f6-analytics-stale">
+          A última leitura dos dados locais falhou. Os números abaixo são a última foto
+          conhecida e não devem ser tratados como atualizados; tente novamente pela Home.
+        </div>
+      ) : null}
+
+      <section aria-labelledby="analytics-overview-title">
+        <header className="section-header">
+          <h3 id="analytics-overview-title">Visão geral</h3>
+          <button type="button" onClick={() => editorHeading.current?.focus()}>
+            Explorar indicadores
+          </button>
+        </header>
+        <dl className="scope-grid">
+          <div>
+            <dt>Período</dt>
+            <dd>{analytics.period.from} a {analytics.period.to}</dd>
+          </div>
+          <div>
+            <dt>Escopo</dt>
+            <dd>{analytics.scope}</dd>
+          </div>
+          <div>
+            <dt>Origem</dt>
+            <dd>{analytics.source}</dd>
+          </div>
+          <div>
+            <dt>Impressão</dt>
+            <dd>{analytics.fingerprint ?? 'não materializada'}</dd>
+          </div>
+        </dl>
+
+        <div className="kpi-grid">
+          <article className="kpi-card">
+            <span className="kpi-label">Tempo de foco executado</span>
+            <strong className="kpi-value">
+              {analytics.sessions.inPeriod > 0 ? formatFocusDuration(analytics.sessions.focusMs) : '—'}
+            </strong>
+            <span className="kpi-note">{analytics.sessions.inPeriod} sessão(ões) concluída(s) no período</span>
+          </article>
+          <article className="kpi-card">
+            <span className="kpi-label">Tempo planejado</span>
+            <strong className="kpi-value">
+              {analytics.planned.activeScenarios > 0 ? `${analytics.planned.minutes} min` : '—'}
+            </strong>
+            <span className="kpi-note">
+              {analytics.planned.blocks} bloco(s) em {analytics.planned.activeScenarios} cenário(s) ativo(s)
+            </span>
+          </article>
+          <article className="kpi-card">
+            <span className="kpi-label">Questões registradas</span>
+            <strong className="kpi-value">{analytics.questions.total === 0 ? '—' : analytics.questions.total}</strong>
+            <span className="kpi-note">
+              {analytics.questions.total === 0
+                ? 'Sem medições: ausência, não zero de desempenho.'
+                : `${analytics.questions.correct} acerto(s) em ${analytics.questions.sessionsWithData} sessão(ões) com dados.`}
+            </span>
+          </article>
+          <article className="kpi-card">
+            <span className="kpi-label">Aproveitamento</span>
+            <strong className="kpi-value">{accuracy === null ? '—' : `${accuracy}%`}</strong>
+            <span className="kpi-note">
+              {analytics.questions.total === 0
+                ? 'Sem medições: ausência, não zero de desempenho.'
+                : lowSample
+                  ? 'Amostra pequena (' +
+                    analytics.questions.total +
+                    ' questões); aproveitamento não exibido como tendência.'
+                  : 'Denominador: questões efetivamente registradas.'}
+            </span>
+          </article>
+        </div>
+
+        <section className="panel" aria-labelledby="analytics-comparison-title">
+          <header className="section-header">
+            <h3 id="analytics-comparison-title">Comparação com o período anterior</h3>
+          </header>
+          <p>
+            Período anterior: {formatFocusDuration(comparison.previousFocusMs)} em{' '}
+            {comparison.previousSessions} sessão(ões). Variação de foco:{' '}
+            {comparison.focusDeltaPct === null
+              ? '—'
+              : (Math.round(comparison.focusDeltaPct * 10) / 10).toFixed(1) + '%'}.
+          </p>
+          <p className="hint">{comparison.note}</p>
+        </section>
+
+        {analytics.status !== 'READY' ? (
+          <p className="inline-notice" role="status">
+            {analytics.status === 'INSUFFICIENT_DATA'
+              ? 'Não há sessões concluídas no período. Os valores de planejamento continuam visíveis como plano, não como execução.'
+              : 'Há dados parciais; os totais abaixo são diagnósticos e não uma conciliação integral.'}
+          </p>
+        ) : null}
+
+        {analytics.warnings.length > 0 ? (
+          <ul className="warning-list" aria-label="Ressalvas dos indicadores">
+            {analytics.warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        ) : null}
+
+      </section>
+
       <section className="panel analytics-editor" aria-labelledby="analytics-editor-title">
         <header className="section-header">
           <div>
-            <h3 id="analytics-editor-title">Editor de análise</h3>
+            <h3 id="analytics-editor-title" tabIndex={-1} ref={editorHeading}>Editor de análise</h3>
             <p className="muted">Métricas, séries e tabela usam o mesmo conjunto de fatos.</p>
           </div>
           <label className="settings-inline">
@@ -275,103 +382,6 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
           </div>
         ) : null}
       </section>
-
-      {stale ? (
-        <div className="inline-notice" role="alert" data-testid="f6-analytics-stale">
-          A última leitura dos dados locais falhou. Os números abaixo são a última foto
-          conhecida e não devem ser tratados como atualizados; tente novamente pela Home.
-        </div>
-      ) : null}
-
-      <dl className="scope-grid">
-        <div>
-          <dt>Período</dt>
-          <dd>{analytics.period.from} a {analytics.period.to}</dd>
-        </div>
-        <div>
-          <dt>Escopo</dt>
-          <dd>{analytics.scope}</dd>
-        </div>
-        <div>
-          <dt>Origem</dt>
-          <dd>{analytics.source}</dd>
-        </div>
-        <div>
-          <dt>Impressão</dt>
-          <dd>{analytics.fingerprint ?? 'não materializada'}</dd>
-        </div>
-      </dl>
-
-      <div className="kpi-grid">
-        <article className="kpi-card">
-          <span className="kpi-label">Tempo de foco executado</span>
-          <strong className="kpi-value">
-            {analytics.sessions.inPeriod > 0 ? formatFocusDuration(analytics.sessions.focusMs) : '—'}
-          </strong>
-          <span className="kpi-note">{analytics.sessions.inPeriod} sessão(ões) concluída(s) no período</span>
-        </article>
-        <article className="kpi-card">
-          <span className="kpi-label">Tempo planejado</span>
-          <strong className="kpi-value">
-            {analytics.planned.activeScenarios > 0 ? `${analytics.planned.minutes} min` : '—'}
-          </strong>
-          <span className="kpi-note">
-            {analytics.planned.blocks} bloco(s) em {analytics.planned.activeScenarios} cenário(s) ativo(s)
-          </span>
-        </article>
-        <article className="kpi-card">
-          <span className="kpi-label">Questões registradas</span>
-          <strong className="kpi-value">{analytics.questions.total === 0 ? '—' : analytics.questions.total}</strong>
-          <span className="kpi-note">
-            {analytics.questions.total === 0
-              ? 'Sem medições: ausência, não zero de desempenho.'
-              : `${analytics.questions.correct} acerto(s) em ${analytics.questions.sessionsWithData} sessão(ões) com dados.`}
-          </span>
-        </article>
-        <article className="kpi-card">
-          <span className="kpi-label">Aproveitamento</span>
-          <strong className="kpi-value">{accuracy === null ? '—' : `${accuracy}%`}</strong>
-          <span className="kpi-note">
-            {analytics.questions.total === 0
-              ? 'Sem medições: ausência, não zero de desempenho.'
-              : lowSample
-                ? 'Amostra pequena (' +
-                  analytics.questions.total +
-                  ' questões); aproveitamento não exibido como tendência.'
-                : 'Denominador: questões efetivamente registradas.'}
-          </span>
-        </article>
-      </div>
-
-      <section className="panel" aria-labelledby="analytics-comparison-title">
-        <header className="section-header">
-          <h3 id="analytics-comparison-title">Comparação com o período anterior</h3>
-        </header>
-        <p>
-          Período anterior: {formatFocusDuration(comparison.previousFocusMs)} em{' '}
-          {comparison.previousSessions} sessão(ões). Variação de foco:{' '}
-          {comparison.focusDeltaPct === null
-            ? '—'
-            : (Math.round(comparison.focusDeltaPct * 10) / 10).toFixed(1) + '%'}.
-        </p>
-        <p className="hint">{comparison.note}</p>
-      </section>
-
-      {analytics.status !== 'READY' ? (
-        <p className="inline-notice" role="status">
-          {analytics.status === 'INSUFFICIENT_DATA'
-            ? 'Não há sessões concluídas no período. Os valores de planejamento continuam visíveis como plano, não como execução.'
-            : 'Há dados parciais; os totais abaixo são diagnósticos e não uma conciliação integral.'}
-        </p>
-      ) : null}
-
-      {analytics.warnings.length > 0 ? (
-        <ul className="warning-list" aria-label="Ressalvas dos indicadores">
-          {analytics.warnings.map((warning) => (
-            <li key={warning}>{warning}</li>
-          ))}
-        </ul>
-      ) : null}
 
       <div className="table-grid">
         <section className="panel" aria-labelledby="analytics-edital-title">

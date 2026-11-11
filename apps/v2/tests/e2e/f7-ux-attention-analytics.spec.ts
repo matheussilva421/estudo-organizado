@@ -33,6 +33,9 @@ test('f7 ux analytics blocks incompatible units, mirrors table and exports metho
   await expect(focusKpi.locator('.kpi-value')).toHaveText('—');
   const plannedKpi = page.locator('.kpi-card').filter({ hasText: 'Tempo planejado' });
   await expect(plannedKpi.locator('.kpi-value')).toHaveText('—');
+  await page.getByRole('button', { name: 'Explorar indicadores' }).click();
+  await expect(page.getByRole('heading', { name: 'Editor de análise' })).toBeFocused();
+  await expect(page).toHaveURL(/#\/analytics$/);
   await expect(page.getByTestId('f7-analytics-chart')).toBeVisible();
   await page.getByRole('checkbox', { name: /Aproveitamento \(percent\)/ }).check();
   await expect(page.getByTestId('f7-chart-blocked')).toContainText('unidades diferentes');
