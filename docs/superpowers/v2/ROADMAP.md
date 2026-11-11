@@ -405,7 +405,7 @@ Uma fase só estará **CONCLUÍDA** após verificar: escopo aceito, evidências 
 
 Spec e plano premium aprovados foram incorporados por merge documental (e160da5a). Implementação local do delta RP-00–RP-15 em 1aedf507, a0cac3f0 e f685425f: 12 temas, galeria, preferências visuais, Home hero/onboarding, Command Center, Modo Foco, Semana/Mês/Lista com Dia e marcadores de estúdio.
 
-Rodada corretiva (3f79e682..9457b7ca): recomposição estrutural da Home e do shell, densidade revisada contra os quatro mockups, ilustração vetorial, recursos principais, prioridade acadêmica e correções P1/P2/P3 de sessão, sincronização, foco e acessibilidade. Código validado em aefc0627, incluindo visão de fila do Review Studio.
+Rodada corretiva (3f79e682..9457b7ca): recomposição estrutural da Home e do shell, densidade revisada contra os quatro mockups, ilustração vetorial, recursos principais, prioridade acadêmica e correções P1/P2/P3 de sessão, sincronização, foco e acessibilidade. Código validado em 45181108, incluindo visões de fila do Review e de biblioteca do Knowledge.
 
 Estado: **LOCAL_PREMIUM_CLOSURE_READY_FOR_UX_H / TESTED_LOCAL / COMMITTED_V2_LOCAL / REMOTE_PUSH_NOT_AUTHORIZED / UX_HUMAN_PENDING**.
 Evidências, comparações lado a lado e matriz em docs/superpowers/audits/f7-ux-premium/. Nenhum push, deploy, PR, Firebase, staging, F8 ou alteração em main.

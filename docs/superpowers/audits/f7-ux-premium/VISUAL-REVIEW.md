@@ -8,7 +8,7 @@ Referências recebidas em 11/11/2026 (1586 x 992), preservadas em comparacoes/re
 |---|---|---|
 | 1. Estrutura e distribuição | RESOLVED | Rail emoldurado, cabeçalho compacto, hero amplo, faixa de passos, bento e recursos. Capturas vazio/dados desktop, tablet, 390 e 320. |
 | 2. Hierarquia e proporção do hero | PARTIAL | Hero é a superfície dominante com título, descrição e CTA; segundo CTA existe apenas no primeiro uso. Referência tem dois CTAs sempre e texto mais curto. |
-| 3. Composição dos cartões | PARTIAL | Larguras variadas, ícones, resumo com contagens reais, minigráfico de foco e visão de fila de Revisões. Referência tem anel de meta e gráfico maior; não inventamos dados. |
+| 3. Composição dos cartões | PARTIAL | Larguras variadas, ícones, resumo com contagens reais, minigráfico de foco e visão de fila de Revisões e visão de biblioteca do Knowledge. Referência tem anel de meta e gráfico maior; não inventamos dados. |
 | 4. Tipografia, densidade e espaçamento | RESOLVED | Revisão final reduziu rail para 214 px, hero, paddings (14–24 px), títulos e lacunas; primeira dobra mostra hero e cartões como a referência. |
 | 5. Profundidade e iluminação | PARTIAL | Gradientes radiais, bordas translúcidas e sombras seletivas; sem a fotocomposição luminosa dos mockups. |
 | 6. Elementos ilustrativos | PARTIAL | Cena de estudo vetorial temática (luminária, livros, notebook), adaptável aos 12 temas; não é cópia da imagem-fonte. |
