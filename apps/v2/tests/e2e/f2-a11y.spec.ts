@@ -126,7 +126,8 @@ test('coarse_pointer_targets_are_at_least_44px', async ({ browser }) => {
 
   await page.getByLabel('Novo edital').fill('TJPB 2026');
   const heights = await page.evaluate(() =>
-    [...document.querySelectorAll('button, select, input')].map(
+    [...document.querySelectorAll('button, select, input')]
+      .filter((element) => element.getClientRects().length > 0).map(
       (element) => element.getBoundingClientRect().height,
     ),
   );
