@@ -16,8 +16,9 @@ test('focus mode uses the same session and clock without duplicating facts', asy
   await page.getByTestId('session-focus-resume').click();
   await expect(focus).toContainText('RUNNING');
 
-  await page.getByTestId('session-focus-exit').click();
+  await page.keyboard.press('Escape');
   await expect(page.getByTestId('session-workspace')).toBeVisible();
+  await expect(page.getByTestId('session-focus-open')).toBeFocused();
   await expect(page.getByTestId('session-pause')).toBeVisible();
 
   await page.getByTestId('session-complete').click();

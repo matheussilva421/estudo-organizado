@@ -1124,19 +1124,25 @@ export function App() {
   }
 
   function navigateFromCommand(module: RouteModule): void {
-    if (
-      hasDirtyDrafts() &&
-      !confirmNavigationIntent('outra área')
-    ) {
+    if (hasDirtyDrafts() && !confirmNavigationIntent('outra área')) {
       return;
     }
-    navigate({ module, entityId: null, query: {}, invalid: false });
+    navigate(
+      { module, entityId: null, query: {}, invalid: false },
+      { skipGuard: true },
+    );
     closeCommandCenter();
   }
 
   function searchFromCommand(query: string): void {
+    if (hasDirtyDrafts() && !confirmNavigationIntent('busca')) {
+      return;
+    }
     setSearchDraft(query);
-    navigate({ module: 'search', entityId: null, query: { q: query }, invalid: false });
+    navigate(
+      { module: 'search', entityId: null, query: { q: query }, invalid: false },
+      { skipGuard: true },
+    );
     closeCommandCenter();
   }
 
@@ -1245,7 +1251,7 @@ export function App() {
           type="button"
           className="button-ghost command-trigger"
           onClick={() => setCommandOpen(true)}
-          aria-keyshortcuts="Control+K"
+          aria-keyshortcuts="Control+Shift+K"
           data-testid="command-center-open"
         >
           Comandos

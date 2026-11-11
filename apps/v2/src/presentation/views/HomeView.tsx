@@ -469,7 +469,12 @@ export function HomeView({
     );
   }
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Fortaleza',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
   const examDays = finalStretch?.examDate
     ? Math.round(
         (Date.parse(finalStretch.examDate + 'T00:00:00Z') -
@@ -483,9 +488,11 @@ export function HomeView({
       ? 'ONBOARDING'
       : examDays !== null && examDays >= 0 && examDays <= 45
         ? 'FINAL_STRETCH'
-        : summary.counts.completedLast7Days > 0
-          ? 'PERFORMANCE'
-          : 'DAILY';
+        : summary.nextAction
+          ? 'DAILY'
+          : summary.counts.completedLast7Days > 0
+            ? 'PERFORMANCE'
+            : 'DAILY';
   const heroTitle =
     heroContext === 'ACTIVE'
       ? 'Sessão em andamento'

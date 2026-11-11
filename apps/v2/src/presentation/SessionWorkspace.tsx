@@ -213,6 +213,13 @@ export function SessionWorkspace({
   const [elapsedMs, setElapsedMs] = useState(0);
   const [busy, setBusy] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  const focusExitRef = useRef<HTMLButtonElement>(null);
+  const focusOpenRef = useRef<HTMLButtonElement>(null);
+
+  function exitFocusMode(): void {
+    setFocusMode(false);
+    window.setTimeout(() => focusOpenRef.current?.focus(), 0);
+  }
   const [updateReady, setUpdateReady] = useState(false);
   const manualDraftKey = localDraftKey(profileId, 'session-manual');
   const initialManualDraft = readManualDraft(manualDraftKey);
@@ -633,6 +640,25 @@ export function SessionWorkspace({
       setFocusMode(false);
     }
   }, [session?.id, session?.state]);
+
+  useEffect(() => {
+    if (!focusMode) return;
+    const timer = window.setTimeout(() => focusExitRef.current?.focus(), 0);
+    return () => window.clearTimeout(timer);
+  }, [focusMode]);
+
+  useEffect(() => {
+    if (!focusMode) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setFocusMode(false);
+        window.setTimeout(() => focusOpenRef.current?.focus(), 0);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [focusMode]);
 
   async function startSessionWithOrigin(
     origin: 'TIMER' | 'POMODORO',
@@ -1503,6 +1529,13 @@ export function SessionWorkspace({
         aria-labelledby="session-focus-title"
         data-testid="session-focus"
         data-studio="sessions-focus"
+        tabIndex={-1}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            exitFocusMode();
+          }
+        }}
       >
         <div className="focus-layer">
           <p className="eyebrow">Modo Foco</p>
@@ -1510,6 +1543,9 @@ export function SessionWorkspace({
           <div className="focus-timer" data-testid="session-focus-timer">
             {formatMs(elapsedMs)}
           </div>
+          <p className="sr-only" role="status" aria-live="polite">
+            Modo Foco ativo. Escape ou Sair do Foco retorna ao workspace.
+          </p>
           <p>
             {session.state}
             {focusBlock ? ' · ' + blockLabel(focusBlock, content) : ' · sem bloco vinculado'}
@@ -1524,12 +1560,18 @@ export function SessionWorkspace({
               A última gravação não foi confirmada. O tempo permanece nesta aba.
             </p>
           ) : null}
+          {foreignAuthority ? (
+            <p className="inline-notice" role="alert">
+              Outra aba controla esta sessão. Saia do Foco e assuma o controle no
+              workspace para pausar ou concluir.
+            </p>
+          ) : null}
           <div className="session-actions">
             {session.state === 'RUNNING' ? (
               <button
                 type="button"
                 onClick={() => control('pause')}
-                disabled={busy || !authority}
+                disabled={locked || busy || !authority}
                 data-testid="session-focus-pause"
               >
                 Pausar
@@ -1539,7 +1581,7 @@ export function SessionWorkspace({
               <button
                 type="button"
                 onClick={() => control('resume')}
-                disabled={busy || !authority}
+                disabled={locked || busy || !authority}
                 data-testid="session-focus-resume"
               >
                 Retomar
@@ -1549,16 +1591,17 @@ export function SessionWorkspace({
               <button
                 type="button"
                 onClick={() => control('complete')}
-                disabled={busy || !authority}
+                disabled={locked || busy || !authority}
                 data-testid="session-focus-complete"
               >
                 Concluir
               </button>
             ) : null}
             <button
+              ref={focusExitRef}
               type="button"
               className="button-ghost"
-              onClick={() => setFocusMode(false)}
+              onClick={exitFocusMode}
               data-testid="session-focus-exit"
             >
               Sair do Foco
@@ -1677,6 +1720,7 @@ export function SessionWorkspace({
             ) : null}
             {session && session.state !== 'COMPLETED' && session.state !== 'CANCELLED' ? (
               <button
+                ref={focusOpenRef}
                 type="button"
                 className="button-ghost"
                 onClick={() => setFocusMode(true)}

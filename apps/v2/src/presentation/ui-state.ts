@@ -12,7 +12,7 @@ export type ThemeOption = { id: string; label: string; preview: ThemePreview };
 export const THEMES: ThemeOption[] = [
   { id: 'grafite', label: 'Grafite', preview: { background: '#08090d', surface: '#121821', accent: '#8aa4bf', text: '#f3f6fb' } },
   { id: 'ardosia', label: 'Ardósia', preview: { background: '#0c1015', surface: '#161c24', accent: '#7fa6c9', text: '#eef2f7' } },
-  { id: 'platina', label: 'Platina', preview: { background: '#eef1f5', surface: '#ffffff', accent: '#3f6f9f', text: '#17202b' } },
+  { id: 'platina', label: 'Platina', preview: { background: '#101215', surface: '#1a1e24', accent: '#b9c7d8', text: '#f4f6f9' } },
   { id: 'terminal', label: 'Terminal', preview: { background: '#050807', surface: '#0d1512', accent: '#5fd3a0', text: '#edf8f2' } },
   { id: 'neon', label: 'Neon', preview: { background: '#080a12', surface: '#121628', accent: '#b388ff', text: '#f0edfb' } },
   { id: 'arrakis', label: 'Arrakis', preview: { background: '#100d09', surface: '#1c1712', accent: '#d8a657', text: '#f6efe5' } },

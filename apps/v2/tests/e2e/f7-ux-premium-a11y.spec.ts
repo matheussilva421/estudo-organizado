@@ -14,6 +14,10 @@ test('twelve themes preserve sampled contrast and reduced motion', async ({ page
       document.documentElement.dataset.theme = name;
       const styles = getComputedStyle(document.documentElement);
       const text = styles.getPropertyValue('--text').trim();
+      const secondary = styles.getPropertyValue('--text-secondary').trim();
+      const muted = styles.getPropertyValue('--text-muted').trim();
+      const accent = styles.getPropertyValue('--accent').trim();
+      const accentText = styles.getPropertyValue('--accent-text').trim();
       const card = styles.getPropertyValue('--card').trim();
       const surface = styles.getPropertyValue('--surface').trim();
       const rgb = (value: string) => {
@@ -31,10 +35,19 @@ test('twelve themes preserve sampled contrast and reduced motion', async ({ page
         const bg = luminance(background);
         return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
       };
-      return [ratio(rgb(text), rgb(card)), ratio(rgb(text), rgb(surface))];
+      return [
+        ratio(rgb(text), rgb(card)),
+        ratio(rgb(text), rgb(surface)),
+        ratio(rgb(secondary), rgb(card)),
+        ratio(rgb(muted), rgb(card)),
+        ratio(rgb(accentText), rgb(accent)),
+      ];
     }, theme);
     expect(ratios[0], theme + ' card').toBeGreaterThanOrEqual(4.5);
     expect(ratios[1], theme + ' surface').toBeGreaterThanOrEqual(4.5);
+    expect(ratios[2], theme + ' secondary').toBeGreaterThanOrEqual(4.5);
+    expect(ratios[3], theme + ' muted').toBeGreaterThanOrEqual(4.5);
+    expect(ratios[4], theme + ' accent text').toBeGreaterThanOrEqual(4.5);
   }
 
   await page.emulateMedia({ reducedMotion: 'reduce' });

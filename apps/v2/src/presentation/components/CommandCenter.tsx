@@ -75,6 +75,9 @@ export function CommandCenter({ open, commands, onClose, onNavigate, onSearch }:
           } else if (event.key === 'ArrowUp') {
             event.preventDefault();
             setSelected((current) => Math.max(0, current - 1));
+          } else if (event.key === 'Tab') {
+            event.preventDefault();
+            inputRef.current?.focus();
           } else if (event.key === 'Enter') {
             event.preventDefault();
             activate();
@@ -85,6 +88,14 @@ export function CommandCenter({ open, commands, onClose, onNavigate, onSearch }:
         <input
           ref={inputRef}
           type="search"
+          role="combobox"
+          aria-expanded="true"
+          aria-controls="command-list"
+          aria-activedescendant={
+            filtered[selected]
+              ? 'command-option-' + filtered[selected].id
+              : 'command-search-option'
+          }
           value={query}
           aria-label="Buscar destinos ou o acervo local"
           placeholder="Ir para… ou buscar no acervo"
@@ -93,10 +104,11 @@ export function CommandCenter({ open, commands, onClose, onNavigate, onSearch }:
             setSelected(0);
           }}
         />
-        <ul role="listbox" aria-label="Destinos">
+        <ul id="command-list" role="listbox" aria-label="Destinos">
           {filtered.map((command, index) => (
             <li
               key={command.id}
+              id={'command-option-' + command.id}
               role="option"
               aria-selected={index === selected}
               onClick={() => onNavigate(command.module)}
@@ -106,6 +118,7 @@ export function CommandCenter({ open, commands, onClose, onNavigate, onSearch }:
           ))}
           {filtered.length === 0 ? (
             <li
+              id="command-search-option"
               role="option"
               aria-selected={selected === 0}
               onClick={() => (query.trim() ? onSearch(query.trim()) : undefined)}
@@ -114,7 +127,7 @@ export function CommandCenter({ open, commands, onClose, onNavigate, onSearch }:
             </li>
           ) : null}
         </ul>
-        <p className="hint">Ctrl+K abre · Esc fecha · Enter navega. Nenhum comando altera dados.</p>
+        <p className="hint">Ctrl+Shift+K abre · Esc fecha · Enter navega. Nenhum comando altera dados.</p>
       </div>
     </div>
   );

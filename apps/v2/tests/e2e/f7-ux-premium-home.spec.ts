@@ -52,3 +52,17 @@ test('final stretch context uses the registered exam date', async ({ page }) => 
   await expect(hero).toContainText('10 dia(s)');
 });
 
+test('an active session takes precedence in the home hero', async ({ page }) => {
+  await resetF7Ux(page, '/#/sessions');
+  await seedAcademicData(page);
+  await page.goto('/#/sessions');
+  await page.getByTestId('session-start').click();
+  await expect(page.getByTestId('session-pause')).toBeVisible();
+  await page.goto('/#/home');
+  await page.reload();
+  const hero = page.getByTestId('home-hero');
+  await expect(hero).toHaveAttribute('data-context', 'ACTIVE');
+  await expect(hero).toContainText('Sessão em andamento');
+  await expect(hero.getByRole('link', { name: 'Continuar sessão' })).toBeVisible();
+});
+
