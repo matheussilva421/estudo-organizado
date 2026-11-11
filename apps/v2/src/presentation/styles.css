@@ -1854,6 +1854,16 @@ select {
   }
 }
 
+.integrity-grid,
+.integrity-grid > div {
+  min-width: 0;
+}
+
+.integrity-grid dt,
+.integrity-grid dd {
+  overflow-wrap: anywhere;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;
