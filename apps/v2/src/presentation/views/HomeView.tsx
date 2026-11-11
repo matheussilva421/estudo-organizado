@@ -53,6 +53,7 @@ type Props = {
   ready: boolean;
   loadError: string | null;
   experienceError: boolean;
+  finalStretch?: { examDate: string | null; name: string } | null;
   onRetry: () => void;
 };
 
@@ -60,6 +61,7 @@ const MODE_KEY = 'estudo-organizado:v2:home-mode';
 const INDICATORS_KEY = 'estudo-organizado:v2:home-indicators';
 const DASHBOARD_KEY = 'estudo-organizado:v2:home-dashboard';
 const CUSTOM_WIDGETS_KEY = 'estudo-organizado:v2:home-custom-widgets';
+const ONBOARDING_KEY = 'estudo-organizado:v2:home-onboarding-dismissed';
 
 const WIDGET_LABELS: Record<DashboardWidgetId, string> = {
   'next-action': 'Próxima ação',
@@ -203,12 +205,20 @@ export function HomeView({
   ready,
   loadError,
   experienceError,
+  finalStretch = null,
   onRetry,
 }: Props) {
   const [mode, setMode] = useState<HomeMode>(() => readMode(profileId));
   const [visibleIndicators, setVisibleIndicators] = useState<HomeIndicatorId[]>(() =>
     readIndicators(profileId),
   );
+  const [onboardingDismissed, setOnboardingDismissed] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem(ONBOARDING_KEY + ':' + profileId) === '1';
+    } catch {
+      return false;
+    }
+  });
   const [dashboard, setDashboard] = useState<DashboardState>(() => readDashboard(profileId));
   const [layoutHistory, setLayoutHistory] = useState<DashboardState[]>([]);
   const [device, setDevice] = useState<DashboardDevice>(inferDevice);
@@ -459,11 +469,68 @@ export function HomeView({
     );
   }
 
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const examDays = finalStretch?.examDate
+    ? Math.round(
+        (Date.parse(finalStretch.examDate + 'T00:00:00Z') -
+          Date.parse(todayIso + 'T00:00:00Z')) /
+          86_400_000,
+      )
+    : null;
+  const heroContext = summary.activeSession
+    ? 'ACTIVE'
+    : summary.empty
+      ? 'ONBOARDING'
+      : examDays !== null && examDays >= 0 && examDays <= 45
+        ? 'FINAL_STRETCH'
+        : summary.counts.completedLast7Days > 0
+          ? 'PERFORMANCE'
+          : 'DAILY';
+  const heroTitle =
+    heroContext === 'ACTIVE'
+      ? 'Sessão em andamento'
+      : heroContext === 'ONBOARDING'
+        ? 'Comece pelo essencial'
+        : heroContext === 'FINAL_STRETCH'
+          ? 'Reta Final em foco'
+          : heroContext === 'PERFORMANCE'
+            ? 'Acompanhe o que já rendeu'
+            : (summary.nextAction?.title ?? 'Próximo passo');
+  const heroDetail =
+    heroContext === 'ACTIVE'
+      ? 'Continue de onde parou; esta é a mesma sessão do cronômetro.'
+      : heroContext === 'ONBOARDING'
+        ? 'Adicione um edital ou disciplina e registre a primeira sessão. Nada é inventado.'
+        : heroContext === 'FINAL_STRETCH'
+          ? `${finalStretch?.name ?? 'Reta Final'} · ${examDays} dia(s) até a prova registrada.`
+          : heroContext === 'PERFORMANCE'
+            ? 'Tempo, revisões e evidências derivados dos seus dados locais.'
+            : (summary.nextAction?.detail ?? 'Abra o planejamento para escolher o próximo bloco.');
+  const heroHref =
+    heroContext === 'ACTIVE'
+      ? '#/sessions'
+      : heroContext === 'ONBOARDING'
+        ? '#/content'
+        : heroContext === 'FINAL_STRETCH'
+          ? '#/planning'
+          : summary.nextAction
+            ? routeHref(routeForTarget(summary.nextAction.target, summary.nextAction.entityId ?? null))
+            : '#/planning';
+  const heroCta =
+    heroContext === 'ACTIVE'
+      ? 'Continuar sessão'
+      : heroContext === 'ONBOARDING'
+        ? 'Adicionar conteúdo'
+        : heroContext === 'FINAL_STRETCH'
+          ? 'Abrir planejamento'
+          : 'Começar agora';
+
   return (
     <section
       className="view home-view"
       aria-labelledby="home-title"
       data-testid="f6-home"
+      data-studio="home"
       data-home-mode={mode}
       data-dashboard-template={dashboard.template}
       data-dashboard-device={device}
@@ -480,6 +547,49 @@ export function HomeView({
           {health.mode === 'READY' ? 'Integridade local visível' : 'Revisar integridade'}
         </a>
       </header>
+
+      <section
+        className="home-hero"
+        data-testid="home-hero"
+        data-context={heroContext}
+        aria-labelledby="home-hero-title"
+      >
+        <div>
+          <p className="eyebrow">
+            {heroContext === 'ONBOARDING' ? 'Primeiros passos' : 'Próxima ação'}
+          </p>
+          <h2 id="home-hero-title">{heroTitle}</h2>
+          <p>{heroDetail}</p>
+        </div>
+        <div className="home-hero-actions">
+          <a className="button-primary" href={heroHref}>
+            {heroCta}
+          </a>
+          {heroContext === 'ONBOARDING' && !onboardingDismissed ? (
+            <button
+              type="button"
+              className="button-ghost"
+              onClick={() => {
+                try {
+                  window.localStorage.setItem(ONBOARDING_KEY + ':' + profileId, '1');
+                } catch {
+                  // Dismissal stays in memory when storage is unavailable.
+                }
+                setOnboardingDismissed(true);
+              }}
+            >
+              Dispensar primeiros passos
+            </button>
+          ) : null}
+        </div>
+        {heroContext === 'ONBOARDING' && !onboardingDismissed ? (
+          <ol className="home-onboarding">
+            <li>Cadastre edital e disciplina em Conteúdo.</li>
+            <li>Defina disponibilidade e metas em Planejamento.</li>
+            <li>Registre a primeira sessão em Estudar.</li>
+          </ol>
+        ) : null}
+      </section>
 
       {loadError || experienceError ? (
         <div className="inline-notice" role="alert" data-testid="f6-load-error">

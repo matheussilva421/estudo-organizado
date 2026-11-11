@@ -82,6 +82,7 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
       className="view analytics-view"
       aria-labelledby="analytics-title"
       data-testid="f6-analytics"
+      data-studio="insights"
       data-analytics-status={analytics.status}
       data-analytics-stale={stale ? 'true' : undefined}
     >

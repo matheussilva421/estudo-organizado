@@ -953,7 +953,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   }
 
   return (
-    <section className="session-workspace" aria-labelledby="review-title" data-testid="review-workspace">
+    <section className="session-workspace" data-studio="reviews" aria-labelledby="review-title" data-testid="review-workspace">
       <h2 id="review-title">Revisões e inteligência</h2>
       <p className="empty-state">
         Sugestões explicáveis, compromissos próprios, evidências F4 e banca contextual.

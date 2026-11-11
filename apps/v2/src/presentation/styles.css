@@ -1501,6 +1501,7 @@ textarea:focus-visible {
 
 .app-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
@@ -2022,4 +2023,241 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* F7-UX Premium — galeria de temas e camadas visuais configuráveis. */
+.theme-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.theme-card[aria-pressed='true'] {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.theme-swatch {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  width: 100%;
+  height: 46px;
+  padding: 6px;
+  border: 1px solid;
+  border-radius: 8px;
+}
+
+.theme-swatch span {
+  flex: 1;
+  height: 6px;
+  border-radius: 99px;
+}
+
+:root[data-density='spacious'] .panel {
+  padding: 24px;
+}
+
+:root[data-density='spacious'] .view {
+  margin-top: 28px;
+}
+
+:root[data-cards='glass'] .panel,
+:root[data-cards='glass'] .dashboard-widget,
+:root[data-cards='glass'] .session-card {
+  background: color-mix(in srgb, var(--card) 84%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+:root[data-cards='elevated'] .panel,
+:root[data-cards='elevated'] .dashboard-widget,
+:root[data-cards='elevated'] .session-card {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+:root[data-glow='off'] .panel,
+:root[data-glow='off'] .dashboard-widget,
+:root[data-glow='off'] .session-card {
+  box-shadow: none;
+}
+
+:root[data-glow='moderate'] .panel,
+:root[data-glow='moderate'] .dashboard-widget {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent),
+    0 14px 34px rgba(0, 0, 0, 0.24);
+}
+
+:root[data-glow='high'] .panel,
+:root[data-glow='high'] .dashboard-widget {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 18px 44px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+:root[data-motion='off'] *,
+:root[data-motion='off'] *::before,
+:root[data-motion='off'] *::after {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+}
+
+.command-trigger {
+  min-height: 44px;
+  flex: 0 0 auto;
+}
+
+.command-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  padding: 12vh 12px 24px;
+  background: rgba(4, 8, 12, 0.62);
+}
+
+.command-panel {
+  width: min(560px, calc(100vw - 24px));
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.command-panel h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.command-panel input {
+  width: 100%;
+}
+
+.command-panel ul {
+  max-height: 42vh;
+  margin: 10px 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.command-panel li {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.command-panel li[aria-selected='true'] {
+  background: var(--card-hover);
+  outline: 1px solid var(--accent);
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 46%),
+    linear-gradient(135deg, var(--surface), var(--card));
+  min-width: 0;
+  overflow: hidden;
+}
+
+.home-hero > * {
+  min-width: 0;
+}
+
+.home-hero h2,
+.home-hero p {
+  overflow-wrap: anywhere;
+}
+
+.home-hero h2 {
+  margin: 4px 0 8px;
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
+}
+
+.home-hero p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.home-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.home-hero-actions a,
+.home-hero-actions button {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.home-onboarding {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding-left: 20px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 720px) {
+  .home-hero {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+  }
+
+  .home-hero-actions {
+    justify-content: flex-start;
+  }
+}
+
+.session-workspace.focus-mode {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 48px);
+}
+
+.focus-layer {
+  width: min(720px, 100%);
+  padding: 32px;
+  text-align: center;
+}
+
+.focus-timer {
+  margin: 24px 0;
+  font-family: var(--font-mono);
+  font-size: clamp(3rem, 14vw, 8rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.focus-layer .session-actions {
+  justify-content: center;
 }

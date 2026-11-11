@@ -98,7 +98,7 @@ export function PlanningCalendar({
     <section className="panel" aria-labelledby="calendar-title" data-testid="planning-calendar">
       <h2 id="calendar-title">Calendário</h2>
       <div role="group" aria-label="Escopo do calendário" className="planning-views">
-        {(['day', 'week', 'month', 'list'] as CalendarView[]).map((option) => (
+        {(['week', 'month', 'list', 'day'] as CalendarView[]).map((option) => (
           <button
             key={option}
             type="button"

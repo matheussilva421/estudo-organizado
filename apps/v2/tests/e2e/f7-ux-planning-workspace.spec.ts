@@ -151,3 +151,23 @@ test('availability and weekly goal persist and drive the shared capacity', async
   await expect(page.getByTestId('planning-goal-progress')).toContainText('300 min');
 });
 
+test('planning remembers the chosen view and keeps Day reachable', async ({ page }) => {
+  await seed(page);
+  await page.locator('[data-action="calendar-month"]').click();
+  await expect(page.locator('[data-action="calendar-month"]')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.reload();
+  await expect(page.getByTestId('planning-workspace')).toBeVisible();
+  await expect(page.locator('[data-action="calendar-month"]')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.locator('[data-action="calendar-day"]').click();
+  await expect(page.locator('[data-action="calendar-day"]')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+});
+

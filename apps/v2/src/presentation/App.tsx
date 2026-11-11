@@ -83,7 +83,13 @@ import { HomeView } from './views/HomeView';
 import { SearchView } from './views/SearchView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { AttentionView } from './views/AttentionView';
-import { SettingsView, type Density } from './views/SettingsView';
+import {
+  SettingsView,
+  type CardStyle,
+  type Density,
+  type GlowLevel,
+  type MotionLevel,
+} from './views/SettingsView';
 import { NotFoundView } from './views/NotFoundView';
 import { WorkspaceGuide } from './components/WorkspaceGuide';
 import { SafeActionDialog } from './components/SafeActionDialog';
@@ -106,11 +112,27 @@ import {
 import { describeUxEvidence } from './ux-evidence';
 import { buildAttentionOccurrences, projectAttentionItems } from '../application/attention-projection';
 import { resolveRouteEntity, type RouteEntity } from './context-navigation';
+import { CommandCenter, type CommandItem } from './components/CommandCenter';
+
+const COMMANDS: CommandItem[] = [
+  { id: 'home', label: 'Início', module: 'home' },
+  { id: 'content', label: 'Conteúdo', module: 'content' },
+  { id: 'planning', label: 'Planejamento', module: 'planning' },
+  { id: 'sessions', label: 'Sessões', module: 'sessions' },
+  { id: 'reviews', label: 'Revisões', module: 'reviews' },
+  { id: 'analytics', label: 'Análises', module: 'analytics' },
+  { id: 'attention', label: 'Central de Atenção', module: 'attention' },
+  { id: 'settings', label: 'Configurações', module: 'settings' },
+  { id: 'search', label: 'Busca no acervo', module: 'search' },
+];
 
 const PROFILE_ID = 'local-default';
 const ZONE = 'America/Fortaleza';
 const THEME_KEY = 'estudo-organizado:v2:theme';
 const DENSITY_KEY = 'estudo-organizado:v2:density';
+const GLOW_KEY = 'estudo-organizado:v2:glow';
+const MOTION_KEY = 'estudo-organizado:v2:motion';
+const CARDS_KEY = 'estudo-organizado:v2:cards';
 const SUBJECT_DRAFT_KEY = localDraftKey(PROFILE_ID, 'subject-new');
 
 type ExperienceData = {
@@ -176,7 +198,25 @@ function initialTheme(): string {
 }
 
 function initialDensity(): Density {
-  return readStoredPreference(DENSITY_KEY) === 'compact' ? 'compact' : 'comfortable';
+  const stored = readStoredPreference(DENSITY_KEY);
+  return stored === 'compact' || stored === 'spacious' ? stored : 'comfortable';
+}
+
+function initialGlow(): GlowLevel {
+  const stored = readStoredPreference(GLOW_KEY);
+  return stored === 'off' || stored === 'moderate' || stored === 'high'
+    ? stored
+    : 'subtle';
+}
+
+function initialMotion(): MotionLevel {
+  const stored = readStoredPreference(MOTION_KEY);
+  return stored === 'off' || stored === 'full' ? stored : 'subtle';
+}
+
+function initialCardStyle(): CardStyle {
+  const stored = readStoredPreference(CARDS_KEY);
+  return stored === 'solid' || stored === 'glass' ? stored : 'elevated';
 }
 
 function newId(): string {
@@ -233,6 +273,11 @@ export function App() {
   const [notice, setNotice] = useState<string | null>(null);
   const [theme, setTheme] = useState<string>(initialTheme);
   const [density, setDensity] = useState<Density>(initialDensity);
+  const [glow, setGlow] = useState<GlowLevel>(initialGlow);
+  const [motion, setMotion] = useState<MotionLevel>(initialMotion);
+  const [cardStyle, setCardStyle] = useState<CardStyle>(initialCardStyle);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const commandTriggerRef = useRef<HTMLButtonElement>(null);
   const [ready, setReady] = useState(false);
   const [selectedEditalId, setSelectedEditalId] = useState<string | null>(null);
   const [startBlockId, setStartBlockId] = useState<string | null>(null);
@@ -445,6 +490,32 @@ export function App() {
     document.documentElement.dataset.density = density;
     storePreference(DENSITY_KEY, density);
   }, [density]);
+
+  useEffect(() => {
+    document.documentElement.dataset.glow = glow;
+    storePreference(GLOW_KEY, glow);
+  }, [glow]);
+
+  useEffect(() => {
+    document.documentElement.dataset.motion = motion;
+    storePreference(MOTION_KEY, motion);
+  }, [motion]);
+
+  useEffect(() => {
+    document.documentElement.dataset.cards = cardStyle;
+    storePreference(CARDS_KEY, cardStyle);
+  }, [cardStyle]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setCommandOpen((current) => !current);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   useEffect(() => subscribeDatabaseUpgrade(setUpgrade), []);
 
@@ -1047,6 +1118,28 @@ export function App() {
     });
   }
 
+  function closeCommandCenter(): void {
+    setCommandOpen(false);
+    window.setTimeout(() => commandTriggerRef.current?.focus(), 0);
+  }
+
+  function navigateFromCommand(module: RouteModule): void {
+    if (
+      hasDirtyDrafts() &&
+      !confirmNavigationIntent('outra área')
+    ) {
+      return;
+    }
+    navigate({ module, entityId: null, query: {}, invalid: false });
+    closeCommandCenter();
+  }
+
+  function searchFromCommand(query: string): void {
+    setSearchDraft(query);
+    navigate({ module: 'search', entityId: null, query: { q: query }, invalid: false });
+    closeCommandCenter();
+  }
+
   function guardInternalNavigation(event: React.MouseEvent<HTMLDivElement>): void {
     const element = event.target as HTMLElement | null;
     const anchor = element?.closest('a');
@@ -1147,7 +1240,25 @@ export function App() {
             ))}
           </select>
         </label>
+        <button
+          ref={commandTriggerRef}
+          type="button"
+          className="button-ghost command-trigger"
+          onClick={() => setCommandOpen(true)}
+          aria-keyshortcuts="Control+K"
+          data-testid="command-center-open"
+        >
+          Comandos
+        </button>
       </header>
+
+      <CommandCenter
+        open={commandOpen}
+        commands={COMMANDS}
+        onClose={closeCommandCenter}
+        onNavigate={navigateFromCommand}
+        onSearch={searchFromCommand}
+      />
 
       <AppNav
         current={route.module}
@@ -1195,6 +1306,14 @@ export function App() {
               ready={ready}
               loadError={loadError}
               experienceError={experienceError}
+              finalStretch={(() => {
+                const scenario = experience.scenarios.find(
+                  (item) => item.kind === 'FINAL_STRETCH' && item.status === 'ACTIVE',
+                );
+                return scenario
+                  ? { examDate: scenario.examDate ?? null, name: scenario.name }
+                  : null;
+              })()}
               onRetry={() => {
                 setLoadError(null);
                 setReady(false);
@@ -1258,9 +1377,18 @@ export function App() {
               onThemeChange={setTheme}
               density={density}
               onDensityChange={setDensity}
+              glow={glow}
+              onGlowChange={setGlow}
+              motion={motion}
+              onMotionChange={setMotion}
+              cardStyle={cardStyle}
+              onCardStyleChange={setCardStyle}
               onReset={() => {
                 setTheme('grafite');
                 setDensity('comfortable');
+                setGlow('subtle');
+                setMotion('subtle');
+                setCardStyle('elevated');
               }}
               health={health}
               backupHealth={backupHealth}

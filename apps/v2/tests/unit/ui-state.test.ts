@@ -61,7 +61,7 @@ describe('subject UI state', () => {
     ).toContain('cursor verificado');
   });
 
-  it('keeps_the_eight_approved_themes', () => {
+  it('keeps_the_twelve_approved_themes', () => {
     expect(THEMES.map((theme) => theme.id)).toEqual([
       'grafite',
       'ardosia',
@@ -71,6 +71,10 @@ describe('subject UI state', () => {
       'arrakis',
       'codex',
       'plasma',
+      'neon-teal',
+      'esmeralda-dourado',
+      'azul-ambar',
+      'azul-glacial',
     ]);
   });
 });

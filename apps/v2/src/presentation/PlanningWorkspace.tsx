@@ -100,7 +100,16 @@ export function PlanningWorkspace({
   const [examPreview, setExamPreview] = useState<ExamDateChangePreview | null>(null);
   const [transitionPreview, setTransitionPreview] =
     useState<TransitionPreview | null>(null);
-  const [view, setView] = useState<CalendarView>('week');
+  const [view, setView] = useState<CalendarView>(() => {
+    try {
+      const stored = window.localStorage.getItem('estudo-organizado:v2:planning-view');
+      return stored === 'day' || stored === 'month' || stored === 'list'
+        ? stored
+        : 'week';
+    } catch {
+      return 'week';
+    }
+  });
   const [availability, setAvailability] = useState<PlanningAvailability>(
     DEFAULT_PLANNING_AVAILABILITY,
   );
@@ -190,6 +199,14 @@ export function PlanningWorkspace({
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileId, repository, selected?.id, selected?.localRevision]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('estudo-organizado:v2:planning-view', view);
+    } catch {
+      // A preferência permanece em memória quando o armazenamento falha.
+    }
+  }, [view]);
 
   useEffect(() => {
     // A preview belongs to one scenario and one base revision.
@@ -896,7 +913,7 @@ export function PlanningWorkspace({
   const links = content.links.filter((link) => link.status === 'ACTIVE');
 
   return (
-    <section className="planning-workspace" aria-labelledby="planning-title" data-testid="planning-workspace">
+    <section className="planning-workspace" data-studio="planning" aria-labelledby="planning-title" data-testid="planning-workspace">
       <h2 id="planning-title">Planejamento, calendário e Reta Final</h2>
       <PlanningDashboard
         scenarios={scenarios}

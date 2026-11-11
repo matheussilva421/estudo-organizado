@@ -14,7 +14,10 @@ import {
   type StorageHealth,
 } from '../../platform/storage-health';
 
-export type Density = 'comfortable' | 'compact';
+export type Density = 'compact' | 'comfortable' | 'spacious';
+export type GlowLevel = 'off' | 'subtle' | 'moderate' | 'high';
+export type MotionLevel = 'off' | 'subtle' | 'full';
+export type CardStyle = 'solid' | 'elevated' | 'glass';
 
 type Props = {
   profileId: string;
@@ -24,6 +27,12 @@ type Props = {
   onThemeChange: (theme: string) => void;
   density: Density;
   onDensityChange: (density: Density) => void;
+  glow: GlowLevel;
+  onGlowChange: (glow: GlowLevel) => void;
+  motion: MotionLevel;
+  onMotionChange: (motion: MotionLevel) => void;
+  cardStyle: CardStyle;
+  onCardStyleChange: (style: CardStyle) => void;
   onReset: () => void;
   health: SyncHealth;
   backupHealth?: BackupHealth;
@@ -70,6 +79,12 @@ export function SettingsView({
   onThemeChange,
   density,
   onDensityChange,
+  glow,
+  onGlowChange,
+  motion,
+  onMotionChange,
+  cardStyle,
+  onCardStyleChange,
   onReset,
   health,
   backupHealth,
@@ -109,7 +124,7 @@ export function SettingsView({
   });
 
   return (
-    <section className="view settings-view" aria-labelledby="settings-title" data-testid="f6-settings">
+    <section className="view settings-view" data-studio="settings" aria-labelledby="settings-title" data-testid="f6-settings">
       <header className="view-header">
         <div>
           <p className="eyebrow">Preferências e integridade</p>
@@ -145,6 +160,31 @@ export function SettingsView({
           <h3 id="settings-appearance-title">Aparência deste dispositivo</h3>
           <button type="button" className="button-ghost" onClick={onReset}>Restaurar aparência</button>
         </header>
+        <div className="theme-gallery" role="group" aria-label="Galeria de temas">
+          {themes.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className="theme-card"
+              aria-pressed={theme === option.id}
+              onClick={() => onThemeChange(option.id)}
+              data-theme-option={option.id}
+            >
+              <span
+                className="theme-swatch"
+                aria-hidden="true"
+                style={{
+                  background: `linear-gradient(135deg, ${option.preview.background} 0%, ${option.preview.surface} 100%)`,
+                  borderColor: option.preview.accent,
+                }}
+              >
+                <span style={{ background: option.preview.accent }} />
+                <span style={{ background: option.preview.text }} />
+              </span>
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
         <div className="settings-row">
           <label htmlFor="settings-theme">Tema da interface</label>
           <select id="settings-theme" value={theme} onChange={(event) => onThemeChange(event.target.value)}>
@@ -154,11 +194,37 @@ export function SettingsView({
         <div className="settings-row">
           <label htmlFor="settings-density">Densidade</label>
           <select id="settings-density" value={density} onChange={(event) => onDensityChange(event.target.value as Density)}>
-            <option value="comfortable">Confortável</option>
             <option value="compact">Compacta</option>
+            <option value="comfortable">Confortável</option>
+            <option value="spacious">Espaçosa</option>
           </select>
         </div>
-        <p className="muted">Os oito temas preservam contraste, foco e alvos de toque. Preferência local não é dado acadêmico.</p>
+        <div className="settings-row">
+          <label htmlFor="settings-glow">Brilho/glow</label>
+          <select id="settings-glow" value={glow} onChange={(event) => onGlowChange(event.target.value as GlowLevel)}>
+            <option value="off">Desligado</option>
+            <option value="subtle">Sutil</option>
+            <option value="moderate">Moderado</option>
+            <option value="high">Alto</option>
+          </select>
+        </div>
+        <div className="settings-row">
+          <label htmlFor="settings-motion">Movimento</label>
+          <select id="settings-motion" value={motion} onChange={(event) => onMotionChange(event.target.value as MotionLevel)}>
+            <option value="off">Desligado</option>
+            <option value="subtle">Sutil</option>
+            <option value="full">Completo</option>
+          </select>
+        </div>
+        <div className="settings-row">
+          <label htmlFor="settings-cards">Aparência dos cards</label>
+          <select id="settings-cards" value={cardStyle} onChange={(event) => onCardStyleChange(event.target.value as CardStyle)}>
+            <option value="solid">Sólido</option>
+            <option value="elevated">Elevado</option>
+            <option value="glass">Vidro discreto</option>
+          </select>
+        </div>
+        <p className="muted">Os 12 temas preservam contraste, foco e alvos de toque. Preferência local não é dado acadêmico.</p>
       </section>
 
       <section className="panel" id="settings-profile" aria-labelledby="settings-profile-title">

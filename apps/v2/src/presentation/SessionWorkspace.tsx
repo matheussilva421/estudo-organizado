@@ -212,6 +212,7 @@ export function SessionWorkspace({
   const [planBlocks, setPlanBlocks] = useState<PlanBlock[]>([]);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
   const manualDraftKey = localDraftKey(profileId, 'session-manual');
   const initialManualDraft = readManualDraft(manualDraftKey);
@@ -625,6 +626,13 @@ export function SessionWorkspace({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, session?.intervals.length]);
+
+  useEffect(() => {
+    if (!session || session.state === 'COMPLETED' || session.state === 'CANCELLED') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFocusMode(false);
+    }
+  }, [session?.id, session?.state]);
 
   async function startSessionWithOrigin(
     origin: 'TIMER' | 'POMODORO',
@@ -1485,8 +1493,88 @@ export function SessionWorkspace({
   const { open: pendingConflicts, resolved: resolvedConflicts } =
     splitSessionConflicts(conflicts);
 
+  if (focusMode && session) {
+    const focusBlock = planBlocks.find((block) =>
+      session.planBlockIds.includes(block.id),
+    );
+    return (
+      <section
+        className="session-workspace focus-mode"
+        aria-labelledby="session-focus-title"
+        data-testid="session-focus"
+        data-studio="sessions-focus"
+      >
+        <div className="focus-layer">
+          <p className="eyebrow">Modo Foco</p>
+          <h2 id="session-focus-title">Sessão em andamento</h2>
+          <div className="focus-timer" data-testid="session-focus-timer">
+            {formatMs(elapsedMs)}
+          </div>
+          <p>
+            {session.state}
+            {focusBlock ? ' · ' + blockLabel(focusBlock, content) : ' · sem bloco vinculado'}
+          </p>
+          {recovery ? (
+            <p className="inline-notice" role="alert">
+              Há tempo não observado. Resolva a recuperação ao sair do Modo Foco.
+            </p>
+          ) : null}
+          {persistState === 'FAILED' ? (
+            <p className="inline-notice" role="alert">
+              A última gravação não foi confirmada. O tempo permanece nesta aba.
+            </p>
+          ) : null}
+          <div className="session-actions">
+            {session.state === 'RUNNING' ? (
+              <button
+                type="button"
+                onClick={() => control('pause')}
+                disabled={busy || !authority}
+                data-testid="session-focus-pause"
+              >
+                Pausar
+              </button>
+            ) : null}
+            {session.state === 'PAUSED' ? (
+              <button
+                type="button"
+                onClick={() => control('resume')}
+                disabled={busy || !authority}
+                data-testid="session-focus-resume"
+              >
+                Retomar
+              </button>
+            ) : null}
+            {session.state !== 'COMPLETED' && session.state !== 'CANCELLED' ? (
+              <button
+                type="button"
+                onClick={() => control('complete')}
+                disabled={busy || !authority}
+                data-testid="session-focus-complete"
+              >
+                Concluir
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="button-ghost"
+              onClick={() => setFocusMode(false)}
+              data-testid="session-focus-exit"
+            >
+              Sair do Foco
+            </button>
+          </div>
+          <p className="hint">
+            Mesma sessão e mesmo relógio. Sair do Foco não pausa nem cria uma nova
+            sessão.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="session-workspace" aria-labelledby="session-title" data-testid="session-workspace">
+    <section className="session-workspace" data-studio="sessions" aria-labelledby="session-title" data-testid="session-workspace">
       <h2 id="session-title">Execução de estudo</h2>
       <p className="empty-state">
         Cronômetro, registro manual, recuperação, hábitos e histórico local.
@@ -1585,6 +1673,16 @@ export function SessionWorkspace({
                 data-testid="session-complete"
               >
                 Concluir
+              </button>
+            ) : null}
+            {session && session.state !== 'COMPLETED' && session.state !== 'CANCELLED' ? (
+              <button
+                type="button"
+                className="button-ghost"
+                onClick={() => setFocusMode(true)}
+                data-testid="session-focus-open"
+              >
+                Modo Foco
               </button>
             ) : null}
           </div>
