@@ -21,6 +21,11 @@ async function seed(page: Page): Promise<void> {
 test('queue filters separate overdue, today and closed reviews', async ({ page }) => {
   await seed(page);
   await expect(page.getByTestId('review-queue-count')).toHaveText('3 de 3');
+  await expect(page.getByTestId('review-stat-pending')).toHaveText('3');
+  await expect(page.getByTestId('review-stat-started')).toHaveText('0');
+  await expect(page.getByTestId('review-stat-done')).toHaveText('0');
+  await expect(page.getByTestId('review-stat-overdue')).toHaveText('3');
+  await expect(page.getByTestId('review-workspace')).toContainText('Próximo compromisso');
 
   await page.getByTestId('review-queue-bucket').selectOption('TODAY');
   await expect(page.getByTestId('review-queue-count')).toHaveText('0 de 3');

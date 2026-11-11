@@ -310,6 +310,16 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
       })
     : queueFiltered;
   const agendaPage = pageItems(queueSorted, agendaLimit);
+  const openCommitments = commitments.filter(
+    (commitment) => commitment.status !== 'FULFILLED' && commitment.status !== 'CANCELLED',
+  );
+  const reviewOverview = {
+    pending: openCommitments.filter((commitment) => !commitment.startedAt).length,
+    started: openCommitments.filter((commitment) => Boolean(commitment.startedAt)).length,
+    done: commitments.length - openCommitments.length,
+    overdue: openCommitments.filter((commitment) => commitment.currentDueDate < today).length,
+  };
+  const nextCommitment = queueSorted[0] ?? null;
   const reminderPage = pageItems(reminderItems, reminderLimit);
 
   const refresh = useCallback(async () => {
@@ -968,6 +978,26 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   return (
     <section className="session-workspace" data-studio="reviews" aria-labelledby="review-title" data-testid="review-workspace">
       <h2 id="review-title">Revisões e inteligência</h2>
+      <section className="review-overview" aria-label="Visão geral das revisões">
+        <dl className="review-stats">
+          <div><dt>Pendentes</dt><dd data-testid="review-stat-pending">{reviewOverview.pending}</dd></div>
+          <div><dt>Em andamento</dt><dd data-testid="review-stat-started">{reviewOverview.started}</dd></div>
+          <div><dt>Concluídas</dt><dd data-testid="review-stat-done">{reviewOverview.done}</dd></div>
+          <div><dt>Atrasadas</dt><dd data-testid="review-stat-overdue">{reviewOverview.overdue}</dd></div>
+        </dl>
+        <div className="review-next">
+          <span className="eyebrow">Próximo compromisso</span>
+          {nextCommitment ? (
+            <>
+              <strong>{nextCommitment.label}</strong>
+              <span>vence {nextCommitment.currentDueDate} · cobertura {nextCommitment.coverage}</span>
+              <a href="#review-agenda">Ir para a fila</a>
+            </>
+          ) : (
+            <span>Nenhum compromisso na visão atual. Ajuste os filtros ou crie um tópico.</span>
+          )}
+        </div>
+      </section>
       <p className="empty-state">
         Sugestões explicáveis, compromissos próprios, evidências F4 e banca contextual.
         Nenhuma consulta cria sessão, tempo ou bloco F3 por conta própria.

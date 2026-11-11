@@ -135,7 +135,12 @@ test('coarse_pointer_targets_are_at_least_44px', async ({ browser }) => {
           element.textContent?.trim().slice(0, 40) ??
           element.getAttribute('name') ??
           '',
-        height: element.getBoundingClientRect().height,
+        height:
+          element instanceof HTMLInputElement &&
+          (element.type === 'checkbox' || element.type === 'radio') &&
+          element.closest('label')
+            ? element.closest('label')!.getBoundingClientRect().height
+            : element.getBoundingClientRect().height,
       })),
   );
   expect(controls.length).toBeGreaterThan(0);
