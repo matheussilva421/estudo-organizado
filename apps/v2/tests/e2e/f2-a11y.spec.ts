@@ -125,13 +125,22 @@ test('coarse_pointer_targets_are_at_least_44px', async ({ browser }) => {
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
 
   await page.getByLabel('Novo edital').fill('TJPB 2026');
-  const heights = await page.evaluate(() =>
+  const controls = await page.evaluate(() =>
     [...document.querySelectorAll('button, select, input')]
-      .filter((element) => element.getClientRects().length > 0).map(
-      (element) => element.getBoundingClientRect().height,
-    ),
+      .filter((element) => element.getClientRects().length > 0)
+      .map((element) => ({
+        tag: element.tagName,
+        label:
+          element.getAttribute('aria-label') ??
+          element.textContent?.trim().slice(0, 40) ??
+          element.getAttribute('name') ??
+          '',
+        height: element.getBoundingClientRect().height,
+      })),
   );
-  expect(heights.length).toBeGreaterThan(0);
-  for (const height of heights) expect(height).toBeGreaterThanOrEqual(43.5);
+  expect(controls.length).toBeGreaterThan(0);
+  for (const control of controls) {
+    expect(control.height, control.tag + ' ' + control.label).toBeGreaterThanOrEqual(43.5);
+  }
   await context.close();
 });
