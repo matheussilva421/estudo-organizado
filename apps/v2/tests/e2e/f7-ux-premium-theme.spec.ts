@@ -2,17 +2,28 @@ import { expect, test } from '@playwright/test';
 import { resetF7Ux, seedAcademicData } from './f7-ux-helpers';
 import { DB_NAME, STORES } from '../../src/platform/indexeddb';
 
-test('appearance changes preserve a paused session and its unsaved manual draft', async ({ page, context }) => {
+test('appearance changes preserve a running and paused session and its unsaved manual draft', async ({ page, context }) => {
   await resetF7Ux(page, '/#/sessions');
   await seedAcademicData(page);
   await page.reload();
   await page.getByTestId('session-start').click();
-  await expect(page.getByTestId('session-timer')).toContainText(/00:00:0[1-9]/);
-  await page.getByTestId('session-pause').click();
   const timer = page.getByTestId('session-timer');
-  await expect(timer).toContainText('PAUSED');
   const note = page.getByTestId('session-manual').getByRole('textbox', { name: 'Nota' });
   await note.fill('Rascunho sintético ainda não registrado');
+  const clock = async () => {
+    const digits = (await timer.innerText()).match(/(\d{2}):(\d{2}):(\d{2})/);
+    return digits ? Number(digits[1]) * 3600 + Number(digits[2]) * 60 + Number(digits[3]) : -1;
+  };
+  await expect.poll(clock).toBeGreaterThanOrEqual(2);
+  const runningBefore = await clock();
+  await page.getByRole('combobox', { name: 'Tema', exact: true }).selectOption('azul-ambar');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'azul-ambar');
+  expect(await clock()).toBeGreaterThanOrEqual(runningBefore);
+  await expect.poll(clock).toBeGreaterThan(runningBefore);
+  await expect(timer).toContainText('RUNNING');
+  await expect(note).toHaveValue('Rascunho sintético ainda não registrado');
+  await page.getByTestId('session-pause').click();
+  await expect(timer).toContainText('PAUSED');
   const elapsed = (await timer.innerText()).match(/\d{2}:\d{2}:\d{2}/)?.[0];
   expect(elapsed).toBeTruthy();
 
@@ -35,6 +46,7 @@ test('appearance changes preserve a paused session and its unsaved manual draft'
   }, { name: DB_NAME, stores: [STORES.sessions, STORES.subjects, STORES.assuntos, STORES.planningBlocks, STORES.reviewCommitments, STORES.outbox] });
 
   const before = await readAcademicRecords();
+  expect(before[0]).toHaveLength(1);
   await page.getByRole('combobox', { name: 'Tema', exact: true }).selectOption('neon-teal');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'neon-teal');
   await expect(note).toHaveValue('Rascunho sintético ainda não registrado');
