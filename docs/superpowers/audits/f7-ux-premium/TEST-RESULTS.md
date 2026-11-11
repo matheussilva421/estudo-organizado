@@ -1,4 +1,4 @@
-# Resultados de teste — 9457b7ca
+# Resultados de teste — aefc0627
 
 Windows, Node 26.13.0, npm 12.2.2, Chromium local.
 

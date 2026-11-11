@@ -17,7 +17,7 @@ Candidato: 9457b7ca. Matriz complementar a D01–D71; não renumera decisões.
 | DV-09 | PASS | superfícies com gradiente, borda e profundidade |
 | DV-10 | PASS | Modo Foco na mesma sessão/clock |
 | DV-11 | PASS | Semana/Mês/Lista com Dia e preferência |
-| DV-12 | PARTIAL | fila, execução e histórico preservados; composição parcial |
+| DV-12 | PARTIAL | fila, execução e histórico preservados, com contagens reais e próximo compromisso; composição ainda longa |
 | DV-13 | PARTIAL | visão geral e recorte temporal conciliados; drill-down por entidade parcial |
 | DV-14 | PARTIAL | biblioteca e árvore grande em 390 px; inspetor não redesenhado |
 | DV-15 | PASS | Command Center, busca e Atenção deduplicada |
@@ -40,7 +40,7 @@ Candidato: 9457b7ca. Matriz complementar a D01–D71; não renumera decisões.
 | VA-09 | PARTIAL | avançados acessíveis; três camadas parcial |
 | VA-10 | PASS | sessão única e cronômetro visível em 320/390 |
 | VA-11 | PASS | visões e preferência de Planejamento |
-| VA-12 | PARTIAL | estados/políticas preservados; visual parcial |
+| VA-12 | PARTIAL | estados/políticas preservados; visão de fila adicionada, execução/histórico em painéis longos |
 | VA-13 | PARTIAL | gráfico/tabela reconciliados em 7/30 dias; drill-down pendente |
 | VA-14 | PARTIAL | biblioteca, árvore grande, mobile e teclado; inspetor básico |
 | VA-15 | PASS | rotas por ID e Atenção deduplicada |

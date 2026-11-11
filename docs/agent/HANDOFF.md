@@ -4,7 +4,7 @@
 
 **Worktree:** C:/Projetos/estudo-organizado/_v2-candidate · **Branch:** v2
 
-**Código validado:** 9457b7ca · **Estado:** LOCAL_PREMIUM_CLOSURE_READY_FOR_UX_H / REMOTE_PUSH_NOT_AUTHORIZED / UX_HUMAN_PENDING
+**Código validado:** aefc0627 · **Estado:** LOCAL_PREMIUM_CLOSURE_READY_FOR_UX_H / REMOTE_PUSH_NOT_AUTHORIZED / UX_HUMAN_PENDING
 
 ## Objetivo
 
