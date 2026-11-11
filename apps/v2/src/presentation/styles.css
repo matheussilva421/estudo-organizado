@@ -2308,6 +2308,29 @@ select {
   background: rgb(0 0 0 / 65%);
 }
 
+.knowledge-library {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+}
+
+.knowledge-library a {
+  display: block;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.knowledge-library a[aria-current] {
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
 .review-queue-sheet .session-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

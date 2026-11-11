@@ -1516,6 +1516,23 @@ export function App() {
               testId="f7-content-workspace"
             />
           ) : null}
+          {route.module === 'content' && ready ? (
+            <section className="panel" data-studio="knowledge" aria-labelledby="knowledge-library-title">
+              <h2 id="knowledge-library-title">Biblioteca de editais</h2>
+              {content.editais.some((edital) => edital.status === 'ACTIVE') ? (
+                <ul className="knowledge-library">
+                  {content.editais.filter((edital) => edital.status === 'ACTIVE').map((edital) => (
+                    <li key={edital.id}>
+                      <a href={routeHref({ module: 'content', entityId: edital.id, query: {}, invalid: false })}
+                        aria-current={route.entityId === edital.id ? 'page' : undefined}>
+                        {edital.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="hint">Nenhum edital ativo. Cadastre ou reative um edital abaixo.</p>}
+            </section>
+          ) : null}
           {routeEditalMissing ? (
             <p className="inline-notice" role="status">
               O edital informado na rota não existe neste perfil ou foi arquivado. Nenhum dado de
