@@ -1271,6 +1271,23 @@ export function App() {
         >
           Comandos
         </button>
+        <a
+          className="header-icon"
+          href="#/attention"
+          aria-label={attentionCount > 0 ? 'Central de Atenção, ' + attentionCount + ' pendência(s)' : 'Central de Atenção'}
+          data-testid="header-attention"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M18 15v-5a6 6 0 1 0-12 0v5l-2 3h16zM10 21h4" />
+          </svg>
+          {attentionCount > 0 ? <span className="header-icon-badge">{attentionCount}</span> : null}
+        </a>
+        <a className="header-icon" href="#/settings" aria-label="Configurações" data-testid="header-settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.2" />
+            <path d="M12 2.8v2.4M12 18.8v2.4M4.5 4.5l1.7 1.7M17.8 17.8l1.7 1.7M2.8 12h2.4M18.8 12h2.4M4.5 19.5l1.7-1.7M17.8 6.2l1.7-1.7" />
+          </svg>
+        </a>
       </header>
 
       <CommandCenter

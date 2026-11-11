@@ -84,6 +84,26 @@ const WIDGET_ICON_PATHS: Record<DashboardWidgetId, string> = {
   planning: 'M4 5h16v16H4zM8 3v4M16 3v4M4 10h16M8 15h3M13 15h3',
 };
 
+function MiniBars({ days }: { days: AnalyticsSummary['byDay'] }) {
+  const recent = days.slice(-7);
+  if (!recent.some((day) => day.focusMs > 0)) return null;
+  const max = Math.max(1, ...recent.map((day) => day.focusMs));
+  return (
+    <div className="mini-bars" aria-hidden="true">
+      {recent.length === 0 ? (
+        <span className="mini-bars-empty" />
+      ) : (
+        recent.map((day) => (
+          <span
+            key={day.id}
+            style={{ height: Math.max(6, Math.round((day.focusMs / max) * 100)) + '%' }}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
 const TEMPLATE_LABELS: Record<DashboardTemplate, string> = {
   FOCUS: 'Foco Diário',
   PERFORMANCE: 'Desempenho',
@@ -440,9 +460,13 @@ export function HomeView({
         </>
       ) : (
         <>
-          <h3>Próximo passo em destaque</h3>
-          <p>A ação principal já está no topo da página. Nada é iniciado automaticamente.</p>
-          <a className="button-primary" href="#/planning">Abrir planejamento</a>
+          <h3>Resumo do período</h3>
+          <ul className="dashboard-list" data-testid="home-summary-counts">
+            <li><span>Sessões concluídas (7 dias)</span><strong>{summary.counts.completedLast7Days}</strong></li>
+            <li><span>Revisões pendentes</span><strong>{summary.counts.reviewsDue}</strong></li>
+            <li><span>Editais ativos</span><strong>{summary.counts.activeEditais}</strong></li>
+          </ul>
+          <a className="button-ghost" href="#/analytics">Ver análises</a>
         </>
       );
     }
@@ -488,7 +512,10 @@ export function HomeView({
     return (
       <>
         <h3>{WIDGET_LABELS[id]}</h3>
-        <strong className="widget-value">{formatMetric(metric?.value ?? null, metric?.unit ?? 'count')}</strong>
+        <strong className={metric?.value == null ? 'widget-value widget-value-empty' : 'widget-value'}>
+          {metric?.value == null ? 'Sem dado no período' : formatMetric(metric.value, metric.unit)}
+        </strong>
+        {id === 'study-time' ? <MiniBars days={analytics.byDay} /> : null}
         <p>{metric?.status === 'READY' ? metric.provenance : metric?.warnings[0] ?? 'Sem dado disponível.'}</p>
         <button type="button" className="button-ghost" onClick={() => setInspector(id)}>
           Ver procedência
@@ -844,6 +871,31 @@ export function HomeView({
       {visibleLayoutWidgets.length === 0 ? (
         <p className="empty-state">Nenhum widget pertence ao filtro atual; os dados não foram alterados.</p>
       ) : null}
+
+      <section className="home-resources" aria-labelledby="home-resources-title">
+        <header className="section-header">
+          <h3 id="home-resources-title">Recursos principais</h3>
+          <a href="#/planning">Explorar todos</a>
+        </header>
+        <div className="resource-grid">
+          {[
+            { href: '#/planning', label: 'Planejamento', text: 'Rotina, metas e capacidade.', path: WIDGET_ICON_PATHS.planning },
+            { href: '#/sessions', label: 'Sessões', text: 'Registre e acompanhe o tempo.', path: WIDGET_ICON_PATHS['study-time'] },
+            { href: '#/reviews', label: 'Revisões', text: 'Mantenha o conteúdo vivo.', path: WIDGET_ICON_PATHS.reviews },
+            { href: '#/analytics', label: 'Análises', text: 'Evolução, gráficos e metodologia.', path: WIDGET_ICON_PATHS.questions },
+          ].map((resource) => (
+            <a key={resource.href} className="resource-card" href={resource.href}>
+              <span className="widget-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={resource.path} />
+                </svg>
+              </span>
+              <strong>{resource.label}</strong>
+              <span>{resource.text}</span>
+            </a>
+          ))}
+        </div>
+      </section>
 
       {inspector ? (
         <aside className="context-inspector" aria-label="Inspetor do widget" data-testid="context-inspector">
