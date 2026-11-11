@@ -113,6 +113,11 @@ textarea {
   text-decoration: none;
 }
 
+.brand h1,
+.brand p {
+  overflow-wrap: anywhere;
+}
+
 .brand h1 a:hover {
   color: var(--accent);
 }
@@ -1505,6 +1510,21 @@ textarea:focus-visible {
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
+}
+
+.app-header > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.global-search {
+  flex: 1 1 240px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.theme-picker {
+  min-width: 0;
 }
 
 .theme-picker {
