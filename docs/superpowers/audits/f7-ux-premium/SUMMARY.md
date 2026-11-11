@@ -1,12 +1,12 @@
 # F7-UX Premium — fechamento local
 
-**Código validado:** 45181108 (v2 local, sem push)
+**Código validado:** 24865ffb (v2 local, sem push)
 **Estado:** LOCAL_PREMIUM_CLOSURE_READY_FOR_UX_H / REMOTE_PUSH_NOT_AUTHORIZED / UX_HUMAN_PENDING
 **Escopo:** recomposição visual estrutural pedida no adendo prioritário, correções P1/P2 das revisões e cobertura VA/DV.
 
 ## Delta desta rodada
 
-- Home recomposta: cabeçalho compacto com busca em pílula, ações de Atenção/Configurações, rail lateral emoldurado com ícones e citação, hero dominante com ilustração SVG temática, passos em faixa própria, bento com cartões de larguras diferentes, ícones por widget, minigráfico real de foco e seção Recursos principais. Review Studio recebeu visão de fila; Knowledge Studio recebeu contagens reais de editais, disciplinas, assuntos e aulas.
+- Home recomposta: cabeçalho compacto com busca em pílula, ações de Atenção/Configurações, rail lateral emoldurado com ícones e citação, hero dominante com ilustração SVG temática, passos em faixa própria, bento com cartões de larguras diferentes, ícones por widget, minigráfico real de foco e seção Recursos principais. Review Studio recebeu visão de fila; Knowledge Studio recebeu contagens reais, e o Command Center ganhou cabeçalho, atalhos, busca em pílula e seleção com acento.
 - Prioridade acadêmica: avisos operacionais deixaram de ocupar o hero e de se repetir nos cartões; diagnósticos ficam na Central de Atenção e na faixa de sincronização.
 - Densidade revisada: rail 214 px, hero reduzido, paddings de 14–24 px, tipografia menor, cartões mais baixos; comparações lado a lado em comparacoes/.
 - Correções de integridade: transferência de autoridade só ocorre após pause confirmado; resolução remota de sessão valida o snapshot e registra auditoria; checkpoints de 15 s não recarregam a projeção global.

@@ -12,7 +12,7 @@ Referências recebidas em 11/11/2026 (1586 x 992), preservadas em comparacoes/re
 | 4. Tipografia, densidade e espaçamento | RESOLVED | Revisão final reduziu rail para 214 px, hero, paddings (14–24 px), títulos e lacunas; primeira dobra mostra hero e cartões como a referência. |
 | 5. Profundidade e iluminação | PARTIAL | Gradientes radiais, bordas translúcidas e sombras seletivas; sem a fotocomposição luminosa dos mockups. |
 | 6. Elementos ilustrativos | PARTIAL | Cena de estudo vetorial temática (luminária, livros, notebook), adaptável aos 12 temas; não é cópia da imagem-fonte. |
-| 7. Navegação e controles | RESOLVED | Rail com ícones, item ativo em pílula, busca arredondada, ações de Atenção/Configurações, 44 px no toque. |
+| 7. Navegação e controles | RESOLVED | Rail com ícones, busca arredondada, ações de Atenção/Configurações, Command Center premium e 44 px no toque. |
 | 8. Adaptação mobile | RESOLVED | Cabeçalho em grade própria, busca em linha, tema/ações compactos, ilustração abaixo do texto, barra inferior preservada; sem overflow em 320/390. |
 
 ## Arquivos lado a lado
