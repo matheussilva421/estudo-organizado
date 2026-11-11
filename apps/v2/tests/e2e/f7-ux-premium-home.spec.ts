@@ -9,12 +9,12 @@ test('empty home opens with onboarding and dismisses without creating facts', as
   const hero = page.getByTestId('home-hero');
   await expect(hero).toHaveAttribute('data-context', 'ONBOARDING');
   await expect(hero).toContainText('Comece pelo essencial');
-  await expect(hero.locator('.home-onboarding li')).toHaveCount(3);
+  await expect(page.locator('.home-onboarding li')).toHaveCount(3);
   await page.getByRole('button', { name: 'Dispensar primeiros passos' }).click();
-  await expect(hero.locator('.home-onboarding')).toHaveCount(0);
+  await expect(page.locator('.home-onboarding')).toHaveCount(0);
   await page.reload();
   await expect(page.getByTestId('home-hero')).toBeVisible();
-  await expect(page.getByTestId('home-hero').locator('.home-onboarding')).toHaveCount(0);
+  await expect(page.locator('.home-onboarding')).toHaveCount(0);
 });
 
 test('final stretch context uses the registered exam date', async ({ page }) => {

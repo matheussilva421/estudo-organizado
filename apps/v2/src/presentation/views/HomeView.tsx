@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { StudyScene } from '../components/StudyScene';
 import {
   DEFAULT_HOME_INDICATORS,
   HOME_INDICATORS,
@@ -71,6 +72,16 @@ const WIDGET_LABELS: Record<DashboardWidgetId, string> = {
   questions: 'Questões e desempenho',
   planning: 'Planejado × executado',
   exams: 'Concursos e provas',
+};
+
+const WIDGET_ICON_PATHS: Record<DashboardWidgetId, string> = {
+  'next-action': 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z',
+  agenda: 'M4 6h16v14H4zM8 3v5M16 3v5M4 10h16M8 14l2 2 4-4',
+  exams: 'M12 4 3 8l9 4 9-4-9-4zM6 11v5c0 2 12 2 12 0v-5',
+  'study-time': 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  reviews: 'M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7',
+  questions: 'M9 9a3 3 0 1 1 4 2.8c-.7.4-1 1-1 1.8v.4M12 17.5h.01',
+  planning: 'M4 5h16v16H4zM8 3v4M16 3v4M4 10h16M8 15h3M13 15h3',
 };
 
 const TEMPLATE_LABELS: Record<DashboardTemplate, string> = {
@@ -551,10 +562,12 @@ export function HomeView({
     >
       <header className="view-header">
         <div>
-          <p className="eyebrow">Painel de comando</p>
-          <h2 id="home-title">Início</h2>
+          <p className="eyebrow">Bem-vindo(a)</p>
+          <h2 id="home-title">
+            Seu espaço de <span className="title-accent">estudos</span>
+          </h2>
           <p className="view-subtitle">
-            Próxima ação, agenda, metas e evidências derivadas dos dados locais.
+            Planeje, estude, revise e acompanhe sua evolução em um só lugar.
           </p>
         </div>
         <a className="badge" href="#/attention" data-home-ready={ready ? 'true' : 'false'}>
@@ -568,7 +581,7 @@ export function HomeView({
         data-context={heroContext}
         aria-labelledby="home-hero-title"
       >
-        <div>
+        <div className="home-hero-copy">
           <p className="eyebrow">
             {heroContext === 'ONBOARDING' ? 'Primeiros passos' : 'Próxima ação'}
           </p>
@@ -596,6 +609,9 @@ export function HomeView({
             </button>
           ) : null}
         </div>
+        <div className="home-hero-art">
+          <StudyScene />
+        </div>
         {suggestedOrder ? (
           <details key={device + ':' + heroContext}>
             <summary>Ver sugestão de ordem</summary>
@@ -606,14 +622,14 @@ export function HomeView({
             }}>Aplicar ordem sugerida</button>
           </details>
         ) : null}
-        {heroContext === 'ONBOARDING' && !onboardingDismissed ? (
-          <ol className="home-onboarding">
-            <li>Cadastre edital e disciplina em Conteúdo.</li>
-            <li>Defina disponibilidade e metas em Planejamento.</li>
-            <li>Registre a primeira sessão em Estudar.</li>
-          </ol>
-        ) : null}
       </section>
+      {heroContext === 'ONBOARDING' && !onboardingDismissed ? (
+        <ol className="home-onboarding" aria-label="Primeiros passos">
+          <li>Cadastre edital e disciplina em Conteúdo.</li>
+          <li>Defina disponibilidade e metas em Planejamento.</li>
+          <li>Registre a primeira sessão em Estudar.</li>
+        </ol>
+      ) : null}
 
       {loadError || experienceError ? (
         <div className="inline-notice" role="alert" data-testid="f6-load-error">
@@ -636,6 +652,11 @@ export function HomeView({
             style={{ gridColumn: `span ${Math.min(widget.span, layout.columns)}` }}
             data-widget={widget.id}
           >
+            <span className="widget-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d={WIDGET_ICON_PATHS[widget.id]} />
+              </svg>
+            </span>
             {renderWidget(widget.id)}
           </article>
         ))}

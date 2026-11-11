@@ -1228,6 +1228,12 @@ export function App() {
         </div>
 
         <form className="global-search" role="search" onSubmit={submitGlobalSearch}>
+          <span className="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m16 16 5 5" />
+            </svg>
+          </span>
           <label className="sr-only" htmlFor="global-search-input">
             Busca global local
           </label>
@@ -1236,7 +1242,7 @@ export function App() {
             type="search"
             value={searchDraft}
             maxLength={120}
-            placeholder="Buscar no acervo local"
+            placeholder="Buscar conteúdo, disciplina, meta..."
             onChange={(event) => setSearchDraft(event.target.value)}
             autoComplete="off"
           />
@@ -1533,7 +1539,12 @@ export function App() {
                   {content.editais.filter((edital) => edital.status === 'ACTIVE').map((edital) => (
                     <li key={edital.id}>
                       <a href={routeHref({ module: 'content', entityId: edital.id, query: {}, invalid: false })}
-                        aria-current={route.entityId === edital.id ? 'page' : undefined}>
+                        data-current={route.entityId === edital.id ? 'true' : undefined}
+                        onClick={() => {
+                          window.requestAnimationFrame(() => {
+                            document.getElementById('tree-title')?.scrollIntoView({ block: 'start' });
+                          });
+                        }}>
                         {edital.title}
                       </a>
                     </li>
@@ -1595,7 +1606,12 @@ export function App() {
         primaryEditalId={profile?.primaryEditalId ?? null}
         subjects={content.subjects}
             selectedId={effectiveSelectedEditalId}
-        onSelect={setSelectedEditalId}
+        onSelect={(id) => {
+          setSelectedEditalId(id);
+          if (route.module === 'content' && route.entityId !== null && route.entityId !== id) {
+            navigate({ module: 'content', entityId: id, query: {}, invalid: false });
+          }
+        }}
         onCreate={(title) =>
           apply(
             () =>

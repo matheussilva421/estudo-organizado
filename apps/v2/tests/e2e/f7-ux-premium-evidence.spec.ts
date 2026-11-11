@@ -81,6 +81,7 @@ test('capture actual home for each original premium concept', async ({ page }) =
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await expect(page.getByRole('link', { name: 'Adicionar conteúdo' })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+      await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({ path: join(out, theme + '-' + viewport.name + '.png'), animations: 'disabled' });
     }
   }

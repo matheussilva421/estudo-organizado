@@ -16,7 +16,31 @@ test('knowledge library opens the existing edital tree by stable ID on mobile', 
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#\/content\/f7ux-edital$/);
   await expect(page.locator('.tree .tree-title').filter({ hasText: 'Controle de constitucionalidade' }).first()).toBeVisible();
-  await expect(link).toHaveAttribute('aria-current', 'page');
+  await expect(link).toHaveAttribute('data-current', 'true');
+});
+
+test('choosing another edital after the library updates the route and tree', async ({ page }) => {
+  await resetF7Ux(page, '/#/content');
+  await seedAcademicData(page);
+  await page.evaluate(async () => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    await harness.executeContent({
+      type: 'CREATE_EDITAL',
+      operationId: 'f7ux-edital-2',
+      profileId: 'local-default',
+      editalId: 'f7ux-edital-2',
+      title: 'TJPB 2026',
+    });
+  });
+  await page.reload();
+  await page.getByRole('link', { name: 'TRT 2026' }).click();
+  await expect(page).toHaveURL(/#\/content\/f7ux-edital$/);
+  await page
+    .getByRole('list', { name: 'Editais ativos' })
+    .getByRole('button', { name: 'TJPB 2026', exact: true })
+    .click();
+  await expect(page).toHaveURL(/#\/content\/f7ux-edital-2$/);
+  await expect(page.getByRole('heading', { name: /Verticalização.*TJPB 2026/ })).toBeVisible();
 });
 
 test('a large edital stays navigable from the library on a phone', async ({ page }) => {
