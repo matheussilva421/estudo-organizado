@@ -20,7 +20,6 @@ export function CommandCenter({ open, commands, onClose, onNavigate, onSearch }:
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuery('');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelected(0);
     const timer = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(timer);

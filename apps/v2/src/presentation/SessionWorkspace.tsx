@@ -639,6 +639,7 @@ export function SessionWorkspace({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setFocusMode(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, session?.state]);
 
   useEffect(() => {
