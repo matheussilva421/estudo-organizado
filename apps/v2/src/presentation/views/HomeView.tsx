@@ -238,6 +238,7 @@ export function HomeView({
   const [customWidgets, setCustomWidgets] = useState<CustomWidget[]>(() => readCustomWidgets(profileId));
   const [customLabel, setCustomLabel] = useState('Meu indicador');
   const [formula, setFormula] = useState('correct / questions');
+  const [orderApplied, setOrderApplied] = useState(false);
 
   useEffect(() => {
     const mobile = window.matchMedia('(max-width: 720px)');
@@ -264,8 +265,19 @@ export function HomeView({
     if (filter === 'CONTENT') return item.target === 'content';
     return item.category === 'INTEGRIDADE' || item.category === 'DIAGNOSTICO';
   });
+  const isSystemPriority = (item: (typeof orderedPriorities)[number]) =>
+    item.category === 'INTEGRIDADE' || item.category === 'DIAGNOSTICO';
+  // Academic work leads the surface; operational diagnostics stay available in
+  // the Attention centre and sync strip instead of repeating on every card.
+  const displayPriorities =
+    filter === 'ALL'
+      ? [
+          ...filteredPriorities.filter((item) => !isSystemPriority(item)),
+          ...filteredPriorities.filter(isSystemPriority),
+        ]
+      : filteredPriorities;
   const nextAction =
-    filteredPriorities[0] ?? (filter === 'ALL' ? summary.nextAction : null);
+    displayPriorities[0] ?? (filter === 'ALL' ? summary.nextAction : null);
   const indicators = selectHomeIndicators(summary.counts, visibleIndicators);
   const metricInput = { summary, analytics, content: emptyContent(), sessions };
   const metricValues: Partial<Record<WidgetMetricSpec, ReturnType<typeof queryWidgetMetric>>> = {
@@ -408,19 +420,19 @@ export function HomeView({
 
   function renderWidget(id: DashboardWidgetId) {
     if (id === 'next-action') {
-      return nextAction ? (
+      return widgetPriority ? (
         <>
-          <h3>{nextAction.title}</h3>
-          <p>{nextAction.detail}</p>
+          <h3>{widgetPriority.title}</h3>
+          <p>{widgetPriority.detail}</p>
           <p className="priority-meta">
-            <span className={`chip chip-${priorityTone(nextAction.category)}`}>
-              {PRIORITY_CATEGORY_LABELS[nextAction.category]}
+            <span className={`chip chip-${priorityTone(widgetPriority.category)}`}>
+              {PRIORITY_CATEGORY_LABELS[widgetPriority.category]}
             </span>
-            {nextAction.dueDate ? <span className="muted">{nextAction.dueDate}</span> : null}
+            {widgetPriority.dueDate ? <span className="muted">{widgetPriority.dueDate}</span> : null}
           </p>
           <a
             className="button-primary"
-            href={routeHref(routeForTarget(nextAction.target, nextAction.entityId ?? null))}
+            href={routeHref(routeForTarget(widgetPriority.target, widgetPriority.entityId ?? null))}
             data-action="home-next-action"
           >
             Abrir registro exato
@@ -428,9 +440,9 @@ export function HomeView({
         </>
       ) : (
         <>
-          <h3>Nenhuma pendência crítica agora</h3>
-          <p>Organize conteúdo ou registre um estudo. Nada é iniciado automaticamente.</p>
-          <a className="button-primary" href="#/content">Abrir conteúdo</a>
+          <h3>Próximo passo em destaque</h3>
+          <p>A ação principal já está no topo da página. Nada é iniciado automaticamente.</p>
+          <a className="button-primary" href="#/planning">Abrir planejamento</a>
         </>
       );
     }
@@ -438,11 +450,16 @@ export function HomeView({
       return (
         <>
           <h3>Agenda e pendências</h3>
-          {filteredPriorities.length === 0 ? (
-            <p>Nenhum item neste filtro.</p>
+          {agendaPriorities.length === 0 ? (
+            <p>
+              Nenhuma pendência acadêmica nesta visão.{' '}
+              {hasSystemDiagnostics ? (
+                <a href="#/attention">Revisar diagnósticos na Central de Atenção</a>
+              ) : null}
+            </p>
           ) : (
             <ol className="dashboard-list">
-              {filteredPriorities.slice(0, 4).map((item) => (
+              {agendaPriorities.slice(0, 4).map((item) => (
                 <li key={item.id}>
                   <span>{item.title}</span>
                   <a href={routeHref(routeForTarget(item.target, item.entityId ?? null))}>Abrir</a>
@@ -513,7 +530,7 @@ export function HomeView({
           ? 'Reta Final em foco'
           : heroContext === 'PERFORMANCE'
             ? 'Acompanhe o que já rendeu'
-            : (summary.nextAction?.title ?? 'Próximo passo');
+            : (nextAction?.title ?? 'Próximo passo');
   const heroDetail =
     heroContext === 'ACTIVE'
       ? 'Continue de onde parou; esta é a mesma sessão do cronômetro.'
@@ -523,7 +540,7 @@ export function HomeView({
           ? `${finalStretch?.name ?? 'Reta Final'} · ${examDays} dia(s) até a prova registrada.`
           : heroContext === 'PERFORMANCE'
             ? 'Tempo, revisões e evidências derivados dos seus dados locais.'
-            : (summary.nextAction?.detail ?? 'Abra o planejamento para escolher o próximo bloco.');
+            : (nextAction?.detail ?? 'Abra o planejamento para escolher o próximo bloco.');
   const heroHref =
     heroContext === 'ACTIVE'
       ? '#/sessions'
@@ -531,8 +548,8 @@ export function HomeView({
         ? '#/content'
         : heroContext === 'FINAL_STRETCH'
           ? '#/planning'
-          : summary.nextAction
-            ? routeHref(routeForTarget(summary.nextAction.target, summary.nextAction.entityId ?? null))
+          : nextAction
+            ? routeHref(routeForTarget(nextAction.target, nextAction.entityId ?? null))
             : '#/planning';
   const heroCta =
     heroContext === 'ACTIVE'
@@ -542,6 +559,19 @@ export function HomeView({
         : heroContext === 'FINAL_STRETCH'
           ? 'Abrir planejamento'
           : 'Começar agora';
+  const heroShowsAction = heroContext === 'DAILY';
+  const academicPriorities = displayPriorities.filter((item) => !isSystemPriority(item));
+  const widgetPriority =
+    filter === 'ALL'
+      ? academicPriorities.find(
+          (item) => !(heroShowsAction && item.id === nextAction?.id),
+        ) ?? null
+      : nextAction;
+  const agendaPriorities =
+    filter === 'ALL'
+      ? academicPriorities.filter((item) => !(heroShowsAction && item.id === nextAction?.id))
+      : displayPriorities;
+  const hasSystemDiagnostics = displayPriorities.some(isSystemPriority);
   const suggestedFirst = heroContext === 'FINAL_STRETCH' ? 'planning'
     : heroContext === 'PERFORMANCE' ? 'study-time' : null;
   const suggestedOrder: DashboardWidgetId[] | null = suggestedFirst && !summary.activeSession && !loadError && !experienceError &&
@@ -619,8 +649,17 @@ export function HomeView({
             <ol>{suggestedOrder.map((id) => <li key={id}>{WIDGET_LABELS[id]}</li>)}</ol>
             <button type="button" className="button-ghost" onClick={() => {
               commitDashboard(updateDashboardDevice(dashboard, device, { widgetIds: suggestedOrder }));
+              setOrderApplied(true);
+              window.requestAnimationFrame(() => {
+                document.querySelector<HTMLElement>('.dashboard-widget')?.focus();
+              });
             }}>Aplicar ordem sugerida</button>
           </details>
+        ) : null}
+        {orderApplied ? (
+          <p className="hint" role="status">
+            Ordem atualizada para {device === 'desktop' ? 'computador' : device === 'mobile' ? 'celular' : 'tablet'}.
+          </p>
         ) : null}
       </section>
       {heroContext === 'ONBOARDING' && !onboardingDismissed ? (
@@ -649,6 +688,7 @@ export function HomeView({
           <article
             key={widget.id}
             className="dashboard-widget"
+            tabIndex={-1}
             style={{ gridColumn: `span ${Math.min(widget.span, layout.columns)}` }}
             data-widget={widget.id}
           >

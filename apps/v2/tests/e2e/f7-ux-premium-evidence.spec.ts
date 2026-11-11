@@ -87,3 +87,30 @@ test('capture actual home for each original premium concept', async ({ page }) =
   }
 });
 
+test('capture the populated home for each premium concept', async ({ page }) => {
+  test.skip(!process.env.F7_UX_PREMIUM_COMPARE, 'Explicit comparison artifact run');
+  const out = process.env.F7_UX_PREMIUM_COMPARE!;
+  await mkdir(out, { recursive: true });
+  await resetF7Ux(page);
+  await seedAcademicData(page);
+  await page.goto('/#/home');
+  for (const theme of THEMES.slice(-4)) {
+    await page.goto('/#/settings');
+    await page.locator('[data-theme-option="' + theme + '"]').click();
+    await page.goto('/#/home');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    await expect(page.getByTestId('home-hero')).toBeVisible();
+    for (const viewport of [
+      { name: 'desktop', width: 1586, height: 992 },
+      { name: 'mobile-390', width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.screenshot({
+        path: join(out, theme + '-data-' + viewport.name + '.png'),
+        animations: 'disabled',
+      });
+    }
+  }
+});
+

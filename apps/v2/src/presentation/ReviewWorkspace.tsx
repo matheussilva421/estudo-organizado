@@ -1365,6 +1365,9 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
               onClose={() => queueTrigger.current?.focus()}>
               <h4 id="review-queue-sheet-title">Filtros da fila de revisão</h4>
               {filters}
+              <p role="status" aria-live="polite" data-testid="review-queue-sheet-count">
+                {queueSorted.length} de {commitments.length} compromisso(s) após os filtros.
+              </p>
               <button type="button" onClick={() => queueSheet.current?.close()}>Fechar filtros</button>
             </dialog>
           ) : filters;

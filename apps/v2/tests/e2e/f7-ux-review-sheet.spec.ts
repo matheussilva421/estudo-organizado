@@ -11,6 +11,7 @@ for (const width of [320, 390]) {
     await expect(sheet).toBeVisible();
     const bucket = sheet.getByLabel('Situação');
     await expect(bucket).toBeFocused();
+    await expect(sheet.getByTestId('review-queue-sheet-count')).toContainText('de');
     await bucket.selectOption('TODAY');
     await page.keyboard.press('Escape');
     await expect(sheet).not.toBeVisible();

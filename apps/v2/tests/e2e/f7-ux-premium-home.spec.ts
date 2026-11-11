@@ -56,6 +56,8 @@ test('final stretch context uses the registered exam date', async ({ page }) => 
   await expect(widgets.first()).toHaveAttribute('data-widget', 'next-action');
   await hero.getByRole('button', { name: 'Aplicar ordem sugerida' }).click();
   await expect(widgets.first()).toHaveAttribute('data-widget', 'planning');
+  await expect(widgets.first()).toBeFocused();
+  await expect(hero).toContainText('Ordem atualizada para');
   await page.reload();
   await expect(widgets.first()).toHaveAttribute('data-widget', 'planning');
   await expect(hero.getByText('Ver sugestão de ordem')).toHaveCount(0);
@@ -73,5 +75,17 @@ test('an active session takes precedence in the home hero', async ({ page }) => 
   await expect(hero).toHaveAttribute('data-context', 'ACTIVE');
   await expect(hero).toContainText('Sessão em andamento');
   await expect(hero.getByRole('link', { name: 'Continuar sessão' })).toBeVisible();
+});
+
+test('academic priority leads the hero while diagnostics stay out of it', async ({ page }) => {
+  await resetF7Ux(page, '/#/home');
+  await seedAcademicData(page);
+  await page.reload();
+  const hero = page.getByTestId('home-hero');
+  await expect(hero).toHaveAttribute('data-context', 'DAILY');
+  await expect(hero).not.toContainText('envio remoto');
+  await expect(hero.getByRole('link', { name: 'Começar agora' })).toBeVisible();
+  const repeated = page.getByText(/aguardando envio remoto/i);
+  expect(await repeated.count()).toBeLessThanOrEqual(1);
 });
 

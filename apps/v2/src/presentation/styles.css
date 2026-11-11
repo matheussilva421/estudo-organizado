@@ -2706,11 +2706,15 @@ body {
 .sync-status .sync-confirmations div {
   display: flex;
   gap: 6px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .sync-status .sync-confirmations dt,
 .sync-status .sync-confirmations dd {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .home-onboarding li::before {
@@ -2852,6 +2856,48 @@ body {
   .dashboard-widget {
     padding: 16px;
   }
+
+  .app-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'brand brand'
+      'search search'
+      'theme command';
+    align-items: center;
+    gap: 12px;
+  }
+
+  .app-header .brand {
+    grid-area: brand;
+  }
+
+  .app-header .global-search {
+    grid-area: search;
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .app-header .theme-picker {
+    grid-area: theme;
+    justify-self: start;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .app-header .theme-picker select {
+    min-height: 40px;
+  }
+
+  .app-header .command-trigger {
+    grid-area: command;
+    justify-self: end;
+  }
+
+  .app-shell {
+    padding-bottom: 110px;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -2872,4 +2918,14 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   margin-block: 1rem;
+}
+
+.review-queue-sheet select,
+.review-queue-sheet input,
+.review-queue-sheet label,
+.review-queue-sheet p {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
