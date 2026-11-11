@@ -45,3 +45,17 @@ Resultados finais, logs, screenshots, hashes, riscos e matriz estão no pacote F
 ## Próxima ação
 
 Revisar o pacote F7-UX e decidir aceite humano. Não houve integração remota; G-EXT/G-STAGING e F8 continuam bloqueados.
+
+## Retomada — rodada corretiva Premium (2026-11-11)
+
+O GOAL atual é o fechamento local do delta Premium, com o adendo dos quatro conceitos originais. A auditoria histórica permanece em `docs/superpowers/audits/f7-ux-premium/`. A `v2` chegou ao commit de código `da89be4b`, 110 commits à frente de `origin/v2@02b950cd`, sem push; `main@9046cfa2` permanece separada. O bundle de entrada `39097566` foi verificado; cópia em outro disco físico ainda não confirmada.
+
+- `3f79e682`: aviso após transferência real de autoridade em outra aba; cinco testes Foco/F4 passaram. VA-19 segue parcial (conflito de sincronização e compactação a validar).
+- `80666921`: prévia e aceite da sugestão de ordem; três testes Home passaram. Desempenho, ajuste de hierarquia/avisos e alvos de toque ainda requerem validação.
+- `c6371ce4` e `5e756b26`: teste de aparência preserva cronômetro rodando, sessão pausada e rascunho; dois testes Chromium passaram.
+- `8bad5556`: referências e 16 capturas intermediárias indexadas em `ORIGINAL-VISUAL-REFERENCES.md`; contraste amostral nos 12 temas passou.
+- `1053daee`: filtros da fila em painel inferior em 320/390 px; seis testes com regressões da fila passaram.
+- `bcdf39ba`: biblioteca de editais aponta para a árvore existente pelo ID; três testes com proteção de rascunho passaram.
+- `da89be4b`: visão geral de Análises antes do editor e acesso direto com foco; três testes de Atenção/Análises passaram. Drill-down por recorte com dados, valores reconciliados e verificação visual ainda pendentes.
+
+Próxima ação: aprofundar o recorte em Análises e a composição da execução/histórico de Revisões com fixtures; depois fechar testes de grande hierarquia, alerta crítico, Home, capturas finais, revisão independente e ZIP. Rodar Playwright com `PLAYWRIGHT_PORT=18436` e o caminho local de browsers já instalado. Manter UX-H, G-EXT, G-STAGING e F8 separados.
