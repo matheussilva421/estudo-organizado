@@ -979,7 +979,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
     <section className="session-workspace" data-studio="reviews" aria-labelledby="review-title" data-testid="review-workspace">
       <h2 id="review-title">Revisões e inteligência</h2>
       <section className="review-overview" aria-label="Visão geral das revisões">
-        <dl className="review-stats">
+        <dl className="studio-stats">
           <div><dt>Pendentes</dt><dd data-testid="review-stat-pending">{reviewOverview.pending}</dd></div>
           <div><dt>Em andamento</dt><dd data-testid="review-stat-started">{reviewOverview.started}</dd></div>
           <div><dt>Concluídas</dt><dd data-testid="review-stat-done">{reviewOverview.done}</dd></div>

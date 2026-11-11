@@ -11,6 +11,10 @@ test('knowledge library opens the existing edital tree by stable ID on mobile', 
   await expect(library).toContainText('Nenhum edital ativo');
   await seedAcademicData(page);
   await page.reload();
+  await expect(page.getByTestId('knowledge-stat-editais')).toHaveText('1');
+  await expect(page.getByTestId('knowledge-stat-disciplinas')).toHaveText('1');
+  await expect(page.getByTestId('knowledge-stat-assuntos')).toHaveText('1');
+  await expect(page.getByTestId('knowledge-stat-aulas')).toHaveText('0');
   const link = library.getByRole('link', { name: 'TRT 2026' });
   await link.focus();
   await page.keyboard.press('Enter');

@@ -1551,6 +1551,28 @@ export function App() {
           {route.module === 'content' && ready ? (
             <section className="panel" data-studio="knowledge" aria-labelledby="knowledge-library-title">
               <h2 id="knowledge-library-title">Biblioteca de editais</h2>
+              <dl className="studio-stats knowledge-stats">
+                <div>
+                  <dt>Editais ativos</dt>
+                  <dd data-testid="knowledge-stat-editais">
+                    {content.editais.filter((edital) => edital.status === 'ACTIVE').length}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Disciplinas</dt>
+                  <dd data-testid="knowledge-stat-disciplinas">
+                    {content.links.filter((link) => link.status === 'ACTIVE').length}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Assuntos</dt>
+                  <dd data-testid="knowledge-stat-assuntos">{content.assuntos.length}</dd>
+                </div>
+                <div>
+                  <dt>Aulas</dt>
+                  <dd data-testid="knowledge-stat-aulas">{content.aulas.length}</dd>
+                </div>
+              </dl>
               {content.editais.some((edital) => edital.status === 'ACTIVE') ? (
                 <ul className="knowledge-library">
                   {content.editais.filter((edital) => edital.status === 'ACTIVE').map((edital) => (
