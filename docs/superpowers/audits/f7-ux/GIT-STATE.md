@@ -67,4 +67,4 @@ main/origin/main e origin/v2 permanecem intactos; nenhum push ou PR foi executad
 
 HEAD de código validado: 0c31e6ef. 92 commits à frente de origin/v2, 0 atrás. Commits da rodada: a5ff467f, fb7c2f8e, e25e6ee7, 32417120, 68e83479, da329670, 0c31e6ef (+ commit documental final). Árvore limpa após restaurar os quatro PNGs F4 regravados. O HEAD documental exato está em HEAD.txt do pacote.
 
-Estado vigente em 11/11/2026: HEAD documental 0b8fcfdc, HEAD de código validado 0c31e6ef, 92 commits à frente, 0 atrás. O commit 0b8fcfdc alterou somente docs/superpowers/audits/f7-ux/.
+Estado vigente: o HEAD documental final, o HEAD de código validado (0c31e6ef), a contagem exata de commits e o SHA do bundle estão em HEAD.txt do pacote de revisão humana. A consolidação documental está no topo da v2 e não alterou código/teste/config.

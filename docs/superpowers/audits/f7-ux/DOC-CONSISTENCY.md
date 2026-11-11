@@ -14,7 +14,7 @@ Data: 11/11/2026. Somente documentos foram alterados; nenhum código, teste ou c
 
 ## Novos documentos
 
-- PREFLIGHT.md, DOC-CONSISTENCY.md, UX-H-START.md, UX-H-CHECKLIST.md, UX-H-DECISION.md, PUBLISH-HANDOFF.md, BUNDLE-VERIFY.md.
+- PREFLIGHT.md, DOC-CONSISTENCY.md, UX-H-START.md, UX-H-CHECKLIST.md, UX-H-DECISION.md e PUBLISH-HANDOFF.md no repositório; BUNDLE-VERIFY.md apenas no pacote.
 
 ## Verificações
 
