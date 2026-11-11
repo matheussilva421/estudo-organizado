@@ -4,11 +4,11 @@ HEAD de código: f685425f. Ambiente Windows, Node 26, npm 12, Playwright local, 
 
 | Comando | Resultado | Log |
 |---|---|---|
-| npm run typecheck | PASS, exit 0 | logs-final/typecheck.log |
-| npm run lint | PASS, exit 0 | logs-final/lint.log |
-| npm run test:unit | PASS, 878 testes / 129 arquivos | logs-final/unit.log |
-| npm run build | PASS | logs-final/build.log |
-| npm run test:e2e | PASS, 211 + 3 skips / 214 | logs-final/e2e.log |
+| npm run typecheck | PASS, exit 0 | logs/typecheck.log |
+| npm run lint | PASS, exit 0 | logs/lint.log |
+| npm run test:unit | PASS, 878 testes / 129 arquivos | logs/unit.log |
+| npm run build | PASS | logs/build.log |
+| npm run test:e2e | PASS, 211 + 3 skips / 214 | logs/e2e.log |
 | Firebase Emulator | NOT_RUN_ENVIRONMENT (Java ausente) | não executado |
 
 ## Evidências focais
