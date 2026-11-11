@@ -3,7 +3,20 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { resetF7Ux, seedAcademicData } from './f7-ux-helpers';
 
-const THEMES = ['grafite', 'ardosia', 'platina', 'terminal', 'neon', 'arrakis', 'codex', 'plasma'];
+const THEMES = [
+  'grafite',
+  'ardosia',
+  'platina',
+  'terminal',
+  'neon',
+  'arrakis',
+  'codex',
+  'plasma',
+  'neon-teal',
+  'esmeralda-dourado',
+  'azul-ambar',
+  'azul-glacial',
+];
 const VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 900 },
   { name: 'tablet', width: 834, height: 1112 },
