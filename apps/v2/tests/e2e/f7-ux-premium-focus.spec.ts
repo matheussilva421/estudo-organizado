@@ -33,6 +33,13 @@ test('local reconciliation exposes a persistent conflict during compact mobile f
   await expect(focus.getByRole('alert').filter({ hasText: 'Conflito exige decisão' })).toBeInViewport();
   await expect(focus.getByRole('link', { name: 'Ver conflito' })).toBeVisible();
   await expect(focus).toContainText('RUNNING');
+  await page.setViewportSize({ width: 390, height: 640 });
+  await expect(focus.getByRole('alert').filter({ hasText: 'Conflito exige decisão' })).toBeInViewport();
+  await focus.getByRole('link', { name: 'Ver conflito' }).click();
+  await expect(page.locator('[data-sync-conflicts]')).toBeVisible();
+  await page.goto('/#/sessions');
+  await expect(page.getByTestId('session-focus')).toContainText('RUNNING');
+  await expect(page.getByTestId('session-focus').getByRole('link', { name: 'Ver conflito' })).toBeVisible();
 });
 
 test('focus mode uses the same session and clock without duplicating facts', async ({ page }) => {
