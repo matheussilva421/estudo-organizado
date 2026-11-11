@@ -4,6 +4,7 @@ Verificado em 11/11/2026 no checkout C:/Projetos/estudo-organizado/_v2-candidate
 
 - Branch: v2; árvore limpa antes do commit documental final.
 - Código validado: 9457b7ca (typecheck, lint, build, 880 unitários, 226 E2E).
+- Documentação de fechamento: a109b830 (matriz, revisão visual, revisão independente, riscos e reprodução).
 - origin/v2: 02b950cd842decde598820f89da3fa2aaa8274a8.
 - main e origin/main: 9046cfa2283cd293b38df9d52fabfcd5de9ac67c (intocadas).
 - Ahead/behind: 123 commits à frente, 0 atrás no HEAD de código.
