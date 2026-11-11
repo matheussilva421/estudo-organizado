@@ -397,7 +397,11 @@ export function App() {
     };
     const subscriptions = [
       subscribeLocalChanges(PROFILE_ID, reloadLocalProjection),
-      subscribeSessionChanges(PROFILE_ID, reloadLocalProjection),
+      subscribeSessionChanges(PROFILE_ID, (change) => {
+        // Periodic checkpoints only advance verified time of a running session;
+        // completed-session projections and analytics cannot change yet.
+        if (change.kind !== 'CHECKPOINT') reloadLocalProjection();
+      }),
     ];
     return () => subscriptions.forEach((stop) => stop());
   }, [refresh]);

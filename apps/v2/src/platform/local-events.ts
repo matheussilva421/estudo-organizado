@@ -93,7 +93,7 @@ export function notifyPlanningChange(profileId: string, scenarioId: string): voi
   deliverPlanning({ profileId, scenarioId }, true);
 }
 
-type SessionChange = { profileId: string; sessionId: string };
+type SessionChange = { profileId: string; sessionId: string; kind: 'CHECKPOINT' | 'COMMIT' };
 
 type SessionListener = (change: SessionChange) => void;
 
@@ -134,8 +134,12 @@ export function subscribeSessionChanges(
   };
 }
 
-export function notifySessionChange(profileId: string, sessionId: string): void {
-  deliverSession({ profileId, sessionId }, true);
+export function notifySessionChange(
+  profileId: string,
+  sessionId: string,
+  kind: SessionChange['kind'] = 'COMMIT',
+): void {
+  deliverSession({ profileId, sessionId, kind }, true);
 }
 
 type ReviewChange = { profileId: string; entityId: string };

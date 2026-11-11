@@ -19,3 +19,24 @@ for (const width of [320, 390]) {
     await expect(page.getByTestId('review-queue-bucket')).toHaveValue('TODAY');
   });
 }
+
+test('review sheet stays scrollable with 200 percent text at 320px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 480 });
+  await resetF7Ux(page, '/#/reviews');
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await page.getByRole('button', { name: 'Filtrar fila' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Filtros da fila de revisão' });
+  await expect(sheet).toBeVisible();
+  const metrics = await sheet.evaluate((element) => ({
+    scrollable: element.scrollHeight > element.clientHeight,
+    overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  }));
+  expect(metrics.overflow).toBeLessThanOrEqual(1);
+  const close = sheet.getByRole('button', { name: 'Fechar filtros' });
+  await close.scrollIntoViewIfNeeded();
+  await expect(close).toBeInViewport({ ratio: 1 });
+  await close.click();
+  await expect(sheet).not.toBeVisible();
+});

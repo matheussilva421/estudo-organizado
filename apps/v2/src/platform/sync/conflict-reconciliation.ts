@@ -9,6 +9,10 @@ import {
 } from '../indexeddb';
 import type { RemoteEntity } from './remote-schema';
 import { STORE_BY_ENTITY_TYPE } from './entity-stores';
+import { validateSession, type StudySession } from '../../domain/session';
+import { snapshotSession, type SessionAuditRecord } from '../local-session-repository';
+import { notifySessionChange } from '../local-events';
+import { stableStringify } from '../../domain/review';
 
 export type ReconcileResult =
   | { kind: 'APPLY'; next: OutboxPayload }
@@ -128,7 +132,7 @@ export async function resolveRemoteConflict(
   const storeName = STORE_BY_ENTITY_TYPE[conflict.entityType];
   if (!storeName) return 'FAILED';
   const transaction = database.transaction(
-    [STORES.conflicts, STORES.outbox, STORES.tombstones, storeName],
+    [STORES.conflicts, STORES.outbox, STORES.tombstones, STORES.sessionAudit, storeName],
     'readwrite',
   );
   try {
@@ -204,11 +208,43 @@ export async function resolveRemoteConflict(
         });
         transaction.objectStore(storeName).delete([current.profileId, current.entityId]);
       } else if (isRecord(current.remotePayload)) {
-        transaction.objectStore(storeName).put({
+        const record = {
           ...current.remotePayload,
           profileId: current.profileId,
           id: current.entityId,
-        });
+        };
+        if (current.entityType === 'study-session') {
+          let next: StudySession;
+          try {
+            next = validateSession(record as unknown as StudySession);
+          } catch {
+            transaction.abort();
+            return 'STALE';
+          }
+          const before = localRow as StudySession | undefined;
+          transaction.objectStore(storeName).put(next);
+          if (before) {
+            const audit: SessionAuditRecord = {
+              id: `conflict:${current.conflictId}~audit`,
+              profileId: current.profileId,
+              sessionId: next.id,
+              operationId: `conflict:${current.conflictId}`,
+              baseRevision: before.localRevision,
+              newRevision: next.localRevision,
+              mutationKind: 'EDIT_FACTS',
+              previousDigest: stableStringify(snapshotSession(before)),
+              newDigest: stableStringify(snapshotSession(next)),
+              before: snapshotSession(before),
+              after: snapshotSession(next),
+              source: 'CORRECTED',
+              reason: 'SYNC_REMOTE_RESOLUTION',
+              createdAt: new Date().toISOString(),
+            };
+            transaction.objectStore(STORES.sessionAudit).put(audit);
+          }
+        } else {
+          transaction.objectStore(storeName).put(record);
+        }
       } else {
         transaction.abort();
         return 'STALE';
@@ -220,6 +256,9 @@ export async function resolveRemoteConflict(
       });
     }
     await transactionDone(transaction);
+    if (choice === 'REMOTE' && current.entityType === 'study-session') {
+      notifySessionChange(current.profileId, current.entityId);
+    }
     return 'LOCAL_COMMITTED';
   } catch {
     try {

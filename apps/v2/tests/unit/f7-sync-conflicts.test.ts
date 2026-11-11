@@ -521,4 +521,83 @@ describe('F7 sync conflicts', () => {
       requestResult(tx.objectStore(STORES.editais).get([profileId, 'edital-1'])),
     ).resolves.toMatchObject({ title: 'REMOTE-3', localRevision: 3 });
   });
+
+  it('refuses an invalid remote session snapshot without overwriting the local facts', async () => {
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(
+      [STORES.conflicts, STORES.sessions, STORES.profiles, STORES.sessionAudit],
+      'readwrite',
+    );
+    tx.objectStore(STORES.profiles).put({
+      profileId, uid, remoteLibraryId: libraryId, syncEnabled: true, state: 'READY',
+      primaryEditalId: null, localRevision: 1,
+    });
+    const local = {
+      id: 'session-conflict', profileId, state: 'DRAFT', origin: 'TIMER',
+      localRevision: 1, schemaVersion: 1, referenceZone: 'America/Fortaleza',
+      planBlockIds: [], editalIds: [], intervals: [], note: 'LOCAL',
+    };
+    tx.objectStore(STORES.sessions).put(local);
+    tx.objectStore(STORES.conflicts).put({
+      conflictId: 'session-conflict-open', profileId, operationId: 'op-session',
+      entityType: 'study-session', entityId: 'session-conflict',
+      localPayload: local, localKind: 'upsert', localExisted: true,
+      remotePayload: { id: 'session-conflict', profileId, state: 'DRAFT', note: 'BROKEN' },
+      baseRevision: 1, remoteRevision: 2, remoteEpoch: 1, deleted: false,
+      status: 'OPEN', createdAt: new Date().toISOString(),
+    });
+    await transactionDone(tx);
+
+    await expect(
+      resolveRemoteConflict('session-conflict-open', 'REMOTE', 2),
+    ).resolves.toBe('STALE');
+    const read = await openV2Database(profileId);
+    const session = await requestResult(
+      read.transaction(STORES.sessions, 'readonly').objectStore(STORES.sessions).get([profileId, 'session-conflict']),
+    );
+    expect(session).toMatchObject({ note: 'LOCAL', state: 'DRAFT' });
+    const conflicts = await getConflicts(profileId);
+    expect(conflicts.find((item) => item.conflictId === 'session-conflict-open')?.status).toBe('OPEN');
+  });
+
+  it('applies only a validated remote session and records the audit trail', async () => {
+    const db = await openV2Database(profileId);
+    const tx = db.transaction(
+      [STORES.conflicts, STORES.sessions, STORES.profiles],
+      'readwrite',
+    );
+    tx.objectStore(STORES.profiles).put({
+      profileId, uid, remoteLibraryId: libraryId, syncEnabled: true, state: 'READY',
+      primaryEditalId: null, localRevision: 1,
+    });
+    const local = {
+      id: 'session-conflict', profileId, state: 'DRAFT', origin: 'TIMER',
+      localRevision: 1, schemaVersion: 1, referenceZone: 'America/Fortaleza',
+      planBlockIds: [], editalIds: [], intervals: [], note: 'LOCAL',
+    };
+    tx.objectStore(STORES.sessions).put(local);
+    tx.objectStore(STORES.conflicts).put({
+      conflictId: 'session-conflict-valid', profileId, operationId: 'op-session',
+      entityType: 'study-session', entityId: 'session-conflict',
+      localPayload: local, localKind: 'upsert', localExisted: true,
+      remotePayload: { ...local, localRevision: 2, note: 'REMOTE' },
+      baseRevision: 1, remoteRevision: 2, remoteEpoch: 1, deleted: false,
+      status: 'OPEN', createdAt: new Date().toISOString(),
+    });
+    await transactionDone(tx);
+
+    await expect(
+      resolveRemoteConflict('session-conflict-valid', 'REMOTE', 2),
+    ).resolves.toBe('LOCAL_COMMITTED');
+    const read = await openV2Database(profileId);
+    const session = await requestResult(
+      read.transaction(STORES.sessions, 'readonly').objectStore(STORES.sessions).get([profileId, 'session-conflict']),
+    );
+    expect(session).toMatchObject({ note: 'REMOTE', localRevision: 2 });
+    const audit = await requestResult(
+      read.transaction(STORES.sessionAudit, 'readonly').objectStore(STORES.sessionAudit).getAll(),
+    );
+    expect(audit).toHaveLength(1);
+    expect(audit[0]).toMatchObject({ reason: 'SYNC_REMOTE_RESOLUTION', mutationKind: 'EDIT_FACTS' });
+  });
 });

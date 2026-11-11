@@ -181,7 +181,7 @@ function normalizeCommand(input: SessionCommitInput): Record<string, unknown> {
   };
 }
 
-function snapshotSession(session: StudySession): SessionFactsSnapshot {
+export function snapshotSession(session: StudySession): SessionFactsSnapshot {
   return {
     manualDeclaredMs: session.manualDeclaredMs,
     recordedAtCivilDate: session.recordedAtCivilDate,
@@ -656,7 +656,7 @@ export class LocalSessionRepository {
           outcome,
         );
         await transactionDone(transaction);
-        notifySessionChange(scope.profileId, input.sessionId);
+        notifySessionChange(scope.profileId, input.sessionId, 'CHECKPOINT');
         return outcome;
       }
 

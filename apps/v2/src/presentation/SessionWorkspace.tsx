@@ -415,7 +415,7 @@ export function SessionWorkspace({
       if (active && active.state === 'RUNNING' && last) {
         // The other tab holds unpersisted time. Pause at the last durable
         // checkpoint so no unverified time is credited during the handover.
-        await service.pauseSession({
+        const paused = await service.pauseSession({
           scope: { profileId, operationId: newId(), baseRevision: null },
           sessionId: active.id,
           authority: foreignAuthority,
@@ -426,6 +426,11 @@ export function SessionWorkspace({
             endedAt: new Date().toISOString(),
           },
         });
+        if (paused.kind !== 'LOCAL_COMMITTED') {
+          onNotice('Não foi possível pausar a sessão antes de assumir o controle. Nenhuma autoridade foi transferida.');
+          await refresh();
+          return;
+        }
       }
       const result = await coordinator.transferAuthority(
         foreignAuthority.sessionId,
