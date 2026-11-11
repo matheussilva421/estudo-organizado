@@ -73,3 +73,18 @@ test('premium themes stay usable at 320px and expose the gallery', async ({ page
   }
 });
 
+test('home inline links meet the minimum target size on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await resetF7Ux(page, '/#/home');
+  const home = page.getByTestId('f6-home');
+  const inlineLinks = home.locator('a:not(.button-primary):not(.button-ghost):not(.badge)');
+  await expect(inlineLinks.first()).toBeVisible();
+  const sizes = await inlineLinks.evaluateAll((links) =>
+    links.map((link) => ({
+      label: link.textContent?.trim() ?? '',
+      height: link.getBoundingClientRect().height,
+    })),
+  );
+  for (const size of sizes) expect(size.height, size.label).toBeGreaterThanOrEqual(24);
+});
+

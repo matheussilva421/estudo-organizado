@@ -2331,6 +2331,12 @@ select {
   font-weight: 700;
 }
 
+.home-view a:not(.button-primary):not(.button-ghost):not(.badge) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
+
 .review-queue-sheet .session-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
