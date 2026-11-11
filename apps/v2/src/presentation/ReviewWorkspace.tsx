@@ -225,6 +225,19 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   }, [boardDraftDirty, boardDraftKey, profileId, boardTitle, boardText, boardSample, boardDenominator]);
   const [overrideBaseUpdatedAt, setOverrideBaseUpdatedAt] = useState<string | null>(null);
   const settingsHydratedRef = useRef(false);
+  const queueSheet = useRef<HTMLDialogElement>(null);
+  const queueTrigger = useRef<HTMLButtonElement>(null);
+  const [mobileQueue, setMobileQueue] = useState(() => window.matchMedia('(max-width: 720px)').matches);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 720px)');
+    const update = () => {
+      if (!media.matches && queueSheet.current?.open) queueSheet.current.close();
+      setMobileQueue(media.matches);
+    };
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
   const [externalEnabled, setExternalEnabled] = useState(false);
   const [policyError, setPolicyError] = useState<string | null>(null);
   const [quietStart, setQuietStart] = useState('22:00');
@@ -1276,6 +1289,13 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
 
       <article className="session-card" data-testid="review-agenda">
         <h3>Agenda de compromissos</h3>
+        {mobileQueue ? (
+          <button ref={queueTrigger} type="button" aria-haspopup="dialog" onClick={() => queueSheet.current?.showModal()}>
+            Filtrar fila
+          </button>
+        ) : null}
+        {(() => {
+          const filters = (
         <div className="session-actions" role="group" aria-label="Filtros da fila de revisão">
           <label>
             Situação
@@ -1285,6 +1305,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                 setQueueBucket(event.target.value as typeof queueBucket)
               }
               data-testid="review-queue-bucket"
+              autoFocus={mobileQueue}
             >
               <option value="PENDING">Pendentes</option>
               <option value="STARTED">Em andamento</option>
@@ -1337,10 +1358,20 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
             />
             Ordenar por prioridade calculada
           </label>
-          <span data-testid="review-queue-count">
-            {queueSorted.length} de {commitments.length}
-          </span>
         </div>
+          );
+          return mobileQueue ? (
+            <dialog ref={queueSheet} className="review-queue-sheet" aria-labelledby="review-queue-sheet-title"
+              onClose={() => queueTrigger.current?.focus()}>
+              <h4 id="review-queue-sheet-title">Filtros da fila de revisão</h4>
+              {filters}
+              <button type="button" onClick={() => queueSheet.current?.close()}>Fechar filtros</button>
+            </dialog>
+          ) : filters;
+        })()}
+        <p className="hint" data-testid="review-queue-count">
+          {queueSorted.length} de {commitments.length}
+        </p>
         {queueSorted.length === 0 ? (
           <p className="hint">
             {commitments.length === 0

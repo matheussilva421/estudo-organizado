@@ -2286,3 +2286,30 @@ select {
 .focus-layer .session-actions {
   justify-content: center;
 }
+
+.review-queue-sheet {
+  position: fixed;
+  inset: auto 0 0;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  max-height: min(85dvh, 36rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--control-border);
+  border-radius: 1rem 1rem 0 0;
+}
+
+.review-queue-sheet::backdrop {
+  background: rgb(0 0 0 / 65%);
+}
+
+.review-queue-sheet .session-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin-block: 1rem;
+}
