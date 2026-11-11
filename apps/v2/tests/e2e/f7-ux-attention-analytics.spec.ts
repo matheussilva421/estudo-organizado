@@ -56,6 +56,28 @@ test('f7 ux analytics blocks incompatible units, mirrors table and exports metho
   expect(csv).not.toMatch(/(^|,)=cmd/m);
 });
 
+test('changing the period reconciles the actual focus value in chart and table', async ({ page }) => {
+  await resetF7Ux(page, '/#/sessions');
+  const manual = page.getByTestId('session-manual');
+  const oldDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Fortaleza', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .format(new Date(Date.now() - 12 * 86_400_000));
+  await manual.getByLabel('Data', { exact: true }).fill(oldDate);
+  await manual.getByLabel('Duração da sessão (min)').fill('30');
+  await manual.getByTestId('session-manual-submit').click();
+  await expect(page.getByTestId('session-history')).toContainText('00:30:00');
+  await page.goto('/#/analytics');
+  await page.getByRole('button', { name: 'Explorar indicadores' }).click();
+  const chart = page.getByTestId('f7-analytics-chart').locator('.bar-row').filter({ hasText: 'Tempo de foco executado' });
+  const row = page.getByTestId('f7-analytics-table').getByRole('row').filter({ hasText: 'Tempo de foco executado' });
+  const period = page.locator('#analytics-period');
+  await period.selectOption('7');
+  await expect(chart.locator('.bar-value')).toHaveText('—');
+  await expect(row.getByRole('cell').first()).toHaveText('—');
+  await period.selectOption('30');
+  await expect(chart.locator('.bar-value')).toHaveText('30 minutes');
+  await expect(row.getByRole('cell').first()).toHaveText('30 minutes');
+});
+
 test('f7 ux archives an immutable report and reopens it read-only', async ({ page }) => {
   await resetF7Ux(page, '/#/analytics');
   await page.getByRole('button', { name: 'Arquivar relatório imutável' }).click();

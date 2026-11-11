@@ -392,9 +392,14 @@ export function App() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh().catch((error) => setNotice(persistenceMessage(error)));
-    return subscribeLocalChanges(PROFILE_ID, () => {
+    const reloadLocalProjection = () => {
       refresh().catch(() => undefined);
-    });
+    };
+    const subscriptions = [
+      subscribeLocalChanges(PROFILE_ID, reloadLocalProjection),
+      subscribeSessionChanges(PROFILE_ID, reloadLocalProjection),
+    ];
+    return () => subscriptions.forEach((stop) => stop());
   }, [refresh]);
 
   useEffect(() => {
