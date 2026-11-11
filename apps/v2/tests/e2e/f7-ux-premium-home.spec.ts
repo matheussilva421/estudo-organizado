@@ -50,6 +50,15 @@ test('final stretch context uses the registered exam date', async ({ page }) => 
   await expect(hero).toHaveAttribute('data-context', 'FINAL_STRETCH');
   await expect(hero).toContainText('Reta Premium');
   await expect(hero).toContainText('10 dia(s)');
+  const widgets = page.getByRole('region', { name: 'Widgets da Home' }).locator('[data-widget]');
+  await expect(widgets.first()).toHaveAttribute('data-widget', 'next-action');
+  await hero.getByText('Ver sugestão de ordem').click();
+  await expect(widgets.first()).toHaveAttribute('data-widget', 'next-action');
+  await hero.getByRole('button', { name: 'Aplicar ordem sugerida' }).click();
+  await expect(widgets.first()).toHaveAttribute('data-widget', 'planning');
+  await page.reload();
+  await expect(widgets.first()).toHaveAttribute('data-widget', 'planning');
+  await expect(hero.getByText('Ver sugestão de ordem')).toHaveCount(0);
 });
 
 test('an active session takes precedence in the home hero', async ({ page }) => {

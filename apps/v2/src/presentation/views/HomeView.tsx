@@ -531,6 +531,13 @@ export function HomeView({
         : heroContext === 'FINAL_STRETCH'
           ? 'Abrir planejamento'
           : 'Começar agora';
+  const suggestedFirst = heroContext === 'FINAL_STRETCH' ? 'planning'
+    : heroContext === 'PERFORMANCE' ? 'study-time' : null;
+  const suggestedOrder: DashboardWidgetId[] | null = suggestedFirst && !summary.activeSession && !loadError && !experienceError &&
+    layout.source === 'base' && dashboard.template === 'FOCUS' && filter === 'ALL' &&
+    layout.widgets[0]?.id !== suggestedFirst && layout.widgets.some(({ id }) => id === suggestedFirst)
+    ? [suggestedFirst, ...layout.widgets.map(({ id }) => id).filter((id) => id !== suggestedFirst)]
+    : null;
 
   return (
     <section
@@ -589,6 +596,16 @@ export function HomeView({
             </button>
           ) : null}
         </div>
+        {suggestedOrder ? (
+          <details key={device + ':' + heroContext}>
+            <summary>Ver sugestão de ordem</summary>
+            <p>Ordem sugerida para {device === 'desktop' ? 'computador' : device === 'mobile' ? 'celular' : 'tablet'}:</p>
+            <ol>{suggestedOrder.map((id) => <li key={id}>{WIDGET_LABELS[id]}</li>)}</ol>
+            <button type="button" className="button-ghost" onClick={() => {
+              commitDashboard(updateDashboardDevice(dashboard, device, { widgetIds: suggestedOrder }));
+            }}>Aplicar ordem sugerida</button>
+          </details>
+        ) : null}
         {heroContext === 'ONBOARDING' && !onboardingDismissed ? (
           <ol className="home-onboarding">
             <li>Cadastre edital e disciplina em Conteúdo.</li>
