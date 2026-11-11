@@ -21,12 +21,12 @@
 | UX-13 | PASS_LOCAL | cards e comandos explícitos; foco de procedência; testes de ação/render e regressões F2–F5 |
 | UX-14 | PASS_LOCAL | explorador F2 reutilizado; navegação por ID, arquivo somente leitura e árvore incremental F6 |
 | UX-15 | PASS_LOCAL | reordenação por drag/teclado, movimentação hierárquica, rejeição de ciclo e preservação de vínculos |
-| UX-16 | PARTIAL_LOCAL | prévia de ativação, baseRevision, calendário em lista e não alocados provados em f7-ux-planning-workspace.spec.ts e f7-ux-planning-activation.test.ts; “mês” é janela de 30 dias e metas/progresso seguem ausentes. Ver UX16-UX21-TRACEABILITY.md |
-| UX-17 | PARTIAL_LOCAL | prévia determinística, Reta Final e checkpoint restaurável cobertos; disponibilidade/exceções/metas editáveis continuam hardcoded (PlanningWorkspace.tsx:53) — P1 em aberto |
-| UX-18 | PARTIAL_LOCAL | pausa/conclusão não creditam lacuna (f7-ux-session-integrity.test.ts); E2E F4 cobre foco, manual, duas abas e vínculo. Alocação valida soma e sessionId; existência/arquivamento só na UI |
-| UX-19 | PARTIAL_LOCAL | recuperação sem tempo inventado provada; conflitos preservam variantes; falta inspetor/filtros de histórico — P2 |
-| UX-20 | PARTIAL_LOCAL | filtros de fila, buckets e ordenação provados em f7-ux-reviews-queue.spec.ts; estado “revisão iniciada” não existe (P1) e diff da política base falta (P2) |
-| UX-21 | PARTIAL_LOCAL | encaixe é prévia, recusa sobreposição e não grava antes de aplicar (f7-ux-review-placement.test.ts); fatores têm explicação, mas histórico de compromisso e rastro por evidência faltam |
+| UX-16 | PARTIAL_LOCAL | prévia de ativação, baseRevision, calendário em lista, mês civil real e não alocados provados; falta apenas diagnóstico/metas comparativas de capacidade (P-01) |
+| UX-17 | PARTIAL_LOCAL | disponibilidade/exceções/metas persistidas, prévia de ativação e checkpoint restaurável provados; P-05 (encerramento direto) e P-06 (comparação lado a lado) seguem parciais |
+| UX-18 | PASS_VERIFIED | foco/pausa/manual/duas abas e vínculo ≠ cumprimento cobertos; alocação validada no serviço (perfil, existência, arquivamento, vínculo) |
+| UX-19 | PARTIAL_LOCAL | recuperação sem tempo inventado, conflitos e inspetor/filtros de histórico provados; hábitos/consistência contextual seguem parciais (E-07) |
+| UX-20 | PASS_VERIFIED | fila filtrável, iniciar/concluir/avaliar separados, política com diff obrigatório e STALE_POLICY |
+| UX-21 | PARTIAL_LOCAL | encaixe em prévia com sobreposição/capacidade, histórico e importação específicos; rastro por amostra/evidência segue parcial (R-04) |
 | UX-22 | PASS_LOCAL | `f7-ux-analytics.test.ts` e `f7-ux-analytics-cache.test.ts`; medições/alocações invalidam cache |
 | UX-23 | PASS_LOCAL | editor de métricas, validação de unidades, barras/linha e tabela equivalente |
 | UX-24 | PASS_LOCAL | snapshot congelado em profundidade, exportação CSV/JSON com metodologia e escape de fórmula |
@@ -74,3 +74,9 @@
 - G-F7/UX-H: aceite humano `NOT_RUN`.
 - F8/G-MAIN: não iniciados.
 - Acessibilidade manual e hardware modesto: `NOT_RUN`.
+
+## Histórico preservado — estado em 0d2ee339 (não é o status vigente)
+
+Na auditoria de 10/11/2026 as seis tarefas estavam PARTIAL_LOCAL: P-04 e R-02 eram P1 abertos; calendário usava janela de 30 dias; histórico de sessão era resumo; política base não tinha diff. Essas condições foram corrigidas nos commits a5ff467f..da329670 e não devem ser lidas como pendências atuais.
+
+O estado vigente é o da tabela acima, com P1 conhecidos fechados e P2 listados em UX-H-CHECKLIST.md.

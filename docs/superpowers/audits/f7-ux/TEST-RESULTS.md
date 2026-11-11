@@ -50,11 +50,13 @@ A porta 18431 do preview ficou presa nesta sessão; a configuração aceita PLAY
 
 | Comando | Resultado | Log |
 |---|---|---|
-| npm run typecheck | PASS, exit 0 | logs-final/typecheck.log |
-| npm run lint | PASS, exit 0, sem warnings | logs-final/lint.log |
-| npm run test:unit | PASS, 876 testes / 128 arquivos | logs-final/unit.log |
-| npm run build | PASS, exit 0 | logs-final/build.log |
-| npm run test:e2e | PASS, 201 + 3 skips / 204, porta 18432 | logs-final/final-e2e.log |
-| Firebase Emulator demo | NOT_RUN_ENVIRONMENT: java ausente no PATH, exit 1 | logs-final/firebase.log |
+| npm run typecheck | PASS, exit 0 | logs/typecheck.log |
+| npm run lint | PASS, exit 0, sem warnings | logs/lint.log |
+| npm run test:unit | PASS, 876 testes / 128 arquivos | logs/unit.log |
+| npm run build | PASS, exit 0 | logs/build.log |
+| npm run test:e2e | PASS, 201 + 3 skips / 204, porta 18432 | logs/final-e2e.log |
+| Firebase Emulator demo | NOT_RUN_ENVIRONMENT: java ausente no PATH, exit 1 | logs/firebase.log |
 
 Os três skips continuam sendo os gates de captura f3-t40, f6-evidence e f7-ux-evidence; nenhum skip novo.
+
+Os arquivos em logs/ são as cópias empacotadas de C:/Projetos/outputs/f7-ux-aderencia-20261110/logs-final; no repositório os logs brutos ficam fora do checkout.

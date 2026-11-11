@@ -3,7 +3,11 @@
 Base auditada: `0d2ee339`. Delta desta rodada: `34487e30` (integridade de revisão e sessão) e `51cc4a40` (prévia de ativação, calendário em lista, filtros de revisão e Home 320 px).
 Classificação: **F7_UX_ADHERENCE_PARTIAL_WITH_EXACT_GAPS**. Nenhum item abaixo foi promovido a PASS sem teste ou comportamento executado.
 
-## UX-16 — Planejamento contextual
+**Estado vigente (11/11/2026):** os P1 P-04 e R-02 estão fechados; a seção “Atualização integrada” ao final é a fonte corrente. As tabelas seguintes preservam o diagnóstico de 0d2ee339 e não devem ser lidas como pendências atuais.
+
+## Histórico — UX-16 a UX-21 em 0d2ee339
+
+### UX-16 — Planejamento contextual
 
 | ID | Requisito | Código | Prova | Status |
 |---|---|---|---|---|

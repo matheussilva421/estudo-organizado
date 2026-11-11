@@ -21,11 +21,15 @@
 7. O perfil desta entrega permanece `local-default`; a UI organiza preferências por perfil, mas troca/migração de múltiplos perfis reais não foi exercitada.
 8. A classificação F1/F2 usa a época real e impede falsa alegação de `SAFE`, mas importar/migrar formatos legados permanece fora do contrato F7-UX e exige fluxo próprio.
 9. A cópia pré-restore é emitida como download antes do commit; o navegador pode bloquear ou o usuário pode não salvar o arquivo, e a aplicação não tem como autenticar que a cópia externa foi preservada. O snapshot, a detecção stale e o read-back transacional continuam obrigatórios.
-10. P1 de UX-17: a disponibilidade semanal continua fixa em PlanningWorkspace.tsx:53. A store planning_availability existe no schema, mas não tem leitura/escrita nem editor; exceções e metas também não são editáveis.
-11. P1 de UX-20: não há estado persistido de “revisão iniciada”. Abrir a fila não executa nem conclui, mas iniciar e avaliar continuam no mesmo comando de execução.
+10. HISTÓRICO: P-04 (disponibilidade fixa) foi P1 até a5ff467f; hoje há persistência com CAS, exceções, metas e painel. Não é risco atual.
+11. HISTÓRICO: R-02 (sem revisão iniciada) foi P1 até fb7c2f8e; hoje há startedAt durável e idempotente. Não é risco atual.
 12. P2 de acessibilidade: quatro links de texto na Home em 320 px medem menos de 24 px de altura. São links inline e ficaram documentados em HOME-320-AUDIT.md.
 13. A porta 18431 do preview ficou presa durante esta sessão. A configuração do Playwright agora aceita PLAYWRIGHT_PORT; os logs finais indicam a porta efetiva (18432).
 14. O Firebase Emulator retornou exit 1 com “Could not spawn java -version”: Java não está instalado/exposto no PATH. Os testes de regras/transação remota ficam NOT_RUN nesta máquina; nenhum projeto real foi usado.
+15. Firestore Rules: a falha estrutural de escrita direta fora do recibo continua pendente de tratamento antes de homologação real; não foi alterada neste GOAL.
+16. Migração V1 real: BLOCKED_MAPPING; não executada e sem autorização.
+17. Contagem remota de consentimento: não verificada nesta rodada; não inferir adesão ou aprovação.
+18. Acessibilidade manual: NVDA/Narrator, hardware modesto e toque físico permanecem NOT_RUN; a automação não substitui leitura humana.
 
 ## Proteção antes da implementação
 
@@ -48,3 +52,17 @@ O bundle contém `v2`, `main`, `recovery/f7-preformat-20261104`, `recovery/v2-f7
 P-04 e R-02 resolvidos e testados; E-09, P-03, P-05, R-03, R-06 e R-08 corrigidos. P1 local restante: nenhum conhecido.
 P2 mantidos: diagnóstico de capacidade (P-01), encerramento direto da Reta Final (P-05), comparação lado a lado de revisões (P-06), amostra por evidência (R-04), aceite distribuído (P-09/R-09) e quatro links inline abaixo de 24 px.
 Firebase Emulator continua NOT_RUN_ENVIRONMENT sem Java; E2E usa PLAYWRIGHT_PORT=18432 porque 18431 está presa no ambiente.
+
+## Gate atual (11/11/2026)
+
+| Gate | Estado |
+|---|---|
+| P0/P1 locais | NENHUM CONHECIDO |
+| P2 | HUMAN_DECISION_REQUIRED em UX-H-CHECKLIST.md |
+| UX-H | READY_FOR_HUMAN / PENDING |
+| origin/v2 | UNPUBLISHED |
+| G-EXT | BLOCKED |
+| G-STAGING | BLOCKED |
+| Firebase Emulator | NOT_RUN_ENVIRONMENT (Java ausente) |
+| NVDA/Narrator/hardware | NOT_RUN |
+| F8/main | NÃO INICIADO |

@@ -54,9 +54,9 @@ Firebase/Auth/Firestore/Cloudflare/KV reais, multi-dispositivo físico, cotas re
 
 As preferências visuais e snapshots de relatório ficam no armazenamento local deste navegador, fora das stores canônicas coletadas pelo backup F7. A UI informa que são artefatos locais; não foram declarados sincronizados ou recuperáveis pelo backup operacional. A chave de recuperação continua vinculada à sessão do runtime F7 e precisa ser configurada novamente após fechar a aba.
 
-## Rodada 2026-11-10 — aderência UX-16 a UX-21
+## Histórico — auditoria de aderência em 0d2ee339 (não é o estado vigente)
 
-Classificação final desta rodada: **F7_UX_ADHERENCE_PARTIAL_WITH_EXACT_GAPS**. A matriz anterior marcava UX-16 a UX-21 como PASS_LOCAL; a auditoria dirigida mostrou que quatro delas tinham lacunas materiais e duas eram apenas parciais.
+Classificação ao final daquela rodada: **F7_UX_ADHERENCE_PARTIAL_WITH_EXACT_GAPS**. A matriz anterior marcava UX-16 a UX-21 como PASS_LOCAL; a auditoria dirigida mostrou que quatro delas tinham lacunas materiais e duas eram apenas parciais. O estado vigente está na seção “Rodada integrada” abaixo.
 
 Correções verificadas:
 
@@ -77,7 +77,7 @@ Lacunas mantidas: disponibilidade semanal/exceções editáveis (P1), estado “
 
 ## Rodada integrada 2026-11-10 — P1 fechados
 
-HEAD de código 68e83479; 89 commits à frente de origin/v2. P-04 e R-02, os dois P1 restantes, foram resolvidos com persistência, UI e testes:
+HEAD documental 0b8fcfdc; HEAD de código validado 0c31e6ef; 92 commits à frente de origin/v2. P-04 e R-02, os dois P1 restantes, foram resolvidos com persistência, UI e testes:
 
 - disponibilidade semanal, exceções, meta semanal e minutos por disciplina persistidos com CAS e usados por wizard, calendário, capacidade e encaixe de revisões;
 - revisão iniciada com startedAt durável, histórico STARTED e idempotência, separada de execução e avaliação;
@@ -88,3 +88,10 @@ HEAD de código 68e83479; 89 commits à frente de origin/v2. P-04 e R-02, os doi
 - mês civil real (28/29/30/31 e virada de ano) e jornada integrada F2 a F6.
 
 A classificação permanece F7_UX_ADHERENCE_PARTIAL_WITH_EXACT_GAPS por lacunas P2 de profundidade (diagnóstico de capacidade, comparação lado a lado de revisões, amostra por evidência e encerramento da Reta Final).
+
+## Consolidação documental e preparação da UX-H — 11/11/2026
+
+Estado: **F7_UX_HUMAN_REVIEW_READY / UX_H_PENDING_HUMAN / ORIGIN_V2_UNPUBLISHED / G-EXT_G-STAGING_BLOCKED**.
+P1 conhecidos: nenhum. P2: decisão humana obrigatória em UX-H-CHECKLIST.md.
+URL local verificada: http://127.0.0.1:18433/ (loopback, preview temporário). Roteiro em UX-H-START.md e decisão em UX-H-DECISION.md.
+Nenhum código/teste/config foi alterado nesta consolidação; o HEAD de código validado continua 0c31e6ef.
