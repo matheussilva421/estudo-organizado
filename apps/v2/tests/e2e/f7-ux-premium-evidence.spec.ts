@@ -60,3 +60,29 @@ test('premium home themes and focus evidence', async ({ page }) => {
   );
 });
 
+test('capture actual home for each original premium concept', async ({ page }) => {
+  test.skip(!process.env.F7_UX_PREMIUM_COMPARE, 'Explicit comparison artifact run');
+  const out = process.env.F7_UX_PREMIUM_COMPARE!;
+  await mkdir(out, { recursive: true });
+  await resetF7Ux(page);
+  for (const theme of THEMES.slice(-4)) {
+    await page.setViewportSize({ width: 1586, height: 992 });
+    await page.goto('/#/settings');
+    await page.locator('[data-theme-option="' + theme + '"]').click();
+    await page.goto('/#/home');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    await expect(page.getByTestId('home-hero')).toHaveAttribute('data-context', 'ONBOARDING');
+    for (const viewport of [
+      { name: 'desktop', width: 1586, height: 992 },
+      { name: 'tablet', width: 900, height: 1100 },
+      { name: 'mobile-390', width: 390, height: 844 },
+      { name: 'mobile-320', width: 320, height: 720 },
+    ]) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await expect(page.getByRole('link', { name: 'Adicionar conteúdo' })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+      await page.screenshot({ path: join(out, theme + '-' + viewport.name + '.png'), animations: 'disabled' });
+    }
+  }
+});
+

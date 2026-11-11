@@ -171,10 +171,10 @@
 }
 
 [data-theme='neon-teal'] {
-  --bg: #04100f;
-  --surface: #071917;
-  --card: #0b211e;
-  --card-hover: #0f2c28;
+  --bg: #07121d;
+  --surface: #0a1b28;
+  --card: #0d2533;
+  --card-hover: #113342;
   --text: #e9fffb;
   --text-secondary: #a9d8cf;
   --text-muted: #8ab8af;
