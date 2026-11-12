@@ -15,11 +15,11 @@ Boxes de referência foram estimados por inspeção de pixels dos PNGs originais
 | Título/saudação | 335,80,700,80 | 351,88,900,80 | +16 x, +8 y |
 | Hero | 335,160,1235,270 | 351,160,1219,270 | +16 x, altura equivalente |
 | Faixa de passos | 335,441,1235,50 | 351,448,1219,36 | +16 x, +7 y |
-| Bento (3 cartões) | 335,500,1235,150 | 351,500,1219,~190 | topo equivalente, altura +40 |
+| Bento (3 cartões) | 335,500,1235,150 | 351,500,1219,172 | topo equivalente, altura +22 |
 | Recursos | 335,660,1235,95 | 351,~700,1219,~100 | +16 x, +40 y |
 | Rodapé/contadores | 335,916,1235,40 | 351,873,1219,29 | contadores reais substituem legenda |
 
-Rail, topbar, título, hero e passos alinham dentro de 2% da largura/altura. Recursos ficam ~40 px abaixo por altura real do Bento; cartões Bento ainda são mais altos que a referência.
+Rail, topbar, título, hero e passos alinham dentro de 2% da largura/altura. Recursos ficam ~20 px abaixo; cartões Bento ainda são 22 px mais altos que a referência.
 
 ## Oito critérios
 
