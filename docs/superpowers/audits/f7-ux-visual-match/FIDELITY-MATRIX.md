@@ -53,7 +53,7 @@ Critérios 3 e 5 permanecem PARTIAL; portanto o marco não é aceite visual inte
 | Knowledge | Biblioteca, árvore, contagens e subnavegação | inspetor em painel existente |
 | Planning | Visão, calendário, ciclo/reta, editor e contagens reais | composição ainda sequencial |
 | Insights | Visão, explorar, recortes e comparação; drill-down real | recorte preenchido sem fixture dedicada |
-| Sessions | Timer/Foco já especializados | subnavegação de estúdio pendente |
+| Sessions | Visão de estado, histórico recente, concluídas hoje, recuperação, timer e Foco | Modo Foco mantém mesma sessão/clock |
 | Settings | Galeria dos 12 temas e categorias | reorganização fina pendente |
 
 ## Instrumentos
