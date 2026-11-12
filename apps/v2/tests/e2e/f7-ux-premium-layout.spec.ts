@@ -91,7 +91,7 @@ test('desktop home keeps the reference spacing and hierarchy', async ({ page }) 
   expect(boxes.resourceCard.height).toBeGreaterThanOrEqual(98);
   expect(boxes.resourceIcon.width).toBeGreaterThanOrEqual(54);
   expect(boxes.goalValueText).toBe('—');
-  expectNear(boxes.goalOrbit.width, 104, 2);
+  expectNear(boxes.goalOrbit.width, 112, 2);
   expectNear(boxes.goalValue.x + boxes.goalValue.width / 2, boxes.goalOrbit.x + boxes.goalOrbit.width / 2, 2);
   expectNear(boxes.goalValue.y + boxes.goalValue.height / 2, boxes.goalOrbit.y + boxes.goalOrbit.height / 2, 2);
   expect(parseFloat(boxes.heroDetailFont)).toBeGreaterThanOrEqual(15);

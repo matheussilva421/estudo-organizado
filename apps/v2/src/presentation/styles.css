@@ -4411,6 +4411,14 @@ body::before {
     margin-top: 21px;
     padding: 24px 32px;
     gap: 8px;
+    background:
+      radial-gradient(58% 108% at 4% 18%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+      radial-gradient(120% 150% at 88% 8%, color-mix(in srgb, var(--accent) 28%, transparent), transparent 58%),
+      linear-gradient(135deg, color-mix(in srgb, var(--surface) 84%, #0d5363), var(--card));
+    box-shadow:
+      0 34px 80px rgb(0 0 0 / 0.4),
+      0 0 34px color-mix(in srgb, var(--accent) 10%, transparent),
+      inset 0 1px 0 rgb(255 255 255 / 0.06);
   }
 
   .home-hero .eyebrow {
@@ -4495,23 +4503,30 @@ body::before {
     height: 182px;
     padding: 16px 18px 32px;
     border-radius: 16px;
+    border-color: color-mix(in srgb, var(--accent) 22%, var(--border));
+    background:
+      radial-gradient(110% 150% at 96% 0%, color-mix(in srgb, var(--accent) 17%, transparent), transparent 62%),
+      linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, white 8%), var(--card));
+    box-shadow:
+      0 22px 48px rgb(0 0 0 / 0.27),
+      inset 0 1px 0 rgb(255 255 255 / 0.05);
   }
 
   .show-goal .goal-ring {
     display: grid;
-    grid-template-columns: 104px minmax(0, 1fr);
+    grid-template-columns: 112px minmax(0, 1fr);
     gap: 16px;
     margin-top: 2px;
   }
 
   .goal-orbit,
   .goal-orbit svg {
-    width: 104px;
-    height: 104px;
+    width: 112px;
+    height: 112px;
   }
 
   .goal-ring-value {
-    font-size: 1.55rem;
+    font-size: 1.65rem;
   }
 
   .goal-copy strong {
@@ -4529,7 +4544,7 @@ body::before {
     bottom: 10px;
     left: 18px;
     display: inline-flex;
-    min-height: 30px;
+    min-height: 36px;
     align-items: center;
     padding: 5px 10px;
     border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
@@ -4543,20 +4558,25 @@ body::before {
     max-width: 66%;
   }
 
+  .show-goal a {
+    left: 144px;
+  }
+
   .review-calendar-art {
     position: absolute;
     right: 18px;
     bottom: 31px;
     display: block;
-    width: 78px;
-    height: 78px;
+    width: 86px;
+    height: 86px;
     color: var(--accent);
+    filter: drop-shadow(0 12px 22px color-mix(in srgb, var(--accent) 20%, transparent));
     pointer-events: none;
   }
 
   .calendar-sheet {
-    fill: color-mix(in srgb, var(--accent) 12%, var(--surface));
-    stroke: color-mix(in srgb, var(--accent) 48%, var(--border));
+    fill: color-mix(in srgb, var(--accent) 20%, var(--surface));
+    stroke: color-mix(in srgb, var(--accent) 58%, var(--border));
     stroke-width: 2;
   }
 
@@ -4588,6 +4608,12 @@ body::before {
     width: 56px;
     height: 56px;
     border-radius: 14px;
+    background:
+      radial-gradient(100% 100% at 30% 10%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 72%),
+      color-mix(in srgb, var(--accent) 12%, var(--surface));
+    box-shadow:
+      0 10px 22px color-mix(in srgb, var(--accent) 12%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--accent) 24%, transparent);
   }
 
   .home-view .home-resources .resource-card .widget-icon svg {
