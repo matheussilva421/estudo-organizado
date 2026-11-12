@@ -4140,3 +4140,29 @@ body::before {
     justify-self: start;
   }
 }
+
+@media (min-width: 1024px) {
+  .show-card {
+    position: relative;
+    height: 172px;
+    min-height: 0;
+    padding-bottom: 34px;
+  }
+
+  .show-card a {
+    position: absolute;
+    right: 14px;
+    bottom: 10px;
+    margin: 0;
+    font-size: 0.78rem;
+  }
+
+  .goal-ring svg {
+    width: 96px;
+    height: 96px;
+  }
+
+  .show-chart {
+    height: 56px;
+  }
+}
