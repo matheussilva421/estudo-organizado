@@ -21,6 +21,7 @@ Reconstruir a apresentação até parecer o produto dos quatro mockups, preserva
 - Insights Studio: subnavegação Visão/Explorar/Recortes/Comparação e recorte real por edital ou disciplina.
 - Planning Studio: subnavegação Visão/Calendário/Ciclo e Reta Final/Editor e contagens reais por cenário.
 - Settings: galeria de aparência antes do diagnóstico técnico, com categorias e integridade separada.
+- Faixas contextuais dos módulos compactadas; alerta de conflito no Modo Foco movido para o topo e validado em 320/390.
 - Sessions: visão de estado, histórico recente, concluídas hoje e recuperação; timer/Foco inalterados.
 - Geometria de referência: rail 295 px, conteúdo em x≈351, hero 270 px, título 40 px, CTAs 48 px, Bento 1/1,08/1,25 e recursos horizontais.
 - Pareceres independentes recebidos e tratados: denominador por dimensão no Insights, janela civil de 7 dias, alerta de backup na Home, role do link crítico, rail tablet, escopo do Planning, revisões futuras, série acessível e aviso de histórico truncado.

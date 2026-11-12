@@ -49,10 +49,10 @@ Critérios 3 e 5 permanecem PARTIAL; portanto o marco não é aceite visual inte
 
 | Módulo | Estado visual | Limite |
 |---|---|---|
-| Review | Subnavegação e histórico visual; fila/execução/política preservadas | ainda longo, não em abas exclusivas |
-| Knowledge | Biblioteca, árvore, contagens e subnavegação | inspetor em painel existente |
+| Review | Faixa contextual compacta, subnavegação e histórico visual | ainda longo, não em abas exclusivas |
+| Knowledge | Faixa compacta, biblioteca, árvore, contagens e subnavegação | inspetor em painel existente |
 | Planning | Visão, calendário, ciclo/reta, editor e contagens reais | composição ainda sequencial |
-| Insights | Visão, explorar, recortes e comparação; drill-down real | recorte preenchido sem fixture dedicada |
+| Insights | Faixa compacta, visão, explorar, recortes e comparação | recorte preenchido sem fixture dedicada |
 | Sessions | Visão de estado, histórico recente, concluídas hoje, recuperação, timer e Foco | Modo Foco mantém mesma sessão/clock |
 | Settings | Galeria dos 12 temas em destaque antes do diagnóstico, categorias e integridade separada | refinamento fino de detalhes |
 
