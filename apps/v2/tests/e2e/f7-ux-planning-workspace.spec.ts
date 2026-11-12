@@ -99,6 +99,19 @@ async function seed(page: Page) {
   await expect(page.getByTestId('planning-workspace')).toBeVisible();
 }
 
+test('planning overview exposes real counts and studio navigation', async ({ page }) => {
+  await seed(page);
+  await page.goto('/#/planning');
+  await expect(page.getByTestId('planning-workspace')).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Seções do Planning Studio' })).toBeVisible();
+  for (const testId of ['planning-stat-scenarios', 'planning-stat-blocks', 'planning-stat-minutes', 'planning-stat-unallocated']) {
+    await expect(page.getByTestId(testId)).toHaveText(/^\d+$/);
+  }
+  await expect(page.getByRole('link', { name: 'Calendário', exact: true })).toBeVisible();
+  await expect(page.locator('#planning-calendar')).toBeVisible();
+  await expect(page.locator('#planning-editor')).toBeVisible();
+});
+
 test('activation requires an explicit preview and does not autoswap', async ({ page }) => {
   await seed(page);
   const target = page.locator('[data-testid="scenario-scenario-b"]');

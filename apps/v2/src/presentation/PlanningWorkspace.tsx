@@ -911,10 +911,30 @@ export function PlanningWorkspace({
 
   const editais = content.editais.filter((edital) => edital.status === 'ACTIVE');
   const links = content.links.filter((link) => link.status === 'ACTIVE');
+  const planningOverview = {
+    activeScenarios: scenarios.filter((scenario) => scenario.status === 'ACTIVE').length,
+    blocks: blocks.length,
+    selectedMinutes: selectedBlocks.reduce((sum, block) => sum + block.plannedMinutes, 0),
+    unallocated: selectedBlocks.filter((block) => !block.civilDate).length,
+  };
 
   return (
     <section className="planning-workspace" data-studio="planning" aria-labelledby="planning-title" data-testid="planning-workspace">
       <h2 id="planning-title">Planejamento, calendário e Reta Final</h2>
+      <nav className="studio-subnav" aria-label="Seções do Planning Studio">
+        <a href="#planning-overview">Visão</a>
+        <a href="#planning-calendar">Calendário</a>
+        <a href="#planning-final">Ciclo e Reta Final</a>
+        <a href="#planning-editor">Editor</a>
+      </nav>
+      <section id="planning-overview" className="planning-overview" aria-label="Visão geral do planejamento">
+        <dl className="studio-stats">
+          <div><dt>Cenários ativos</dt><dd data-testid="planning-stat-scenarios">{planningOverview.activeScenarios}</dd></div>
+          <div><dt>Blocos</dt><dd data-testid="planning-stat-blocks">{planningOverview.blocks}</dd></div>
+          <div><dt>Minutos do cenário</dt><dd data-testid="planning-stat-minutes">{planningOverview.selectedMinutes}</dd></div>
+          <div><dt>Sem data</dt><dd data-testid="planning-stat-unallocated">{planningOverview.unallocated}</dd></div>
+        </dl>
+      </section>
       <PlanningDashboard
         scenarios={scenarios}
         selectedId={selectedId}
@@ -950,6 +970,7 @@ export function PlanningWorkspace({
         disciplineMinutes={availability.goals?.disciplineMinutes}
         locked={locked}
       />
+      <div id="planning-calendar">
       <PlanningCalendar
         days={calendarDays}
         view={view}
@@ -957,6 +978,8 @@ export function PlanningWorkspace({
         focusId={focusId}
         unscheduled={selectedBlocks.filter((block) => !block.civilDate)}
       />
+      </div>
+      <div id="planning-final">
       <StudyCycle scenario={selected} onDecision={(decision) => void applyCycleDecision(decision)} locked={locked} />
       <FinalStretch
         scenario={selected}
@@ -971,6 +994,8 @@ export function PlanningWorkspace({
         onClose={(outcome) => void closeStretch(outcome)}
         locked={locked}
       />
+      </div>
+      <div id="planning-editor">
       <PlanningEditor
         blocks={selectedBlocks}
         draft={draft}
@@ -999,6 +1024,7 @@ export function PlanningWorkspace({
         onStartBlock={(block) => onStartPlannedBlock?.(block.id)}
         locked={locked}
       />
+      </div>
       <PlanningHistory
         checkpoints={checkpoints}
         onRestore={(checkpointId) => void restoreCheckpoint(checkpointId)}

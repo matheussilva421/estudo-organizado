@@ -2093,6 +2093,10 @@ select {
   margin-top: 40px;
 }
 
+.planning-overview {
+  margin: 10px 0 14px;
+}
+
 @media (max-width: 720px) {
   .data-table {
     min-width: 0;
