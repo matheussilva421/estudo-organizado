@@ -409,3 +409,8 @@ Rodada corretiva (3f79e682..9457b7ca): recomposição estrutural da Home e do sh
 
 Estado: **LOCAL_PREMIUM_CLOSURE_READY_FOR_UX_H / TESTED_LOCAL / COMMITTED_V2_LOCAL / REMOTE_PUSH_NOT_AUTHORIZED / UX_HUMAN_PENDING**.
 Evidências, comparações lado a lado e matriz em docs/superpowers/audits/f7-ux-premium/. Nenhum push, deploy, PR, Firebase, staging, F8 ou alteração em main.
+
+
+## F7-UX Convergência visual aos mockups — 2026-11-12
+
+Novo GOAL evolutivo após rejeição visual do Premium. Home reconstruída em 80c1d1df: shell, hero com recorte real das quatro referências, bento de três cartões, recursos e painel em segunda camada. Estado LOCAL_VISUAL_MATCH_IN_PROGRESS; estúdios Knowledge/Review/Insights e revisão independente visual ainda pendentes. Sem push, main, deploy ou F8.

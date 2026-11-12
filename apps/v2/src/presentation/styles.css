@@ -2051,6 +2051,44 @@ select {
   border-color: var(--control-border);
 }
 
+@media (min-width: 1024px) {
+  .home-hero {
+    min-height: 260px;
+  }
+}
+
+.home-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.home-counts .count-card {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.home-counts .count-value {
+  font-size: 1rem;
+}
+
+.home-counts .count-label {
+  font-size: 0.72rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .hero-scene {
   display: none;
   width: 100%;

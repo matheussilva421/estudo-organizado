@@ -1,36 +1,29 @@
-# F7-UX Premium — checkpoint final
+# Convergência visual fiel aos mockups — checkpoint
 
-**Atualizado:** 2026-11-11
-
+**Atualizado:** 2026-11-12
 **Worktree:** C:/Projetos/estudo-organizado/_v2-candidate · **Branch:** v2
+**Estado:** LOCAL_VISUAL_MATCH_IN_PROGRESS / UX_HUMAN_PENDING / REMOTE_PUSH_NOT_AUTHORIZED
 
-**Código validado:** 24865ffb · **Estado:** LOCAL_PREMIUM_CLOSURE_READY_FOR_UX_H / REMOTE_PUSH_NOT_AUTHORIZED / UX_HUMAN_PENDING
+## GOAL atual
 
-## Objetivo
+Reconstruir a apresentação até parecer o produto dos quatro mockups, preservando F0–F7. O proprietário rejeitou o resultado visual anterior; aceite UX-H pendente.
 
-Fechar o delta Premium local (D01–D71, DV-01–DV-18, VA-01–VA-20) com recomposição visual estrutural, sem push, deploy, staging, Firebase real, F8 ou alteração de main/V1.
+## Home — marco concluído
 
-## Concluído nesta rodada
+- Shell reconstruído: rail de 200 px com marca, ícones e citação; topbar com busca à direita e ações discretas; tema compacto.
+- Hero de 260 px com recorte decorativo real dos quatro mockups (WebP 16–19 KB cada), fallback vetorial nos outros oito temas e CTA/HTML reais.
+- Saudação editorial, faixa de passos, bento de três cartões com anel real, revisões e série de 7 dias; recursos principais antes do painel configurável.
+- Painel de widgets, fórmulas, filtros e indicadores movido para segunda camada; contadores compactos permanecem visíveis.
+- Faixa técnica de sincronização removida do estado saudável da Home; conflito/recuperação continuam em alerta e Atenção.
+- Medição em 1586×992: nav x16 w200 h960; hero x228 y176 w1342; recursos x228 y~700. Variação vertical dentro de ~2% do mock, exceto conteúdo real/estado vazio.
+- Capturas: visual-match-v7. Testes dirigidos: 19 PASS; suíte completa: 227 PASS, 5 SKIP, 0 FAIL (232).
 
-- Recomposição da Home e do shell: hero dominante com ilustração vetorial, rail emoldurado com ícones, cabeçalho compacto, passos, bento variado, minigráfico real e recursos principais.
-- Densidade revisada contra os quatro mockups; comparações lado a lado geradas.
-- Prioridade acadêmica no hero e deduplicação de diagnósticos operacionais.
-- Correções P1: takeover só após pause confirmado; resolução remota de sessão validada e auditada.
-- Correções P2/P3: troca de edital após Biblioteca, foco na árvore, checkpoints sem refresh global, contagem no sheet, foco/ordem, 200% e alvos de toque.
-- Testes: typecheck/lint/build PASS; 880 unitários; 226 E2E PASS, 5 SKIP, 0 FAIL.
+## Próximo
 
-## Pendente
+- Revisão visual independente da Home com overlay 50/50 e tabela de 8 critérios.
+- Reconstruir Knowledge, Review e Insights em experiências especializadas (não painéis longos); depois Planning/Sessions/Settings.
+- Estados com dados, quatro temas, mobile 320/390, 200% e acessibilidade; depois FIDELITY-MATRIX, dois pareceres e ZIP VISUAL-PIXEL-MATCH-REVIEW.
 
-- UX-H humano (ACEITO / RESSALVAS / REPROVO / ADIAR), sem inferência.
-- Revisões assistivas NVDA/Narrator, hardware e toque físico NOT_RUN.
-- Itens parciais listados em ACCEPTANCE-MATRIX: composição profunda de Knowledge/Review/Insights, sheets gerais, drill-down por entidade, fixação de layout.
-- Push e gates externos dependem de autorização específica.
+## Invariantes
 
-## Artefatos
-
-- docs/superpowers/audits/f7-ux-premium/ (SUMMARY, ACCEPTANCE-MATRIX, TEST-RESULTS, VISUAL-REVIEW, INDEPENDENT-REVIEW, RISKS-GATES-P2, GIT-STATE, REPRODUCE, ORIGINAL-VISUAL-REFERENCES).
-- C:/Projetos/estudo-organizado-preservacao-20261104/f7-ux-premium-comparacao: referencias, capturas-v2, comparacoes, evidencia-modulos, ZIP final e bundle.
-
-## Próxima ação
-
-Abrir o preview local, avaliar as oito comparações e registrar a decisão humana. Não publicar antes disso.
+Sem push, main/V1, deploy, staging, Firebase/Cloudflare reais, F8, reset/clean/force. Preservar 133+ commits, refs recovery, bundles e o bundle anterior cfee89e7.
