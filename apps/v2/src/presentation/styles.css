@@ -4167,6 +4167,204 @@ body::before {
   }
 }
 
+/*
+ * Mock spacing pass (2026-11-12): the original 1586x992 references use a
+ * flush 294px rail, a 335px content origin, and a compact vertical rhythm.
+ * Keep these corrections desktop-only so the approved mobile layering and
+ * tablet navigation remain unchanged.
+ */
+@media (min-width: 1024px) {
+  .app-shell {
+    grid-template-columns: 294px minmax(0, 1fr);
+    column-gap: 41px;
+    padding: 0 16px 64px 0;
+  }
+
+  .app-header {
+    position: relative;
+    gap: 10px;
+    padding: 16px 0 10px;
+    border-bottom: 0;
+  }
+
+  .app-nav {
+    top: 0;
+    margin-top: 0;
+    padding: 31px 16px 20px;
+  }
+
+  .rail-brand {
+    gap: 12px;
+    margin-bottom: 8px;
+    padding: 0 8px 14px;
+  }
+
+  .rail-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+  }
+
+  .nav-list {
+    gap: 2px;
+  }
+
+  .nav-link {
+    min-height: 41px;
+    gap: 10px;
+    padding: 8px 12px;
+    font-size: 0.88rem;
+  }
+
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
+  }
+
+  .global-search {
+    max-width: 443px;
+    flex: 1 1 443px;
+  }
+
+  .global-search input {
+    min-height: 40px;
+    padding-right: 52px;
+  }
+
+  .global-search > button[type='submit'] {
+    display: none;
+  }
+
+  .theme-picker select {
+    width: 32px;
+    min-height: 32px;
+  }
+
+  .command-trigger::before {
+    content: none;
+  }
+
+  .command-trigger svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .command-trigger {
+    position: absolute;
+    top: 20px;
+    right: 178px;
+    z-index: 2;
+    width: 38px;
+    min-width: 38px;
+    height: 32px;
+    min-height: 32px;
+  }
+
+  .header-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.72rem;
+  }
+
+  .app-main .view {
+    margin-top: 11px;
+  }
+
+  .view-header h2 {
+    margin-bottom: 21px;
+  }
+
+  .home-hero {
+    height: 232px;
+    min-height: 232px;
+    margin-top: 21px;
+    padding: 24px 32px;
+    gap: 8px;
+  }
+
+  .home-hero .eyebrow {
+    margin-bottom: 6px;
+    padding: 3px 10px;
+  }
+
+  .home-hero h2 {
+    font-size: 2rem;
+    line-height: 1.04;
+  }
+
+  .home-hero-actions {
+    margin-top: 6px;
+  }
+
+  .home-hero-art {
+    margin: -24px -32px -24px 0;
+  }
+
+  .home-onboarding-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 22px;
+    min-height: 30px;
+    margin: 22px 0 0;
+  }
+
+  .home-onboarding-intro {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+
+  .home-onboarding {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    min-height: 30px;
+    margin: 0;
+  }
+
+  .home-onboarding li {
+    flex: 0 0 auto;
+    min-height: 30px;
+    padding: 3px 14px 3px 3px;
+    white-space: nowrap;
+  }
+
+  .home-showcase {
+    height: 182px;
+    margin: 30px 0 4px;
+  }
+
+  .show-card {
+    height: 182px;
+  }
+
+  .home-resources {
+    margin-top: 40px;
+  }
+
+  .home-view .home-resources .resource-grid a.resource-card {
+    min-height: 95px;
+  }
+}
+
+@media (min-width: 1024px) and (min-height: 721px) {
+  .app-nav {
+    min-height: 100vh;
+  }
+}
+
+@media (min-width: 1400px) {
+  .home-onboarding-row,
+  .home-onboarding {
+    flex-wrap: nowrap;
+  }
+}
+
 .workspace-guide {
   display: flex;
   flex-wrap: wrap;

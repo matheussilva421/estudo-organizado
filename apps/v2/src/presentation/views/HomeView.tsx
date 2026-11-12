@@ -730,15 +730,15 @@ export function HomeView({
         ) : null}
       </section>
       {heroContext === 'ONBOARDING' && !onboardingDismissed ? (
-        <>
-        <p className="home-onboarding-intro">Em poucos passos, você deixa tudo pronto:</p>
-        <ol className="home-onboarding" aria-label="Primeiros passos">
-          <li>Cadastre edital e disciplina</li>
-          <li>Defina metas e disponibilidade</li>
-          <li>Registre a primeira sessão</li>
-          <li>Acompanhe as revisões</li>
-        </ol>
-        </>
+        <div className="home-onboarding-row">
+          <p className="home-onboarding-intro">Em poucos passos, você deixa tudo pronto:</p>
+          <ol className="home-onboarding" aria-label="Primeiros passos">
+            <li>Cadastre edital e disciplina</li>
+            <li>Defina metas e disponibilidade</li>
+            <li>Registre a primeira sessão</li>
+            <li>Acompanhe as revisões</li>
+          </ol>
+        </div>
       ) : null}
       <section className="home-showcase" aria-label="Resumo acadêmico">
         <article className="show-card show-goal">

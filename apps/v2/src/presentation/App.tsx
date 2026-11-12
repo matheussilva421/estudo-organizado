@@ -1266,10 +1266,14 @@ export function App() {
           type="button"
           className="button-ghost command-trigger"
           onClick={() => setCommandOpen(true)}
+          aria-label="Comandos"
           aria-keyshortcuts="Control+Shift+K"
           data-testid="command-center-open"
         >
-          Comandos
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="6" width="18" height="12" rx="2" />
+            <path d="M7 10h10M7 14h3M13 14h4" />
+          </svg>
         </button>
         <a
           className="header-icon"
