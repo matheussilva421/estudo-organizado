@@ -2120,6 +2120,47 @@ select {
   }
 }
 
+@media (min-width: 1024px) {
+  .home-hero {
+    min-height: 260px;
+  }
+
+  .home-onboarding {
+    margin-top: 12px;
+  }
+
+  .show-card {
+    min-height: 140px;
+    padding: 12px 14px;
+    gap: 5px;
+  }
+
+  .goal-ring svg {
+    width: 74px;
+    height: 74px;
+  }
+
+  .show-number {
+    font-size: 1.7rem;
+  }
+
+  .show-chart {
+    height: 48px;
+  }
+
+  .resource-card {
+    padding: 10px;
+  }
+
+  .resource-card strong {
+    font-size: 0.86rem;
+  }
+
+  .resource-card > span:last-child {
+    font-size: 0.72rem;
+  }
+}
+
 .studio-subnav {
   display: flex;
   flex-wrap: wrap;
@@ -3823,4 +3864,16 @@ body::before {
   max-width: 100%;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+@media (min-width: 1024px) {
+  .home-hero { min-height: 260px; }
+  .home-onboarding { margin-top: 12px; }
+  .show-card { min-height: 140px; padding: 12px 14px; gap: 5px; }
+  .goal-ring svg { width: 74px; height: 74px; }
+  .show-number { font-size: 1.7rem; }
+  .show-chart { height: 48px; }
+  .resource-card { padding: 10px; }
+  .resource-card strong { font-size: 0.86rem; }
+  .resource-card > span:last-child { font-size: 0.72rem; }
 }
