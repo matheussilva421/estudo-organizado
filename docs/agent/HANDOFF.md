@@ -16,12 +16,15 @@ Reconstruir a apresentação até parecer o produto dos quatro mockups, preserva
 - Painel de widgets, fórmulas, filtros e indicadores movido para segunda camada; contadores compactos permanecem visíveis.
 - Faixa técnica de sincronização removida do estado saudável da Home; conflito/recuperação continuam em alerta e Atenção.
 - Medição em 1586×992: nav x16 w200 h960; hero x228 y176 w1342; recursos x228 y~700. Variação vertical dentro de ~2% do mock, exceto conteúdo real/estado vazio.
-- Capturas: visual-match-v7. Testes dirigidos: 19 PASS; suíte completa: 227 PASS, 5 SKIP, 0 FAIL (232).
+- Review Studio: subnavegação Visão/Fila/Histórico/Política e histórico visual com eventos concluídos.
+- Knowledge Studio: subnavegação Biblioteca/Disciplinas/Árvore/Importação e contagens reais.
+- Capturas: visual-match-v7. Testes dirigidos Home: 19 PASS; Review/Knowledge: 10 PASS; suíte completa: 228 PASS, 5 SKIP, 0 FAIL (233).
 
 ## Próximo
 
 - Revisão visual independente da Home com overlay 50/50 e tabela de 8 critérios.
-- Reconstruir Knowledge, Review e Insights em experiências especializadas (não painéis longos); depois Planning/Sessions/Settings.
+- Aprofundar Insights (drill-down por edital/disciplina, gráfico/tabela/metodologia) e recompor Planning/Sessions/Settings.
+- Overlay 50/50, medida das oito regiões e revisão visual independente.
 - Estados com dados, quatro temas, mobile 320/390, 200% e acessibilidade; depois FIDELITY-MATRIX, dois pareceres e ZIP VISUAL-PIXEL-MATCH-REVIEW.
 
 ## Invariantes
