@@ -20,6 +20,7 @@ Reconstruir a apresentação até parecer o produto dos quatro mockups, preserva
 - Knowledge Studio: subnavegação Biblioteca/Disciplinas/Árvore/Importação e contagens reais.
 - Insights Studio: subnavegação Visão/Explorar/Recortes/Comparação e recorte real por edital ou disciplina.
 - Planning Studio: subnavegação Visão/Calendário/Ciclo e Reta Final/Editor e contagens reais por cenário.
+- Settings: galeria de aparência antes do diagnóstico técnico, com categorias e integridade separada.
 - Sessions: visão de estado, histórico recente, concluídas hoje e recuperação; timer/Foco inalterados.
 - Geometria de referência: rail 295 px, conteúdo em x≈351, hero 270 px, título 40 px, CTAs 48 px, Bento 1/1,08/1,25 e recursos horizontais.
 - Pareceres independentes recebidos e tratados: denominador por dimensão no Insights, janela civil de 7 dias, alerta de backup na Home, role do link crítico, rail tablet, escopo do Planning, revisões futuras, série acessível e aviso de histórico truncado.
@@ -29,7 +30,7 @@ Reconstruir a apresentação até parecer o produto dos quatro mockups, preserva
 
 - Revisão visual independente da Home com overlay 50/50 e tabela de 8 critérios.
 - Testar recorte preenchido do Insights, recompor Sessions/Settings e capturar módulos atualizados.
-- Refinar Settings, atualizar capturas/instrumentos v11 e produzir ZIP VISUAL-PIXEL-MATCH-REVIEW com pareceres e matriz.
+- Atualizar capturas/instrumentos após Settings e consolidar o ZIP VISUAL-PIXEL-MATCH-REVIEW final.
 - Estados com dados, quatro temas, mobile 320/390, 200% e acessibilidade; depois FIDELITY-MATRIX, dois pareceres e ZIP VISUAL-PIXEL-MATCH-REVIEW.
 
 ## Invariantes

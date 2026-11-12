@@ -54,7 +54,7 @@ Critérios 3 e 5 permanecem PARTIAL; portanto o marco não é aceite visual inte
 | Planning | Visão, calendário, ciclo/reta, editor e contagens reais | composição ainda sequencial |
 | Insights | Visão, explorar, recortes e comparação; drill-down real | recorte preenchido sem fixture dedicada |
 | Sessions | Visão de estado, histórico recente, concluídas hoje, recuperação, timer e Foco | Modo Foco mantém mesma sessão/clock |
-| Settings | Galeria dos 12 temas e categorias | reorganização fina pendente |
+| Settings | Galeria dos 12 temas em destaque antes do diagnóstico, categorias e integridade separada | refinamento fino de detalhes |
 
 ## Instrumentos
 
