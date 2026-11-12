@@ -55,6 +55,7 @@ type Props = {
   loadError: string | null;
   experienceError: boolean;
   finalStretch?: { examDate: string | null; name: string } | null;
+  plannedTodayMinutes?: number;
   onRetry: () => void;
 };
 
@@ -237,6 +238,7 @@ export function HomeView({
   loadError,
   experienceError,
   finalStretch = null,
+  plannedTodayMinutes = 0,
   onRetry,
 }: Props) {
   const [mode, setMode] = useState<HomeMode>(() => readMode(profileId));
@@ -453,7 +455,6 @@ export function HomeView({
           <a
             className="button-primary"
             href={routeHref(routeForTarget(widgetPriority.target, widgetPriority.entityId ?? null))}
-            data-action="home-next-action"
           >
             Abrir registro exato
           </a>
@@ -530,6 +531,22 @@ export function HomeView({
     month: '2-digit',
     day: '2-digit',
   }).format(new Date());
+  const focusTodayMinutes = Math.round(
+    (analytics.byDay.find((day) => day.id === todayIso)?.focusMs ?? 0) / 60_000,
+  );
+  const dailyGoalRatio =
+    plannedTodayMinutes > 0
+      ? Math.min(100, Math.round((focusTodayMinutes / plannedTodayMinutes) * 100))
+      : null;
+  const nextReview =
+    summary.priorities
+      .filter((item) => item.category.startsWith('REVISAO'))
+      .sort((left, right) => (left.dueDate ?? '').localeCompare(right.dueDate ?? ''))[0] ?? null;
+  const weekSeries = analytics.byDay.slice(-7);
+  const weekFocusMinutes = Math.round(
+    weekSeries.reduce((sum, day) => sum + day.focusMs, 0) / 60_000,
+  );
+  const weekMax = Math.max(1, ...weekSeries.map((day) => day.focusMs));
   const examDays = finalStretch?.examDate
     ? Math.round(
         (Date.parse(finalStretch.examDate + 'T00:00:00Z') -
@@ -646,7 +663,7 @@ export function HomeView({
           <p>{heroDetail}</p>
         </div>
         <div className="home-hero-actions">
-          <a className="button-primary" href={heroHref}>
+          <a className="button-primary" href={heroHref} data-action="home-next-action">
             {heroCta}
           </a>
           {heroContext === 'ONBOARDING' && !onboardingDismissed ? (
@@ -667,7 +684,19 @@ export function HomeView({
           ) : null}
         </div>
         <div className="home-hero-art">
-          <StudyScene />
+          {(['neon-teal', 'esmeralda-dourado', 'azul-ambar', 'azul-glacial'] as const).map((theme) => (
+            <img
+              key={theme}
+              className="hero-scene"
+              data-hero-theme={theme}
+              src={'/premium/hero-' + theme + '.webp'}
+              alt=""
+              aria-hidden="true"
+            />
+          ))}
+          <div className="hero-fallback">
+            <StudyScene />
+          </div>
         </div>
         {suggestedOrder ? (
           <details key={device + ':' + heroContext}>
@@ -696,6 +725,83 @@ export function HomeView({
           <li>Registre a primeira sessão em Estudar.</li>
         </ol>
       ) : null}
+      <section className="home-showcase" aria-label="Resumo acadêmico">
+        <article className="show-card show-goal">
+          <header>
+            <span className="widget-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <circle cx="12" cy="12" r="8" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="12" cy="12" r="1" />
+              </svg>
+            </span>
+            <h3>Meta diária</h3>
+          </header>
+          <div className="goal-ring" data-testid="home-goal-ring">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle className="goal-track" cx="50" cy="50" r="42" />
+              {dailyGoalRatio !== null ? (
+                <circle
+                  className="goal-value"
+                  cx="50"
+                  cy="50"
+                  r="42"
+                  strokeDasharray={(dailyGoalRatio / 100) * 263.9 + ' 263.9'}
+                />
+              ) : null}
+            </svg>
+            <div>
+              <strong>{focusTodayMinutes} min</strong>
+              <span>
+                {dailyGoalRatio === null
+                  ? 'Sem plano para hoje'
+                  : 'de ' + plannedTodayMinutes + ' min planejados'}
+              </span>
+            </div>
+          </div>
+          <a href="#/planning">Ajustar planejamento</a>
+        </article>
+        <article className="show-card show-reviews">
+          <header>
+            <span className="widget-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+                <path d="M4 6h16v14H4zM8 3v5M16 3v5M4 10h16M8 14l2 2 4-4" />
+              </svg>
+            </span>
+            <h3>Próximas revisões</h3>
+          </header>
+          <strong className="show-number">{summary.counts.reviewsDue}</strong>
+          <p>
+            {nextReview
+              ? nextReview.title + (nextReview.dueDate ? ' · ' + nextReview.dueDate : '')
+              : 'Nenhuma revisão pendente agora.'}
+          </p>
+          <a href="#/reviews">Abrir revisões</a>
+        </article>
+        <article className="show-card show-evolution">
+          <header>
+            <span className="widget-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+                <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+              </svg>
+            </span>
+            <h3>Evolução dos estudos</h3>
+          </header>
+          <div className="show-chart" data-testid="home-week-chart">
+            {weekSeries.length > 0 ? (
+              weekSeries.map((day) => (
+                <span key={day.id}>
+                  <i style={{ height: Math.max(6, Math.round((day.focusMs / weekMax) * 100)) + '%' }} />
+                  <em>{day.label.slice(-2)}</em>
+                </span>
+              ))
+            ) : (
+              <p>Sem série no período.</p>
+            )}
+          </div>
+          <p>{weekFocusMinutes} min de foco nos últimos 7 dias.</p>
+        </article>
+      </section>
 
       {loadError || experienceError ? (
         <div className="inline-notice" role="alert" data-testid="f6-load-error">
@@ -710,6 +816,33 @@ export function HomeView({
 
 
 
+      <section className="home-resources" aria-labelledby="home-resources-title">
+        <header className="section-header">
+          <h3 id="home-resources-title">Recursos principais</h3>
+          <a href="#/planning">Explorar todos</a>
+        </header>
+        <div className="resource-grid">
+          {[
+            { href: '#/planning', label: 'Planejamento', text: 'Rotina, metas e capacidade.', path: WIDGET_ICON_PATHS.planning },
+            { href: '#/sessions', label: 'Sessões', text: 'Registre e acompanhe o tempo.', path: WIDGET_ICON_PATHS['study-time'] },
+            { href: '#/reviews', label: 'Revisões', text: 'Mantenha o conteúdo vivo.', path: WIDGET_ICON_PATHS.reviews },
+            { href: '#/analytics', label: 'Análises', text: 'Evolução, gráficos e metodologia.', path: WIDGET_ICON_PATHS.questions },
+          ].map((resource) => (
+            <a key={resource.href} className="resource-card" href={resource.href}>
+              <span className="widget-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={resource.path} />
+                </svg>
+              </span>
+              <strong>{resource.label}</strong>
+              <span>{resource.text}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <details className="home-dashboard-details">
+        <summary>Explorar painel e widgets</summary>
       <section className="dashboard-grid" data-columns={layout.columns} aria-label="Widgets da Home">
         {visibleLayoutWidgets.map((widget) => (
           <article
@@ -743,6 +876,7 @@ export function HomeView({
         })}
       </section>
 
+      </details>
       <div className="home-counts" aria-label="Resumo do perfil local" data-visible-indicators={indicators.length}>
         {indicators.map((indicator) => (
           <div className="count-card" key={indicator.id} data-indicator={indicator.id}>
@@ -871,31 +1005,6 @@ export function HomeView({
       {visibleLayoutWidgets.length === 0 ? (
         <p className="empty-state">Nenhum widget pertence ao filtro atual; os dados não foram alterados.</p>
       ) : null}
-
-      <section className="home-resources" aria-labelledby="home-resources-title">
-        <header className="section-header">
-          <h3 id="home-resources-title">Recursos principais</h3>
-          <a href="#/planning">Explorar todos</a>
-        </header>
-        <div className="resource-grid">
-          {[
-            { href: '#/planning', label: 'Planejamento', text: 'Rotina, metas e capacidade.', path: WIDGET_ICON_PATHS.planning },
-            { href: '#/sessions', label: 'Sessões', text: 'Registre e acompanhe o tempo.', path: WIDGET_ICON_PATHS['study-time'] },
-            { href: '#/reviews', label: 'Revisões', text: 'Mantenha o conteúdo vivo.', path: WIDGET_ICON_PATHS.reviews },
-            { href: '#/analytics', label: 'Análises', text: 'Evolução, gráficos e metodologia.', path: WIDGET_ICON_PATHS.questions },
-          ].map((resource) => (
-            <a key={resource.href} className="resource-card" href={resource.href}>
-              <span className="widget-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                  <path d={resource.path} />
-                </svg>
-              </span>
-              <strong>{resource.label}</strong>
-              <span>{resource.text}</span>
-            </a>
-          ))}
-        </div>
-      </section>
 
       {inspector ? (
         <aside className="context-inspector" aria-label="Inspetor do widget" data-testid="context-inspector">

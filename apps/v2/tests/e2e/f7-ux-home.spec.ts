@@ -31,6 +31,7 @@ test('f7 ux controlled formula rejects JavaScript and persists a valid widget', 
 
 test('f7 ux home filter, evidence and inspector do not mutate academic facts', async ({ page }) => {
   await resetF7Ux(page);
+  await page.getByText('Explorar painel e widgets').click();
   const allWidgets = await page.locator('[data-widget]').count();
   await page.getByLabel('Filtro global').selectOption('INTEGRITY');
   await expect(page.getByText('Nenhum item neste filtro. O filtro não alterou os dados.')).toBeVisible();

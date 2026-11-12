@@ -1309,17 +1309,26 @@ export function App() {
           {routeLabel(route.module)}
         </p>
 
-        <SyncStatus
-          health={health}
-          backupHealth={backupHealth}
-          onSyncNow={
-            f7?.syncAvailable
-              ? () => {
-                  void runtimeRef.current?.syncNow();
-                }
-              : undefined
-          }
-        />
+        {route.module !== 'home' ? (
+          <SyncStatus
+            health={health}
+            backupHealth={backupHealth}
+            onSyncNow={
+              f7?.syncAvailable
+                ? () => {
+                    void runtimeRef.current?.syncNow();
+                  }
+                : undefined
+            }
+          />
+        ) : health.mode === 'CONFLICT' ||
+          health.mode === 'RECOVERY_REQUIRED' ||
+          health.mode === 'PAUSED_QUOTA' ||
+          health.mode === 'PAUSED_AUTH' ? (
+          <a className="home-health-alert" href="#/attention" role="status">
+            Integridade exige atenção: {health.mode === 'CONFLICT' ? 'conflito pendente' : 'revisar estado'}.
+          </a>
+        ) : null}
 
         {route.invalid ? <NotFoundView /> : null}
 
@@ -1344,6 +1353,15 @@ export function App() {
               ready={ready}
               loadError={loadError}
               experienceError={experienceError}
+              plannedTodayMinutes={experience.blocks
+                .filter(
+                  (block) =>
+                    block.civilDate === today &&
+                    experience.scenarios.some(
+                      (scenario) => scenario.id === block.scenarioId && scenario.status === 'ACTIVE',
+                    ),
+                )
+                .reduce((sum, block) => sum + block.plannedMinutes, 0)}
               finalStretch={(() => {
                 const scenario = experience.scenarios.find(
                   (item) => item.kind === 'FINAL_STRETCH' && item.status === 'ACTIVE',

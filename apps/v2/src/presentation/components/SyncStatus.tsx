@@ -36,30 +36,40 @@ export function SyncStatus({ health, backupHealth, onSyncNow }: SyncStatusProps)
         {syncStatusLabel(health)}
       </p>
       <p className="sr-only">{semanticStateLabel(state)}</p>
-      {backupHealth ? (
-        <p className="muted" data-backup-status={backupHealth.status}>
-          {backupHealth.status === 'VERIFIED' ? 'Backup confirmado' : 'Backup não confirmado'}
-        </p>
-      ) : null}
-      {onSyncNow ? (
-        <button type="button" className="button-ghost" onClick={onSyncNow}>
-          Sincronizar agora
-        </button>
-      ) : null}
-      <dl className="sync-confirmations">
-        <div>
-          <dt>Local</dt>
-          <dd>{health.localCommitted ? 'confirmado' : 'sem dados'}</dd>
-        </div>
-        <div>
-          <dt>Remoto</dt>
-          <dd>{health.remoteCommitted ? 'confirmado' : 'não enviado'}</dd>
-        </div>
-        <div>
-          <dt>Convergência</dt>
-          <dd>{health.converged ? 'verificada' : 'não verificada'}</dd>
-        </div>
-      </dl>
+      <details
+        className="sync-details"
+        open={
+          state === 'CONFLICT' || state === 'STALE' || state === 'UNAVAILABLE'
+            ? true
+            : undefined
+        }
+      >
+        <summary>Detalhes da integridade</summary>
+        {backupHealth ? (
+          <p className="muted" data-backup-status={backupHealth.status}>
+            {backupHealth.status === 'VERIFIED' ? 'Backup confirmado' : 'Backup não confirmado'}
+          </p>
+        ) : null}
+        <dl className="sync-confirmations">
+          <div>
+            <dt>Local</dt>
+            <dd>{health.localCommitted ? 'confirmado' : 'sem dados'}</dd>
+          </div>
+          <div>
+            <dt>Remoto</dt>
+            <dd>{health.remoteCommitted ? 'confirmado' : 'não enviado'}</dd>
+          </div>
+          <div>
+            <dt>Convergência</dt>
+            <dd>{health.converged ? 'verificada' : 'não verificada'}</dd>
+          </div>
+        </dl>
+        {onSyncNow ? (
+          <button type="button" className="button-ghost" onClick={onSyncNow}>
+            Sincronizar agora
+          </button>
+        ) : null}
+      </details>
     </section>
   );
 }

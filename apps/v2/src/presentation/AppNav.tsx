@@ -164,6 +164,13 @@ export function AppNav({ current, attentionCount, reviewCount }: Props) {
   if (!mobile) {
     return (
       <nav ref={navRef} className="app-nav" aria-label="Navegação principal">
+        <div className="rail-brand" aria-hidden="true">
+          <span className="rail-logo">E</span>
+          <span className="rail-brand-text">
+            <strong>Estudo Organizado</strong>
+            <span>V2</span>
+          </span>
+        </div>
         <ul className="nav-list">
           {ITEMS.map((module) => (
             <li key={module}>

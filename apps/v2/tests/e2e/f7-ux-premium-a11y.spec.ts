@@ -88,3 +88,16 @@ test('home inline links meet the minimum target size on a phone', async ({ page 
   for (const size of sizes) expect(size.height, size.label).toBeGreaterThanOrEqual(24);
 });
 
+test('each premium theme renders its own hero scene without hiding the CTA', async ({ page }) => {
+  await page.setViewportSize({ width: 1586, height: 992 });
+  await resetF7Ux(page, '/#/home');
+  for (const theme of ['neon-teal', 'esmeralda-dourado', 'azul-ambar', 'azul-glacial']) {
+    await page.getByRole('combobox', { name: 'Tema', exact: true }).selectOption(theme);
+    const scene = page.locator('.hero-scene[data-hero-theme="' + theme + '"]');
+    await expect(scene).toBeVisible();
+    expect(await scene.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(300);
+    await expect(page.locator('.hero-scene:visible')).toHaveCount(1);
+    await expect(page.getByTestId('home-hero').getByRole('link').first()).toBeVisible();
+  }
+});
+
