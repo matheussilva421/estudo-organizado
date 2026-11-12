@@ -75,6 +75,22 @@ test('starting a review is durable and distinct from executing it', async ({ pag
   await expect(page.getByTestId('review-queue-count')).toHaveText('1 de 3');
 });
 
+test('a completed review reaches the visual history without leaving the studio', async ({ page }) => {
+  await seed(page);
+  await page.getByTestId('review-start-review-seed-0').click();
+  await page
+    .getByTestId('review-agenda')
+    .locator('[data-entity-id="review-seed-0"]')
+    .getByRole('button', { name: 'Concluir' })
+    .click();
+  const history = page.getByTestId('review-history-panel');
+  await expect(history).toContainText('Cumprida');
+  await expect(page.getByRole('navigation', { name: 'Seções do Review Studio' })).toBeVisible();
+  await page.getByRole('link', { name: 'Histórico', exact: true }).click();
+  await expect(page).toHaveURL(/#\/reviews$/);
+  await expect(history).toBeVisible();
+});
+
 test('base policy requires a preview before saving', async ({ page }) => {
   await seed(page);
   const duration = page.getByLabel('Duração padrão (min)');

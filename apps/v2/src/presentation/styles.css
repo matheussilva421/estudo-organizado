@@ -2089,6 +2089,73 @@ select {
   letter-spacing: 0;
 }
 
+.studio-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 10px 0 14px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.studio-subnav a {
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.studio-subnav a:hover,
+.studio-subnav a:focus-visible {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text);
+}
+
+.review-timeline {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-timeline li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.review-timeline-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+  flex: 0 0 10px;
+}
+
+.review-timeline div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.review-timeline strong {
+  overflow-wrap: anywhere;
+}
+
+.review-timeline span {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
 .hero-scene {
   display: none;
   width: 100%;

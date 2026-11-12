@@ -320,6 +320,13 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
     overdue: openCommitments.filter((commitment) => commitment.currentDueDate < today).length,
   };
   const nextCommitment = queueSorted[0] ?? null;
+  const closedCommitments = commitments
+    .filter((commitment) => commitment.status === 'FULFILLED' || commitment.status === 'CANCELLED')
+    .sort((left, right) => {
+      const leftAt = left.history.at(-1)?.at ?? '';
+      const rightAt = right.history.at(-1)?.at ?? '';
+      return rightAt.localeCompare(leftAt);
+    });
   const reminderPage = pageItems(reminderItems, reminderLimit);
 
   const refresh = useCallback(async () => {
@@ -978,7 +985,13 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   return (
     <section className="session-workspace" data-studio="reviews" aria-labelledby="review-title" data-testid="review-workspace">
       <h2 id="review-title">Revisões e inteligência</h2>
-      <section className="review-overview" aria-label="Visão geral das revisões">
+      <nav className="studio-subnav" aria-label="Seções do Review Studio">
+        <a href="#review-overview">Visão</a>
+        <a href="#review-agenda">Fila</a>
+        <a href="#review-history-panel">Histórico</a>
+        <a href="#review-policy">Política</a>
+      </nav>
+      <section id="review-overview" className="review-overview" aria-label="Visão geral das revisões">
         <dl className="studio-stats">
           <div><dt>Pendentes</dt><dd data-testid="review-stat-pending">{reviewOverview.pending}</dd></div>
           <div><dt>Em andamento</dt><dd data-testid="review-stat-started">{reviewOverview.started}</dd></div>
@@ -1006,7 +1019,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         {busy ? 'Gravando…' : reminders?.message ?? 'Central local pronta.'}
       </p>
 
-      <article className="session-card" data-testid="review-policy">
+      <article className="session-card" id="review-policy" data-testid="review-policy">
         <h3>Política versionada</h3>
         <div className="session-grid">
           <label>
@@ -1317,7 +1330,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         )}
       </article>
 
-      <article className="session-card" data-testid="review-agenda">
+      <article className="session-card" id="review-agenda" data-testid="review-agenda">
         <h3>Agenda de compromissos</h3>
         {mobileQueue ? (
           <button ref={queueTrigger} type="button" aria-haspopup="dialog" onClick={() => queueSheet.current?.showModal()}>
@@ -1544,6 +1557,28 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
           </div>
         ) : null}
         <p className="hint">A dispensa de um aviso não cancela nem conclui o compromisso.</p>
+      </article>
+
+      <article className="session-card" id="review-history-panel" data-testid="review-history-panel">
+        <h3>Histórico visual</h3>
+        {closedCommitments.length === 0 ? (
+          <p className="hint">Nenhuma revisão concluída ou cancelada neste perfil.</p>
+        ) : (
+          <ol className="review-timeline">
+            {closedCommitments.slice(0, 12).map((commitment) => (
+              <li key={commitment.id}>
+                <span className="review-timeline-dot" aria-hidden="true" />
+                <div>
+                  <strong>{commitment.label}</strong>
+                  <span>
+                    {commitmentLabel(commitment.status)} · política v{commitment.policyVersion}
+                    {commitment.startedAt ? ' · início registrado' : ''}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
       </article>
 
       <article className="session-card" data-testid="review-weak-points">
