@@ -56,6 +56,10 @@ test('desktop home keeps the reference spacing and hierarchy', async ({ page }) 
       ).color,
       bodyColor: getComputedStyle(document.body).color,
       goalValueText: document.querySelector('.goal-ring-value')!.textContent?.trim() ?? '',
+      goalValueFont: parseFloat(
+        getComputedStyle(document.querySelector('.goal-ring-value')!).fontSize,
+      ),
+      goalValueColor: getComputedStyle(document.querySelector('.goal-ring-value')!).color,
     };
   });
 
@@ -91,6 +95,8 @@ test('desktop home keeps the reference spacing and hierarchy', async ({ page }) 
   expect(boxes.resourceCard.height).toBeGreaterThanOrEqual(98);
   expect(boxes.resourceIcon.width).toBeGreaterThanOrEqual(54);
   expect(boxes.goalValueText).toBe('—');
+  expect(boxes.goalValueFont).toBeGreaterThanOrEqual(24);
+  expect(boxes.goalValueColor).toBe(boxes.bodyColor);
   expectNear(boxes.goalOrbit.width, 112, 2);
   expectNear(boxes.goalValue.x + boxes.goalValue.width / 2, boxes.goalOrbit.x + boxes.goalOrbit.width / 2, 2);
   expectNear(boxes.goalValue.y + boxes.goalValue.height / 2, boxes.goalOrbit.y + boxes.goalOrbit.height / 2, 2);
@@ -201,4 +207,32 @@ test('premium themes tint the desktop rail differently', async ({ page }) => {
     );
   }
   expect(new Set(backgrounds).size).toBe(4);
+});
+
+test('1024px desktop stacks the bento and keeps the card action inside', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await resetF7Ux(page);
+  await expect(page.locator('.home-showcase')).toBeVisible();
+
+  const layout = await page.evaluate(() => {
+    const showcase = getComputedStyle(document.querySelector('.home-showcase')!);
+    const resources = getComputedStyle(document.querySelector('.resource-grid')!);
+    const card = document.querySelector('.show-goal')!.getBoundingClientRect();
+    const action = document.querySelector('.show-goal a')!.getBoundingClientRect();
+    return {
+      showcaseColumns: showcase.gridTemplateColumns.split(' ').filter(Boolean).length,
+      resourceColumns: resources.gridTemplateColumns.split(' ').filter(Boolean).length,
+      cardWidth: card.width,
+      actionRight: action.right,
+      cardRight: card.right,
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    };
+  });
+
+  expect(layout.showcaseColumns).toBe(2);
+  expect(layout.resourceColumns).toBe(2);
+  expect(layout.cardWidth).toBeGreaterThan(300);
+  expect(layout.actionRight).toBeLessThanOrEqual(layout.cardRight);
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
 });
