@@ -723,6 +723,7 @@ export function HomeView({
           <li>Cadastre edital e disciplina em Conteúdo.</li>
           <li>Defina disponibilidade e metas em Planejamento.</li>
           <li>Registre a primeira sessão em Estudar.</li>
+          <li>Acompanhe suas revisões em Revisões.</li>
         </ol>
       ) : null}
       <section className="home-showcase" aria-label="Resumo acadêmico">

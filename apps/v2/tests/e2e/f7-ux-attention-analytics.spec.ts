@@ -37,6 +37,9 @@ test('f7 ux analytics blocks incompatible units, mirrors table and exports metho
   await expect(page.getByRole('heading', { name: 'Editor de análise' })).toBeFocused();
   await expect(page).toHaveURL(/#\/analytics$/);
   await expect(page.getByTestId('f7-analytics-chart')).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Recorte analítico' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Recorte analítico' })).toContainText('Sem recortes');
+  await expect(page.getByRole('navigation', { name: 'Seções do Insights Studio' })).toBeVisible();
   await page.getByRole('checkbox', { name: /Aproveitamento \(percent\)/ }).check();
   await expect(page.getByTestId('f7-chart-blocked')).toContainText('unidades diferentes');
   await page.getByRole('checkbox', { name: /Tempo planejado/ }).uncheck();

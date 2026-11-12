@@ -55,6 +55,7 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
   const [snapshots, setSnapshots] = useState<AnalyticsSnapshot[]>(() => readSnapshots(analytics.profileId));
   const [openedSnapshot, setOpenedSnapshot] = useState<AnalyticsSnapshot | null>(null);
   const [archiveError, setArchiveError] = useState<string | null>(null);
+  const [drillKey, setDrillKey] = useState('');
   const selectedRows = evidence.filter((row) => selectedMetrics.includes(row.id));
   const validation = validateChartSpec({
     chartType,
@@ -77,6 +78,16 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
     ...analytics.byDiscipline.map((bucket) => bucket.focusMs),
   );
   const maxDayFocus = Math.max(1, ...analytics.byDay.map((bucket) => bucket.focusMs));
+  const drillOptions = [
+    ...analytics.byEdital.map((bucket) => ({ key: 'edital:' + bucket.id, bucket, kind: 'Edital' })),
+    ...analytics.byDiscipline.map((bucket) => ({
+      key: 'disciplina:' + bucket.id,
+      bucket,
+      kind: 'Disciplina',
+    })),
+  ];
+  const drillSelected = drillOptions.find((option) => option.key === drillKey) ?? null;
+  const totalBucketFocus = drillOptions.reduce((sum, option) => sum + option.bucket.focusMs, 0);
 
   return (
     <section
@@ -100,6 +111,12 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
           {stale ? 'Atualização falhou; números podem estar desatualizados' : STATUS_LABELS[analytics.status]}
         </span>
       </header>
+      <nav className="studio-subnav" aria-label="Seções do Insights Studio">
+        <a href="#analytics-overview-title">Visão</a>
+        <a href="#analytics-editor-title">Explorar</a>
+        <a href="#analytics-drill-title">Recortes</a>
+        <a href="#analytics-comparison-title">Comparação</a>
+      </nav>
 
       {stale ? (
         <div className="inline-notice" role="alert" data-testid="f6-analytics-stale">
@@ -383,7 +400,59 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
         ) : null}
       </section>
 
-      <div className="table-grid">
+      <section className="panel analytics-drill" aria-labelledby="analytics-drill-title">
+        <header className="section-header">
+          <h3 id="analytics-drill-title">Explorar recorte</h3>
+          <span className="muted">Mesma fonte do gráfico e da tabela</span>
+        </header>
+        <label className="settings-inline">
+          Recorte analítico
+          <select
+            value={drillKey}
+            disabled={drillOptions.length === 0}
+            onChange={(event) => setDrillKey(event.target.value)}
+          >
+            <option value="">
+              {drillOptions.length === 0 ? 'Sem recortes no período' : 'Todos os recortes'}
+            </option>
+            {drillOptions.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.kind}: {option.bucket.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {drillSelected ? (
+          <dl className="scope-grid" data-testid="analytics-drill-result">
+            <div>
+              <dt>Recorte</dt>
+              <dd>{drillSelected.kind}: {drillSelected.bucket.label}</dd>
+            </div>
+            <div>
+              <dt>Tempo de foco</dt>
+              <dd>{formatFocusDuration(drillSelected.bucket.focusMs)}</dd>
+            </div>
+            <div>
+              <dt>Sessões</dt>
+              <dd>{drillSelected.bucket.sessions}</dd>
+            </div>
+            <div>
+              <dt>Participação</dt>
+              <dd>
+                {totalBucketFocus > 0
+                  ? Math.round((drillSelected.bucket.focusMs / totalBucketFocus) * 100) + '% do tempo atribuído'
+                  : 'Sem denominador'}
+              </dd>
+            </div>
+          </dl>
+        ) : (
+          <p className="hint">
+            Selecione um edital ou disciplina atribuída. Sessões compartilhadas permanecem fora dos subtotais.
+          </p>
+        )}
+      </section>
+
+      <div id="analytics-breakdown" className="table-grid">
         <section className="panel" aria-labelledby="analytics-edital-title">
           <header className="section-header">
             <h3 id="analytics-edital-title">Por edital</h3>

@@ -9,7 +9,7 @@ test('empty home opens with onboarding and dismisses without creating facts', as
   const hero = page.getByTestId('home-hero');
   await expect(hero).toHaveAttribute('data-context', 'ONBOARDING');
   await expect(hero).toContainText('Comece pelo essencial');
-  await expect(page.locator('.home-onboarding li')).toHaveCount(3);
+  await expect(page.locator('.home-onboarding li')).toHaveCount(4);
   await page.getByRole('button', { name: 'Dispensar primeiros passos' }).click();
   await expect(page.locator('.home-onboarding')).toHaveCount(0);
   await page.reload();

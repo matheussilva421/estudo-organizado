@@ -64,6 +64,7 @@ test('f7 ux offline refresh preserves the local shell and cached journey', async
   await resetF7Ux(page);
   await page.goto('/#/content');
   await expect(page.getByTestId('f7-content-workspace')).toBeVisible();
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByTestId('f7-content-workspace')).toBeVisible();
