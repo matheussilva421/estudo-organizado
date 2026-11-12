@@ -158,6 +158,10 @@ textarea {
   list-style: none;
 }
 
+.nav-label-compact {
+  display: none;
+}
+
 .nav-link {
   display: inline-flex;
   align-items: center;
@@ -2300,7 +2304,17 @@ select {
   gap: 14px;
 }
 
+.goal-orbit {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+}
+
 .goal-ring svg {
+  grid-area: 1 / 1;
   width: 86px;
   height: 86px;
   transform: rotate(-90deg);
@@ -2322,11 +2336,20 @@ select {
   filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 60%, transparent));
 }
 
-.goal-ring div {
+.goal-copy {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+}
+
+.goal-ring-value {
+  z-index: 1;
+  grid-area: 1 / 1;
+  color: var(--text);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .goal-ring strong {
@@ -2351,9 +2374,10 @@ select {
   gap: 8px;
   height: 56px;
   margin-top: 2px;
+  position: relative;
 }
 
-.show-chart span {
+.show-chart > span {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -2374,6 +2398,32 @@ select {
   font-size: 0.6rem;
   font-style: normal;
   text-align: center;
+}
+
+.show-chart-empty {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 14px;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.show-chart-weeks {
+  position: absolute;
+  right: 4px;
+  bottom: 1px;
+  left: 4px;
+  display: flex;
+  justify-content: space-around;
+  color: var(--text-muted);
+  font-size: 0.54rem;
+}
+
+.review-calendar-art {
+  display: none;
 }
 
 @media (max-width: 860px) {
@@ -3607,17 +3657,20 @@ body::before {
 
   .app-header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) 46px 40px;
     grid-template-areas:
-      'brand brand'
-      'search search'
-      'theme command';
+      'brand theme command'
+      'search search search';
     align-items: center;
-    gap: 12px;
+    gap: 8px;
   }
 
   .app-header .brand {
     grid-area: brand;
+  }
+
+  .app-header .brand .app-subtitle {
+    display: none;
   }
 
   .app-header .global-search {
@@ -3628,23 +3681,45 @@ body::before {
 
   .app-header .theme-picker {
     grid-area: theme;
-    justify-self: start;
-    flex-direction: row;
+    justify-self: stretch;
     align-items: center;
-    gap: 8px;
+    gap: 0;
+    min-width: 0;
   }
 
   .app-header .theme-picker select {
+    width: 46px;
+    min-width: 46px;
     min-height: 40px;
+    padding-inline: 4px;
+    font-size: 0;
   }
 
   .app-header .command-trigger {
     grid-area: command;
     justify-self: end;
+    width: 40px;
+    min-width: 40px;
+    padding: 0;
+    display: grid;
+    place-items: center;
   }
 
   .app-shell {
     padding-bottom: 110px;
+  }
+
+  .home-view > .view-header > .badge {
+    display: none;
+  }
+
+  .home-hero {
+    gap: 10px;
+    padding: 18px;
+  }
+
+  .home-hero-actions {
+    margin-top: 6px;
   }
 }
 
@@ -4202,11 +4277,61 @@ body::before {
   .rail-logo {
     width: 48px;
     height: 48px;
-    border-radius: 13px;
+    border-radius: 0;
+    background: none;
+    color: var(--accent);
+  }
+
+  .rail-logo svg {
+    width: 46px;
+    height: 46px;
+    overflow: visible;
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 38%, transparent));
+  }
+
+  .rail-logo svg path:first-child {
+    fill: currentColor;
+    opacity: 0.95;
+  }
+
+  .rail-logo svg path:not(:first-child) {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .rail-brand-text strong {
+    color: var(--text);
+    font-size: 0.94rem;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  .rail-brand-text .rail-version {
+    margin-left: 2px;
+    color: var(--accent);
+    font-size: 0.78rem;
+    letter-spacing: 0;
+  }
+
+  .rail-brand-text .rail-brand-subtitle {
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    line-height: 1.25;
+    letter-spacing: 0;
+    white-space: nowrap;
   }
 
   .nav-list {
     gap: 2px;
+  }
+
+  .nav-divider {
+    height: 0;
+    margin: 30px 8px 26px;
+    border-top: 1px solid var(--border);
   }
 
   .nav-link {
@@ -4290,7 +4415,23 @@ body::before {
 
   .home-hero .eyebrow {
     margin-bottom: 6px;
-    padding: 3px 10px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+  }
+
+  .home-hero .eyebrow::before {
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--accent);
+    content: '✦';
+    font-size: 0.9rem;
+    line-height: 1;
   }
 
   .home-hero h2 {
@@ -4300,6 +4441,17 @@ body::before {
 
   .home-hero-actions {
     margin-top: 6px;
+  }
+
+  .home-hero-actions a,
+  .home-hero-actions button {
+    min-height: 40px;
+    padding: 0 18px;
+  }
+
+  .home-hero-copy > p:last-child {
+    font-size: 0.95rem;
+    line-height: 1.45;
   }
 
   .home-hero-art {
@@ -4341,6 +4493,84 @@ body::before {
 
   .show-card {
     height: 182px;
+    padding: 16px 18px 32px;
+    border-radius: 16px;
+  }
+
+  .show-goal .goal-ring {
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    gap: 16px;
+    margin-top: 2px;
+  }
+
+  .goal-orbit,
+  .goal-orbit svg {
+    width: 104px;
+    height: 104px;
+  }
+
+  .goal-ring-value {
+    font-size: 1.55rem;
+  }
+
+  .goal-copy strong {
+    font-size: 1.05rem;
+  }
+
+  .goal-copy span {
+    max-width: 16ch;
+    font-size: 0.74rem;
+    line-height: 1.35;
+  }
+
+  .show-card a {
+    right: auto;
+    bottom: 10px;
+    left: 18px;
+    display: inline-flex;
+    min-height: 30px;
+    align-items: center;
+    padding: 5px 10px;
+    border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--accent);
+    line-height: 1.2;
+  }
+
+  .show-reviews p {
+    max-width: 66%;
+  }
+
+  .review-calendar-art {
+    position: absolute;
+    right: 18px;
+    bottom: 31px;
+    display: block;
+    width: 78px;
+    height: 78px;
+    color: var(--accent);
+    pointer-events: none;
+  }
+
+  .calendar-sheet {
+    fill: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    stroke: color-mix(in srgb, var(--accent) 48%, var(--border));
+    stroke-width: 2;
+  }
+
+  .calendar-line,
+  .calendar-check {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .calendar-check {
+    stroke-width: 5;
   }
 
   .home-resources {
@@ -4348,7 +4578,61 @@ body::before {
   }
 
   .home-view .home-resources .resource-grid a.resource-card {
-    min-height: 95px;
+    min-height: 100px;
+    grid-template-columns: 56px minmax(0, 1fr) !important;
+    column-gap: 14px;
+    padding: 14px 16px;
+  }
+
+  .home-view .home-resources .resource-card .widget-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+  }
+
+  .home-view .home-resources .resource-card .widget-icon svg {
+    width: 25px;
+    height: 25px;
+  }
+
+  .home-view .home-resources .resource-card > span:last-child {
+    max-width: 24ch;
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+
+  .home-view .home-resources .resource-grid a.resource-card strong {
+    color: var(--text);
+  }
+
+  .rail-quote {
+    margin: auto 2px 66px;
+    padding: 0 10px;
+    border-top: 0;
+  }
+
+  html[data-theme='neon-teal'] .app-nav {
+    background:
+      radial-gradient(120% 52% at 22% 0%, rgb(45 212 191 / 0.14), transparent 64%),
+      linear-gradient(180deg, #062b40 0%, #031a2b 72%, #021522 100%);
+  }
+
+  html[data-theme='esmeralda-dourado'] .app-nav {
+    background:
+      radial-gradient(120% 52% at 18% 0%, rgb(212 175 55 / 0.16), transparent 64%),
+      linear-gradient(180deg, #08251a 0%, #04170f 72%, #03110b 100%);
+  }
+
+  html[data-theme='azul-ambar'] .app-nav {
+    background:
+      radial-gradient(120% 52% at 22% 0%, rgb(251 191 36 / 0.16), transparent 66%),
+      linear-gradient(180deg, #09243f 0%, #041628 72%, #030f1c 100%);
+  }
+
+  html[data-theme='azul-glacial'] .app-nav {
+    background:
+      radial-gradient(120% 52% at 22% 0%, rgb(186 230 253 / 0.15), transparent 66%),
+      linear-gradient(180deg, #102231 0%, #0a1621 72%, #061018 100%);
   }
 }
 
@@ -4362,6 +4646,112 @@ body::before {
   .home-onboarding-row,
   .home-onboarding {
     flex-wrap: nowrap;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1023px) {
+  .nav-label-wide {
+    display: none;
+  }
+
+  .nav-label-compact {
+    display: inline;
+  }
+
+  .home-showcase {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .show-evolution {
+    grid-column: 1 / -1;
+  }
+
+  .resource-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .goal-ring {
+    gap: 12px;
+  }
+
+  .goal-orbit,
+  .goal-orbit svg {
+    width: 88px;
+    height: 88px;
+  }
+
+  .goal-ring-value {
+    font-size: 1.35rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .view:not(.home-view) > .view-header {
+    padding: 20px 24px;
+    border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+    border-radius: 22px;
+    background:
+      radial-gradient(90% 140% at 100% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 58%),
+      linear-gradient(135deg, color-mix(in srgb, var(--surface) 94%, black), var(--card));
+    box-shadow:
+      0 18px 44px rgb(0 0 0 / 0.22),
+      inset 0 1px 0 rgb(255 255 255 / 0.04);
+  }
+
+  .view:not(.home-view) > .view-header .view-subtitle {
+    margin-top: 6px;
+  }
+
+  .view:not(.home-view) > .studio-subnav {
+    margin-top: 14px;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, white 8%), var(--surface));
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.16);
+  }
+
+  .workspace-guide {
+    padding: 12px 16px;
+    border-color: color-mix(in srgb, var(--accent) 22%, var(--border));
+    border-left: 3px solid color-mix(in srgb, var(--accent) 62%, var(--border));
+    border-radius: 14px;
+    background:
+      radial-gradient(90% 160% at 0% 0%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 62%),
+      var(--surface);
+    box-shadow: 0 10px 28px rgb(0 0 0 / 0.14);
+  }
+
+  .planning-workspace > h2,
+  .session-workspace > h2 {
+    margin-bottom: 8px;
+    font-size: clamp(1.8rem, 2.4vw, 2.2rem);
+    letter-spacing: -0.035em;
+  }
+
+  .knowledge-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .analytics-view .scope-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .analytics-view .scope-grid > div {
+    min-height: 0;
+    padding: 10px 12px;
+  }
+
+  .analytics-view .scope-grid dd {
+    font-size: 0.84rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .view[data-studio] .panel,
+  .planning-workspace .panel,
+  .session-workspace .panel {
+    background:
+      radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 62%),
+      linear-gradient(180deg, color-mix(in srgb, var(--card) 94%, white 6%), var(--card));
   }
 }
 

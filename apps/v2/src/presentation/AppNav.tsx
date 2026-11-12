@@ -15,6 +15,9 @@ const ITEMS: RouteModule[] = [
   'search',
 ];
 
+const PRIMARY_ITEMS = ITEMS.slice(0, 6);
+const UTILITY_ITEMS = ITEMS.slice(6);
+
 const SECONDARY: RouteModule[] = [
   'overview',
   'content',
@@ -65,12 +68,14 @@ function NavLink({
   attentionCount,
   reviewCount,
   onNavigate,
+  desktopLabel,
 }: {
   module: RouteModule;
   current: RouteModule;
   attentionCount: number;
   reviewCount: number;
   onNavigate?: () => void;
+  desktopLabel?: string;
 }) {
   const active = current === module;
   const badge = badgeFor(module, attentionCount, reviewCount);
@@ -83,7 +88,14 @@ function NavLink({
       onClick={onNavigate}
     >
       <NavIcon module={module} />
-      <span className="nav-label">{routeLabel(module)}</span>
+      {desktopLabel ? (
+        <>
+          <span className="nav-label nav-label-wide">{desktopLabel}</span>
+          <span className="nav-label nav-label-compact">{routeLabel(module)}</span>
+        </>
+      ) : (
+        <span className="nav-label">{routeLabel(module)}</span>
+      )}
       {badge > 0 ? (
         <span className="nav-badge" aria-label={badge + ' pendência(s)'}>
           {badge}
@@ -165,20 +177,43 @@ export function AppNav({ current, attentionCount, reviewCount }: Props) {
     return (
       <nav ref={navRef} className="app-nav" aria-label="Navegação principal">
         <div className="rail-brand" aria-hidden="true">
-          <span className="rail-logo">E</span>
+          <span className="rail-logo">
+            <svg viewBox="0 0 64 64" focusable="false">
+              <path d="M32 5 60 20 32 35 4 20Z" />
+              <path d="m8 29 24 13 24-13" />
+              <path d="m8 41 24 13 24-13" />
+            </svg>
+          </span>
           <span className="rail-brand-text">
-            <strong>Estudo Organizado</strong>
-            <span>V2</span>
+            <strong>
+              Estudo Organizado <span className="rail-version">V2</span>
+            </strong>
+            <span className="rail-brand-subtitle">Planejamento • Estudos • Revisões</span>
           </span>
         </div>
-        <ul className="nav-list">
-          {ITEMS.map((module) => (
+        <ul className="nav-list nav-list-primary">
+          {PRIMARY_ITEMS.map((module) => (
             <li key={module}>
               <NavLink
                 module={module}
                 current={current}
                 attentionCount={attentionCount}
                 reviewCount={reviewCount}
+                desktopLabel={module === 'attention' ? 'Central de Atenção' : undefined}
+              />
+            </li>
+          ))}
+        </ul>
+        <div className="nav-divider" role="presentation" />
+        <ul className="nav-list nav-list-secondary">
+          {UTILITY_ITEMS.map((module) => (
+            <li key={module}>
+              <NavLink
+                module={module}
+                current={current}
+                attentionCount={attentionCount}
+                reviewCount={reviewCount}
+                desktopLabel={module === 'attention' ? 'Central de Atenção' : undefined}
               />
             </li>
           ))}

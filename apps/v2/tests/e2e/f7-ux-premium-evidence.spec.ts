@@ -76,6 +76,7 @@ test('capture actual home for each original premium concept', async ({ page }) =
       { name: 'desktop', width: 1586, height: 992 },
       { name: 'tablet', width: 900, height: 1100 },
       { name: 'mobile-390', width: 390, height: 844 },
+      { name: 'mobile-320-short', width: 320, height: 568 },
       { name: 'mobile-320', width: 320, height: 720 },
     ]) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });

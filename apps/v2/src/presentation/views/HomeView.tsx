@@ -753,19 +753,24 @@ export function HomeView({
             <h3>Meta diária</h3>
           </header>
           <div className="goal-ring" data-testid="home-goal-ring">
-            <svg viewBox="0 0 100 100" aria-hidden="true">
-              <circle className="goal-track" cx="50" cy="50" r="42" />
-              {dailyGoalRatio !== null ? (
-                <circle
-                  className="goal-value"
-                  cx="50"
-                  cy="50"
-                  r="42"
-                  strokeDasharray={(dailyGoalRatio / 100) * 263.9 + ' 263.9'}
-                />
-              ) : null}
-            </svg>
-            <div>
+            <div className="goal-orbit">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle className="goal-track" cx="50" cy="50" r="42" />
+                {dailyGoalRatio !== null ? (
+                  <circle
+                    className="goal-value"
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    strokeDasharray={(dailyGoalRatio / 100) * 263.9 + ' 263.9'}
+                  />
+                ) : null}
+              </svg>
+              <span className="goal-ring-value" aria-hidden="true">
+                {dailyGoalRatio === null ? '—' : Math.round(dailyGoalRatio) + '%'}
+              </span>
+            </div>
+            <div className="goal-copy">
               <strong>{focusTodayMinutes} min</strong>
               <span>
                 {dailyGoalRatio === null
@@ -793,6 +798,11 @@ export function HomeView({
               ? nextReview.title + (nextReview.dueDate ? ' · ' + nextReview.dueDate : '')
               : 'Nenhuma revisão pendente agora.'}
           </p>
+          <svg className="review-calendar-art" viewBox="0 0 80 78" aria-hidden="true">
+            <rect className="calendar-sheet" x="8" y="14" width="64" height="58" rx="10" />
+            <path className="calendar-line" d="M8 31h64M23 8v14M57 8v14" />
+            <path className="calendar-check" d="m27 54 8 8 18-22" />
+          </svg>
           <a href="#/reviews">Abrir revisões</a>
         </article>
         <article className="show-card show-evolution">
@@ -822,7 +832,15 @@ export function HomeView({
                 </span>
               ))
             ) : (
-              <p>Sem série no período.</p>
+              <div className="show-chart-empty">
+                <span>Sem série no período.</span>
+                <div className="show-chart-weeks" aria-hidden="true">
+                  <span>Sem 1</span>
+                  <span>Sem 2</span>
+                  <span>Sem 3</span>
+                  <span>Sem 4</span>
+                </div>
+              </div>
             )}
           </div>
           <p>{weekFocusMinutes} min de foco nos últimos 7 dias.</p>
@@ -849,10 +867,10 @@ export function HomeView({
         </header>
         <div className="resource-grid">
           {[
-            { href: '#/planning', label: 'Planejamento', text: 'Rotina, metas e capacidade.', path: WIDGET_ICON_PATHS.planning },
-            { href: '#/sessions', label: 'Sessões', text: 'Registre e acompanhe o tempo.', path: WIDGET_ICON_PATHS['study-time'] },
-            { href: '#/reviews', label: 'Revisões', text: 'Mantenha o conteúdo vivo.', path: WIDGET_ICON_PATHS.reviews },
-            { href: '#/analytics', label: 'Análises', text: 'Evolução, gráficos e metodologia.', path: WIDGET_ICON_PATHS.questions },
+            { href: '#/planning', label: 'Planejamento', text: 'Organize sua rotina, metas e capacidade de estudo.', path: WIDGET_ICON_PATHS.planning },
+            { href: '#/sessions', label: 'Sessões', text: 'Registre e acompanhe seu tempo de estudo.', path: WIDGET_ICON_PATHS['study-time'] },
+            { href: '#/reviews', label: 'Revisões', text: 'Mantenha o conteúdo vivo na memória.', path: WIDGET_ICON_PATHS.reviews },
+            { href: '#/analytics', label: 'Análises', text: 'Veja sua evolução com gráficos e indicadores.', path: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
           ].map((resource) => (
             <a key={resource.href} className="resource-card" href={resource.href}>
               <span className="widget-icon" aria-hidden="true">
