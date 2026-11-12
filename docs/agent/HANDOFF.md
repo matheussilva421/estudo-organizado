@@ -18,13 +18,14 @@ Reconstruir a apresentação até parecer o produto dos quatro mockups, preserva
 - Medição em 1586×992: nav x16 w200 h960; hero x228 y176 w1342; recursos x228 y~700. Variação vertical dentro de ~2% do mock, exceto conteúdo real/estado vazio.
 - Review Studio: subnavegação Visão/Fila/Histórico/Política e histórico visual com eventos concluídos.
 - Knowledge Studio: subnavegação Biblioteca/Disciplinas/Árvore/Importação e contagens reais.
-- Insights Studio: subnavegação Visão/Explorar/Recortes/Comparação e recorte real por edital ou disciplina, com participação calculada apenas quando há denominador.
-- Capturas: visual-match-v7. Testes dirigidos Home: 19 PASS; Review/Knowledge: 10 PASS; suíte completa: 228 PASS, 5 SKIP, 0 FAIL (233).
+- Insights Studio: subnavegação Visão/Explorar/Recortes/Comparação e recorte real por edital ou disciplina.
+- Planning Studio: subnavegação Visão/Calendário/Ciclo e Reta Final/Editor e contagens reais de cenários, blocos, minutos e blocos sem data.
+- Capturas: visual-match-v8 e instrumentos/overlay. Testes dirigidos Home: 19 PASS; Review/Knowledge/Planning: 18 PASS; suíte completa: 229 PASS, 5 SKIP, 0 FAIL (234).
 
 ## Próximo
 
 - Revisão visual independente da Home com overlay 50/50 e tabela de 8 critérios.
-- Continuar Insights (teste com recorte preenchido), recompor Planning/Sessions/Settings e capturar módulos atualizados.
+- Testar recorte preenchido do Insights, recompor Sessions/Settings e capturar módulos atualizados.
 - Overlay 50/50, medida das oito regiões e revisão visual independente.
 - Estados com dados, quatro temas, mobile 320/390, 200% e acessibilidade; depois FIDELITY-MATRIX, dois pareceres e ZIP VISUAL-PIXEL-MATCH-REVIEW.
 
