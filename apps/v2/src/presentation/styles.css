@@ -4358,7 +4358,7 @@ body::before {
   }
 }
 
-@media (min-width: 1400px) {
+@media (min-width: 1586px) {
   .home-onboarding-row,
   .home-onboarding {
     flex-wrap: nowrap;

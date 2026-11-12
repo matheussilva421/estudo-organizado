@@ -76,3 +76,27 @@ test('desktop home keeps the reference spacing and hierarchy', async ({ page }) 
   expectNear(boxes.resources.y, 727, 3);
   expect(boxes.resourceCard.height).toBeGreaterThanOrEqual(93);
 });
+
+test('intermediate desktop keeps the onboarding row inside the content', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await resetF7Ux(page);
+  await expect(page.locator('.home-onboarding-row')).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+
+  const geometry = await page.evaluate(() => {
+    const view = document.querySelector<HTMLElement>('.home-view');
+    const onboarding = document.querySelector<HTMLElement>('.home-onboarding-row');
+    if (!view || !onboarding) throw new Error('Home sem faixa de onboarding');
+    const viewRect = view.getBoundingClientRect();
+    const onboardingRect = onboarding.getBoundingClientRect();
+    return {
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+      viewRight: viewRect.right,
+      onboardingRight: onboardingRect.right,
+    };
+  });
+
+  expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
+  expect(geometry.onboardingRight).toBeLessThanOrEqual(geometry.viewRight + 1);
+});
