@@ -1555,6 +1555,11 @@ export function SessionWorkspace({
       >
         <div className="focus-layer">
           <p className="eyebrow">Modo Foco</p>
+          {syncNeedsDecision ? (
+            <div className="inline-notice" role="alert">
+              Conflito exige decisão. <a href="#/settings">Ver conflito</a>
+            </div>
+          ) : null}
           <h2 id="session-focus-title">Sessão em andamento</h2>
           <div className="focus-timer" data-testid="session-focus-timer">
             {formatMs(elapsedMs)}
@@ -1566,11 +1571,7 @@ export function SessionWorkspace({
             {session.state}
             {focusBlock ? ' · ' + blockLabel(focusBlock, content) : ' · sem bloco vinculado'}
           </p>
-          {syncNeedsDecision ? (
-            <div className="inline-notice" role="alert">
-              Conflito exige decisão. <a href="#/settings">Ver conflito</a>
-            </div>
-          ) : null}
+
           {recovery ? (
             <p className="inline-notice" role="alert">
               Há tempo não observado. Resolva a recuperação ao sair do Modo Foco.

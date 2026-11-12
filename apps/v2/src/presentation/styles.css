@@ -4166,3 +4166,96 @@ body::before {
     height: 56px;
   }
 }
+
+.workspace-guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 10px 0 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.workspace-guide-copy {
+  display: flex;
+  flex: 1 1 280px;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workspace-guide-copy .eyebrow {
+  display: none;
+}
+
+.workspace-guide-copy strong {
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.workspace-guide-copy p {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+.workspace-guide-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.workspace-guide-links a {
+  min-height: 30px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+}
+
+.workspace-guide > .source-note {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.7rem;
+}
+
+@media (pointer: coarse) {
+  .workspace-guide-links a {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 900px) {
+  .workspace-guide-copy {
+    flex-basis: 100%;
+  }
+
+  .workspace-guide-copy p {
+    display: none;
+  }
+
+  .workspace-guide-copy strong {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 720px) {
+  .focus-layer {
+    padding: 16px;
+  }
+
+  .focus-timer {
+    margin: 12px 0;
+    font-size: clamp(2.4rem, 15vw, 4.5rem);
+  }
+
+  .focus-layer .inline-notice {
+    font-size: 0.82rem;
+  }
+}
