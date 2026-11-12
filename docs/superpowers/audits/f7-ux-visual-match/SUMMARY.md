@@ -1,6 +1,6 @@
 # Convergência visual aos mockups — pacote de revisão
 
-**Código:** cc29dabd (v2 local) · **Estado:** LOCAL_VISUAL_MATCH_IN_PROGRESS / UX_HUMAN_PENDING / REMOTE_PUSH_NOT_AUTHORIZED
+**Código:** 6131dffe (v2 local) · **Estado:** LOCAL_VISUAL_MATCH_IN_PROGRESS / UX_HUMAN_PENDING / REMOTE_PUSH_NOT_AUTHORIZED
 
 ## O que mudou
 
