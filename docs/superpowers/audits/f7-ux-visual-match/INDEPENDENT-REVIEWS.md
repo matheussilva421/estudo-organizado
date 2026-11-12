@@ -54,3 +54,56 @@ Os pareceres foram read-only. A suíte completa posterior passou; NVDA/Narrator,
 ### Limites da revisão
 
 O revisor não reexecutou typecheck, unitários ou E2E e não examinou estados hover/foco/movimento. Tablet e mobile não têm mockups equivalentes; 320/390 foram validados por testes, não por equivalência visual. A leitura do botão secundário no limite da barra móvel ficou inconclusiva. NVDA/Narrator, hardware e toque físico continuam NOT_RUN.
+
+## Revisão independente v14/v15
+
+**Escopo:** quatro temas desktop, tablet e mobile, código de apresentação e testes de layout. Revisor read-only; não executou testes.
+
+### Rodada v14
+
+A revisão confirmou convergência macro, ausência de P0 e apontou:
+
+- títulos de recursos em teal: corrigido para texto neutro;
+- ícone de Análises com interrogação: corrigido para gráfico de barras;
+- rail sem atmosfera por tema: corrigido com fundos Neon, Esmeralda, Âmbar e Glacial;
+- CTA fora da primeira dobra em 320x568: corrigido com header de duas linhas;
+- rótulo “Central de Atenção” quebrando no tablet: corrigido com variante curta “Atenção” e teste de visibilidade;
+- anel e ação do cartão menores que o mock: anel passou a 112 px e ação a 36 px;
+- hero mais plano: recebeu gradiente luminoso e a amostra RGB ficou em (16,60,69), próxima de (9,64,76) da referência.
+
+### Rodada v15
+
+O revisor atribuiu 6/8 PASS e manteve um único P1: hero começando em y≈152 na referência. A revisão cruzada com hero-ruler-mock.png e hero-ruler-v15.png mostra que:
+
+- y=152 é a linha de baseline do subtítulo “Planeje, estude...”;
+- a borda superior do hero está em y=190/191 no mock;
+- a v15 começa em y=191,1;
+- o sublinhado/linhas-guia e o box DOM confirmam a mesma posição.
+
+O P1 foi, portanto, uma leitura do texto acima do hero, não uma divergência de layout. Com essa reconciliação, Estrutura e Hero também ficam PASS_EVIDENCED, totalizando 8/8 na Home. O instrumento está no pacote e é reproduzível por visual-match-v15/instrumentos/render_comparisons.py.
+
+### Limites
+
+Não foram verificados pelo revisor: testes, build, interações, estados de sessão ativa, widget aberto, erro, foco/contraste, zoom, 721/1024/1280/1440 px e os quatro temas em tablet/mobile. Os Studios não possuem mockup 1:1; a avaliação deles é de gramática visual e testes funcionais, não equivalência pixel a pixel.
+
+## Revisão funcional independente — delta v14/v15
+
+**Escopo:** 9ff90176 até a árvore de a4b56e5e, com leitura de AppNav, HomeView, styles e specs. Revisor read-only; não executou testes.
+
+**Veredito:** preservação funcional com ressalvas; nenhum P0. O delta alterou somente apresentação e testes de apresentação. Domínio, IndexedDB, outbox, clock, sync, backup, recovery, routing, dependências e package não mudaram.
+
+### P1 encontrados e corrigidos
+
+- Bento em 1024 px: três colunas deixavam o cartão com cerca de 195 px e a ação em left=144. Foi criado breakpoint 1024–1279 com duas colunas, evolução na linha inteira, recursos em duas colunas e teste que exige ação dentro do cartão.
+- Valor do anel: .goal-ring span tinha especificidade maior e reduzia o valor para 0,74 rem com cor muted. A regra passou a .goal-ring .goal-ring-value e os overrides usam .show-goal; o teste exige fonte >=24 px e cor --text.
+- Formulários UX-H apontavam para 0c31e6ef/0b8fcfdc. UX-H-START e UX-H-DECISION agora apontam para a4b56e5e.
+
+### P2 encontrados e tratamento
+
+- Seletor de tema móvel: recebeu indicador visual ◐, preservando o select acessível e o dropdown nativo.
+- Link de integridade móvel: permanece oculto na Home para proteger a primeira dobra; Atenção e o alerta de saúde compensatório continuam acessíveis. Limitação declarada.
+- Guia dos Studios: a regra premium estava sobrescrita; o seletor passou a main .workspace-guide e recuperou padding, borda, raio e gradiente.
+
+### Limites
+
+O revisor não executou build, testes, interações, zoom, toque, leitor de tela ou serviços reais. Os contratos foram verificados estruturalmente; a prova de runtime é a suíte final executada pelo implementador.

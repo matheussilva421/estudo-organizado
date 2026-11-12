@@ -1,8 +1,18 @@
-# Backup
+# Verificação de backup
 
-- Bundle do HEAD cc29dabd: f7-visual-final-cc29dabd.bundle.
-- SHA-256: 093935C4E4188A6A34B28A3E5F853FCDDED16243EAEB4FB507A1EEF9D58E4E06.
-- git bundle verify: PASS; clone espelho e fsck sem erro; v2 e main conferidas; 150 à frente.
-- Cópia em D:/EstudoOrganizado-Backups/f7-ux-premium-20261111 com hash idêntico.
-- Discos físicos distintos, mesma máquina; não offsite. Bundle não contém IndexedDB nem untracked.
-- Bundles anteriores de 39097566, 5292dc74, 8dda302f, 05308f1b, cfee89e7, 99284994, a7c90364 e 134794be preservados.
+## Bundle final
+
+- Arquivo: f7-visual-match-a4b56e5e.bundle.
+- Ref: refs/heads/v2.
+- Código contido: a4b56e5e.
+- Tamanho: 32.026.400 bytes.
+- SHA-256: D2B5BB08519FBA719CC4CF06A80FB0FC2908E6354BF223807362CC9B340C32A8.
+- git bundle verify: PASS; histórico completo.
+- Cópia D:/EstudoOrganizado-Backups/f7-visual-match-20261112 com SHA-256 idêntico.
+- Discos C: e D: fisicamente distintos, mesma máquina; não é offsite.
+
+## Escopo e limitações
+
+O bundle preserva Git, não IndexedDB, perfis sintéticos, arquivos ignorados ou dados reais. A documentação final e as capturas são entregues no ZIP de revisão; o bundle contém o código até a4b56e5e.
+
+Bundles anteriores e refs F5/recovery permanecem preservados. Não houve reset, clean, prune, rebase destrutivo, force push ou exclusão de commits.

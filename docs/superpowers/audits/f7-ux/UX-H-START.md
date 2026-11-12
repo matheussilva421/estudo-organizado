@@ -1,6 +1,8 @@
 # UX-H — como abrir a V2 localmente
 
-HEAD de código validado: 0c31e6ef. Este roteiro usa somente loopback e dados sintéticos.
+HEAD de código disponível para a avaliação atual: a4b56e5e. O roteiro usa somente loopback e dados sintéticos.
+
+As capturas e comparações atuais estão em visual-match-v15 do pacote de revisão. O HEAD 0c31e6ef citado em registros anteriores é histórico.
 
 ## Requisitos
 

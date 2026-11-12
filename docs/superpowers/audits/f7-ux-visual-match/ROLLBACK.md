@@ -1,8 +1,31 @@
-# Rollback da fase visual
+# Rollback
 
-1. Inventariar HEAD, status, refs e bundles; confirmar b670926f como ancestral.
-2. Reverter apenas commits visuais em ordem inversa com git revert: b670926f, af71703e, 50d18db6, 4b13b205, 23c08fd0, a5f348db, 804a41fc, 134da0b0, 53eecba9, 80c1d1df.
-3. Se a regressão for só de tema/aparência, restaurar apps/v2/src/presentation e public/premium seletivamente.
-4. Não usar reset --hard, clean -fd, force push ou reescrever histórico; preservar refs e bundles.
-5. Reexecutar typecheck, lint, unit e E2E; dados/IndexedDB não são restaurados por Git.
-6. Rollback de dados reais não faz parte deste pacote e segue os gates F7.
+## Código
+
+Base anterior à convergência v13: 96e0651c70b817c7bcb398e821cd1727da864850.
+Código final: a4b56e5e84c10d7aa2bc9bd59eedc6108d8f2f66.
+
+1. Validar o bundle:
+
+       git bundle verify C:/Projetos/estudo-organizado-preservacao-20261104/f7-ux-premium-comparacao/f7-visual-match-a4b56e5e.bundle
+
+2. Para inspecionar o estado anterior sem reescrever a v2:
+
+       git switch -c rollback/f7-visual-96e0651c 96e0651c70b817c7bcb398e821cd1727da864850
+
+3. Em uma branch de rollback, reverter os commits na ordem inversa, se o objetivo for manter o histórico:
+
+       a4b56e5e
+       97e72bdf
+       32574dd5
+       commit documental v15
+       9ff90176
+       08700060
+       160e4b0a
+
+4. Não usar reset --hard, clean -fd, force push ou remoção de worktree/ref.
+5. Reexecutar typecheck, lint, build, unitários e E2E.
+
+## Dados
+
+Git não restaura IndexedDB, backups locais, perfis ou dados acadêmicos. Rollback de dados reais segue os gates F7 e não faz parte deste pacote.

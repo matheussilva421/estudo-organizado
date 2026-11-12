@@ -5,7 +5,7 @@ Status inicial: **UX_H_PENDING_HUMAN**. Nenhuma decisão foi presumida pelo Code
 ## Identificação
 
 - Data da avaliação: ____________________
-- HEAD avaliado: 0b8fcfdc (código 0c31e6ef)
+- HEAD disponível: a4b56e5e (documentação final no pacote v15)
 - Ambiente: http://127.0.0.1:18433, perfil sintético
 - Avaliador: ____________________
 
