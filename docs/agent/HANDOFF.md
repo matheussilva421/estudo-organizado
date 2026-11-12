@@ -19,14 +19,16 @@ Reconstruir a apresentação até parecer o produto dos quatro mockups, preserva
 - Review Studio: subnavegação Visão/Fila/Histórico/Política e histórico visual com eventos concluídos.
 - Knowledge Studio: subnavegação Biblioteca/Disciplinas/Árvore/Importação e contagens reais.
 - Insights Studio: subnavegação Visão/Explorar/Recortes/Comparação e recorte real por edital ou disciplina.
-- Planning Studio: subnavegação Visão/Calendário/Ciclo e Reta Final/Editor e contagens reais de cenários, blocos, minutos e blocos sem data.
-- Capturas: visual-match-v9 e instrumentos overlay/diff. Matriz em docs/superpowers/audits/f7-ux-visual-match/FIDELITY-MATRIX.md. Suíte completa: 229 PASS, 5 SKIP, 0 FAIL (234).
+- Planning Studio: subnavegação Visão/Calendário/Ciclo e Reta Final/Editor e contagens reais por cenário.
+- Geometria de referência: rail 295 px, conteúdo em x≈351, hero 270 px, título 40 px, CTAs 48 px, Bento 1/1,08/1,25 e recursos horizontais.
+- Pareceres independentes recebidos e tratados: denominador por dimensão no Insights, janela civil de 7 dias, alerta de backup na Home, role do link crítico, rail tablet, escopo do Planning, revisões futuras, série acessível e aviso de histórico truncado.
+- Capturas: visual-match-v11 e instrumentos v9 overlay/diff. Matriz e pareceres em docs/superpowers/audits/f7-ux-visual-match/. Suíte completa: 229 PASS, 5 SKIP, 0 FAIL (234).
 
 ## Próximo
 
 - Revisão visual independente da Home com overlay 50/50 e tabela de 8 critérios.
 - Testar recorte preenchido do Insights, recompor Sessions/Settings e capturar módulos atualizados.
-- Revisões independentes visual/funcional em andamento; corrigir achados e produzir ZIP VISUAL-PIXEL-MATCH-REVIEW.
+- Recompor Sessions/Settings, atualizar capturas/instrumentos v11 e produzir ZIP VISUAL-PIXEL-MATCH-REVIEW com pareceres e matriz.
 - Estados com dados, quatro temas, mobile 320/390, 200% e acessibilidade; depois FIDELITY-MATRIX, dois pareceres e ZIP VISUAL-PIXEL-MATCH-REVIEW.
 
 ## Invariantes

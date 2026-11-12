@@ -1,6 +1,6 @@
 # Matriz de fidelidade visual — Home 1586x992
 
-**Base:** v9, dados sintéticos de primeiro uso. **Referência:** quatro mockups originais do kit 2026-11-12. **Captura:** Chromium 1586x992, zoom 100%, sem scroll, fontes locais.
+**Base:** v11, dados sintéticos de primeiro uso. **Referência:** quatro mockups originais do kit 2026-11-12. **Captura:** Chromium 1586x992, zoom 100%, sem scroll, fontes locais.
 
 ## Método
 
@@ -10,16 +10,16 @@ Boxes de referência foram estimados por inspeção de pixels dos PNGs originais
 
 | Região | Referência (x,y,w,h) | App v9 (x,y,w,h) | Desvio principal |
 |---|---|---|---|
-| Rail/sidebar | 0,0,195,992 | 16,22,200,960 | +16 px à direita, largura +5, altura -32 |
-| Topbar | 195,0,1391,65 | 228,12,1342,56 | início +33, altura -9 |
-| Título/saudação | 220,80,700,80 | 228,99,447,35+subtítulo | +8 x, +19 y |
-| Hero | 205,160,1360,270 | 228,176,1342,260 | +23 x, +16 y, -10 altura |
-| Faixa de passos | 205,441,1360,50 | 228,448,1342,34 | +23 x, +7 y, mais compacta |
-| Bento (3 cartões) | 205,500,1360,145 | 228,498,1342,164 | topo -2, altura +19 |
-| Recursos | 205,660,1360,100 | 228,676,1342,133 | +23 x, +16 y, +33 altura |
-| Rodapé/contadores | 205,916,1360,40 | 228,873,1342,29 | contadores reais substituem legenda |
+| Rail/sidebar | 0,0,294,992 | 16,0,295,992 | +16 px à direita, largura +1 |
+| Topbar | 294,0,1292,65 | 351,0,1219,56 | +57 x, -9 altura |
+| Título/saudação | 335,80,700,80 | 351,88,900,80 | +16 x, +8 y |
+| Hero | 335,160,1235,270 | 351,160,1219,270 | +16 x, altura equivalente |
+| Faixa de passos | 335,441,1235,50 | 351,448,1219,36 | +16 x, +7 y |
+| Bento (3 cartões) | 335,500,1235,150 | 351,500,1219,~190 | topo equivalente, altura +40 |
+| Recursos | 335,660,1235,95 | 351,~700,1219,~100 | +16 x, +40 y |
+| Rodapé/contadores | 335,916,1235,40 | 351,873,1219,29 | contadores reais substituem legenda |
 
-Maior desvio de topo: 19 px (1,9% da altura) no título. Hero e Bento alinham dentro de 2%. Recursos ficam 16 px abaixo e mais altos por conteúdo real.
+Rail, topbar, título, hero e passos alinham dentro de 2% da largura/altura. Recursos ficam ~40 px abaixo por altura real do Bento; cartões Bento ainda são mais altos que a referência.
 
 ## Oito critérios
 
@@ -27,7 +27,7 @@ Maior desvio de topo: 19 px (1,9% da altura) no título. Hero e Bento alinham de
 |---|---|---|
 | 1. Estrutura e distribuição | PASS_EVIDENCED | Rail, topbar, hero, passos, bento e recursos nas faixas medidas; overlay v9. |
 | 2. Hierarquia e proporção do hero | PASS_EVIDENCED | Hero 260 px contra ~270 do mock; arte ocupa ~46% e usa recorte real; CTA e segundo CTA reais. |
-| 3. Composição dos cartões | PARTIAL | Proporções 0,9/1,05/2,0 e alturas próximas; estados vazios reais não reproduzem anel 75% e séries fictícias. |
+| 3. Composição dos cartões | PARTIAL | Proporções 1/1,08/1,25, anel 110 px e moldura de gráfico; altura ~40 px maior e conteúdo vazio real difere do mock. |
 | 4. Tipografia e espaçamento | PASS_EVIDENCED | Títulos, pesos, linha e densidade revisados; desvios de topo ≤19 px. |
 | 5. Profundidade e iluminação | PARTIAL | Gradientes, bordas e arco ambiente implementados; brilho fotográfico do mock é aproximado. |
 | 6. Ilustrações | PASS_EVIDENCED | Recortes decorativos reais dos quatro PNGs, sem UI/texto, WebP 16–19 KB; fallback vetorial nos oito temas. |

@@ -87,7 +87,8 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
     })),
   ];
   const drillSelected = drillOptions.find((option) => option.key === drillKey) ?? null;
-  const totalBucketFocus = drillOptions.reduce((sum, option) => sum + option.bucket.focusMs, 0);
+  const editalFocusTotal = analytics.byEdital.reduce((sum, bucket) => sum + bucket.focusMs, 0);
+  const disciplineFocusTotal = analytics.byDiscipline.reduce((sum, bucket) => sum + bucket.focusMs, 0);
 
   return (
     <section
@@ -439,8 +440,12 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
             <div>
               <dt>Participação</dt>
               <dd>
-                {totalBucketFocus > 0
-                  ? Math.round((drillSelected.bucket.focusMs / totalBucketFocus) * 100) + '% do tempo atribuído'
+                {(drillSelected.kind === 'Edital' ? editalFocusTotal : disciplineFocusTotal) > 0
+                  ? Math.round(
+                      (drillSelected.bucket.focusMs /
+                        (drillSelected.kind === 'Edital' ? editalFocusTotal : disciplineFocusTotal)) *
+                        100,
+                    ) + '% do tempo da mesma dimensão'
                   : 'Sem denominador'}
               </dd>
             </div>

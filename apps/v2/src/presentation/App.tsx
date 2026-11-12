@@ -1288,6 +1288,7 @@ export function App() {
             <path d="M12 2.8v2.4M12 18.8v2.4M4.5 4.5l1.7 1.7M17.8 17.8l1.7 1.7M2.8 12h2.4M18.8 12h2.4M4.5 19.5l1.7-1.7M17.8 6.2l1.7-1.7" />
           </svg>
         </a>
+        <span className="avatar" aria-hidden="true">EO</span>
       </header>
 
       <CommandCenter
@@ -1324,9 +1325,15 @@ export function App() {
         ) : health.mode === 'CONFLICT' ||
           health.mode === 'RECOVERY_REQUIRED' ||
           health.mode === 'PAUSED_QUOTA' ||
-          health.mode === 'PAUSED_AUTH' ? (
-          <a className="home-health-alert" href="#/attention" role="status">
-            Integridade exige atenção: {health.mode === 'CONFLICT' ? 'conflito pendente' : 'revisar estado'}.
+          health.mode === 'PAUSED_AUTH' ||
+          backupHealth.status === 'FAILED' ? (
+          <a className="home-health-alert" href="#/attention">
+            Integridade exige atenção:{' '}
+            {health.mode === 'CONFLICT'
+              ? 'conflito pendente'
+              : backupHealth.status === 'FAILED'
+                ? 'a última tentativa de backup falhou'
+                : 'revisar estado'}.
           </a>
         ) : null}
 

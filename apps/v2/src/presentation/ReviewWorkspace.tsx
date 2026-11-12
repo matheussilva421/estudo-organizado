@@ -1579,6 +1579,12 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
             ))}
           </ol>
         )}
+        {closedCommitments.length > 12 ? (
+          <p className="hint">
+            Mostrando as 12 mais recentes de {closedCommitments.length}. A fila em
+            Concluídas/canceladas mantém o histórico completo.
+          </p>
+        ) : null}
       </article>
 
       <article className="session-card" data-testid="review-weak-points">

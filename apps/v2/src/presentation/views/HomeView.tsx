@@ -538,11 +538,22 @@ export function HomeView({
     plannedTodayMinutes > 0
       ? Math.min(100, Math.round((focusTodayMinutes / plannedTodayMinutes) * 100))
       : null;
+  const pendingReviewItems = summary.priorities.filter(
+    (item) =>
+      item.category.startsWith('REVISAO') ||
+      (item.category === 'ATIVIDADE_FUTURA' && item.target === 'reviews'),
+  );
   const nextReview =
-    summary.priorities
-      .filter((item) => item.category.startsWith('REVISAO'))
+    pendingReviewItems
       .sort((left, right) => (left.dueDate ?? '').localeCompare(right.dueDate ?? ''))[0] ?? null;
-  const weekSeries = analytics.byDay.slice(-7);
+  const weekStartIso = new Date(
+    Date.parse(todayIso + 'T00:00:00Z') - 6 * 86_400_000,
+  )
+    .toISOString()
+    .slice(0, 10);
+  const weekSeries = analytics.byDay.filter(
+    (day) => day.id >= weekStartIso && day.id <= todayIso,
+  );
   const weekFocusMinutes = Math.round(
     weekSeries.reduce((sum, day) => sum + day.focusMs, 0) / 60_000,
   );
@@ -719,12 +730,15 @@ export function HomeView({
         ) : null}
       </section>
       {heroContext === 'ONBOARDING' && !onboardingDismissed ? (
+        <>
+        <p className="home-onboarding-intro">Em poucos passos, você deixa tudo pronto:</p>
         <ol className="home-onboarding" aria-label="Primeiros passos">
-          <li>Cadastre edital e disciplina em Conteúdo.</li>
-          <li>Defina disponibilidade e metas em Planejamento.</li>
-          <li>Registre a primeira sessão em Estudar.</li>
-          <li>Acompanhe suas revisões em Revisões.</li>
+          <li>Cadastre edital e disciplina</li>
+          <li>Defina metas e disponibilidade</li>
+          <li>Registre a primeira sessão</li>
+          <li>Acompanhe as revisões</li>
         </ol>
+        </>
       ) : null}
       <section className="home-showcase" aria-label="Resumo acadêmico">
         <article className="show-card show-goal">
@@ -771,7 +785,9 @@ export function HomeView({
             </span>
             <h3>Próximas revisões</h3>
           </header>
-          <strong className="show-number">{summary.counts.reviewsDue}</strong>
+          <strong className="show-number">
+            {summary.counts.reviewsDue + pendingReviewItems.filter((item) => item.category === 'ATIVIDADE_FUTURA').length}
+          </strong>
           <p>
             {nextReview
               ? nextReview.title + (nextReview.dueDate ? ' · ' + nextReview.dueDate : '')
@@ -787,8 +803,17 @@ export function HomeView({
               </svg>
             </span>
             <h3>Evolução dos estudos</h3>
+            <span className="show-range">Últimas 4 semanas</span>
           </header>
-          <div className="show-chart" data-testid="home-week-chart">
+          <div
+            className="show-chart"
+            data-testid="home-week-chart"
+            role="img"
+            aria-label={
+              'Foco por dia: ' +
+              weekSeries.map((day) => day.label + ' ' + Math.round(day.focusMs / 60_000) + ' minutos').join(', ')
+            }
+          >
             {weekSeries.length > 0 ? (
               weekSeries.map((day) => (
                 <span key={day.id}>

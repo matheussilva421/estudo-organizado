@@ -913,7 +913,7 @@ export function PlanningWorkspace({
   const links = content.links.filter((link) => link.status === 'ACTIVE');
   const planningOverview = {
     activeScenarios: scenarios.filter((scenario) => scenario.status === 'ACTIVE').length,
-    blocks: blocks.length,
+    blocks: selectedBlocks.length,
     selectedMinutes: selectedBlocks.reduce((sum, block) => sum + block.plannedMinutes, 0),
     unallocated: selectedBlocks.filter((block) => !block.civilDate).length,
   };
@@ -930,7 +930,7 @@ export function PlanningWorkspace({
       <section id="planning-overview" className="planning-overview" aria-label="Visão geral do planejamento">
         <dl className="studio-stats">
           <div><dt>Cenários ativos</dt><dd data-testid="planning-stat-scenarios">{planningOverview.activeScenarios}</dd></div>
-          <div><dt>Blocos</dt><dd data-testid="planning-stat-blocks">{planningOverview.blocks}</dd></div>
+          <div><dt>Blocos do cenário</dt><dd data-testid="planning-stat-blocks">{planningOverview.blocks}</dd></div>
           <div><dt>Minutos do cenário</dt><dd data-testid="planning-stat-minutes">{planningOverview.selectedMinutes}</dd></div>
           <div><dt>Sem data</dt><dd data-testid="planning-stat-unallocated">{planningOverview.unallocated}</dd></div>
         </dl>

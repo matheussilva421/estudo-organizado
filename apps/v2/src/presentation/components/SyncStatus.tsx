@@ -39,7 +39,10 @@ export function SyncStatus({ health, backupHealth, onSyncNow }: SyncStatusProps)
       <details
         className="sync-details"
         open={
-          state === 'CONFLICT' || state === 'STALE' || state === 'UNAVAILABLE'
+          state === 'CONFLICT' ||
+          state === 'STALE' ||
+          state === 'UNAVAILABLE' ||
+          backupHealth?.status === 'FAILED'
             ? true
             : undefined
         }
