@@ -20,13 +20,13 @@ Reconstruir a apresentação até parecer o produto dos quatro mockups, preserva
 - Knowledge Studio: subnavegação Biblioteca/Disciplinas/Árvore/Importação e contagens reais.
 - Insights Studio: subnavegação Visão/Explorar/Recortes/Comparação e recorte real por edital ou disciplina.
 - Planning Studio: subnavegação Visão/Calendário/Ciclo e Reta Final/Editor e contagens reais de cenários, blocos, minutos e blocos sem data.
-- Capturas: visual-match-v8 e instrumentos/overlay. Testes dirigidos Home: 19 PASS; Review/Knowledge/Planning: 18 PASS; suíte completa: 229 PASS, 5 SKIP, 0 FAIL (234).
+- Capturas: visual-match-v9 e instrumentos overlay/diff. Matriz em docs/superpowers/audits/f7-ux-visual-match/FIDELITY-MATRIX.md. Suíte completa: 229 PASS, 5 SKIP, 0 FAIL (234).
 
 ## Próximo
 
 - Revisão visual independente da Home com overlay 50/50 e tabela de 8 critérios.
 - Testar recorte preenchido do Insights, recompor Sessions/Settings e capturar módulos atualizados.
-- Overlay 50/50, medida das oito regiões e revisão visual independente.
+- Revisões independentes visual/funcional em andamento; corrigir achados e produzir ZIP VISUAL-PIXEL-MATCH-REVIEW.
 - Estados com dados, quatro temas, mobile 320/390, 200% e acessibilidade; depois FIDELITY-MATRIX, dois pareceres e ZIP VISUAL-PIXEL-MATCH-REVIEW.
 
 ## Invariantes
