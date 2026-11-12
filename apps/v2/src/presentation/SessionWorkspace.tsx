@@ -1640,6 +1640,31 @@ export function SessionWorkspace({
   return (
     <section className="session-workspace" data-studio="sessions" aria-labelledby="session-title" data-testid="session-workspace">
       <h2 id="session-title">Execução de estudo</h2>
+      <dl className="studio-stats session-overview" aria-label="Visão geral das sessões">
+        <div>
+          <dt>Estado atual</dt>
+          <dd data-testid="session-stat-state">{session ? session.state : 'LIVRE'}</dd>
+        </div>
+        <div>
+          <dt>Sessões recentes</dt>
+          <dd data-testid="session-stat-history">{history.length}</dd>
+        </div>
+        <div>
+          <dt>Concluídas hoje</dt>
+          <dd data-testid="session-stat-today">
+            {
+              history.filter(
+                (item) =>
+                  item.recordedAtCivilDate === todayInZone() && item.state === 'COMPLETED',
+              ).length
+            }
+          </dd>
+        </div>
+        <div>
+          <dt>Recuperação</dt>
+          <dd data-testid="session-stat-recovery">{recovery ? 'PENDENTE' : 'NENHUMA'}</dd>
+        </div>
+      </dl>
       <p className="empty-state">
         Cronômetro, registro manual, recuperação, hábitos e histórico local.
       </p>

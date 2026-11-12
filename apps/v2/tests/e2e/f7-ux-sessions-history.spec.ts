@@ -16,6 +16,10 @@ test('session history exposes filters and an auditable inspector', async ({ page
   await expect(history.locator('[data-session-id]')).toHaveCount(1);
   await expect(history).toContainText('MANUAL');
   await expect(history).toContainText('00:45:00');
+  await expect(page.getByTestId('session-stat-state')).toHaveText('LIVRE');
+  await expect(page.getByTestId('session-stat-history')).toHaveText('1');
+  await expect(page.getByTestId('session-stat-today')).toHaveText('1');
+  await expect(page.getByTestId('session-stat-recovery')).toHaveText('NENHUMA');
 
   await history.locator('[data-testid^="session-details-"] summary').first().click();
   await expect(history).toContainText('manual: 00:45:00');
