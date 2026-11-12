@@ -1610,6 +1610,14 @@ export function App() {
               ) : <p className="hint">Nenhum edital ativo. Cadastre ou reative um edital abaixo.</p>}
             </section>
           ) : null}
+          {route.module === 'content' && ready ? (
+            <nav className="studio-subnav" aria-label="Seções do Knowledge Studio">
+              <a href="#knowledge-library-title">Biblioteca</a>
+              <a href="#subjects-title">Disciplinas</a>
+              <a href="#tree-title">Árvore</a>
+              <a href="#content-tools">Importação</a>
+            </nav>
+          ) : null}
           {routeEditalMissing ? (
             <p className="inline-notice" role="status">
               O edital informado na rota não existe neste perfil ou foi arquivado. Nenhum dado de
