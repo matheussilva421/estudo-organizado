@@ -141,20 +141,6 @@ export function SettingsView({
         ))}
       </nav>
 
-      <section className="panel" id="settings-overview" aria-labelledby="settings-overview-title">
-        <header className="section-header">
-          <h3 id="settings-overview-title">Visão geral</h3>
-          <span className="badge">{health.mode}</span>
-        </header>
-        <dl className="integrity-grid">
-          <div data-integrity="local"><dt>Local</dt><dd>{health.localCommitted ? 'Commit do dispositivo' : 'Sem dados locais'}</dd></div>
-          <div data-integrity="remote"><dt>ACK remoto</dt><dd>{health.remoteCommitted ? 'Confirmado' : 'Sem prova'}</dd></div>
-          <div data-integrity="convergence"><dt>Convergência</dt><dd>{health.converged ? 'Escopo verificado' : 'Não verificada'}</dd></div>
-          <div data-integrity="backup"><dt>Backup</dt><dd>{backupHealth?.status === 'VERIFIED' ? 'Destino verificado' : 'Não comprovado'}</dd></div>
-        </dl>
-        <p className="hint">Estados independentes: salvo não significa enviado, confirmado ou recuperável.</p>
-      </section>
-
       <section className="panel" id="settings-appearance" aria-labelledby="settings-appearance-title">
         <header className="section-header">
           <h3 id="settings-appearance-title">Aparência deste dispositivo</h3>
@@ -225,6 +211,20 @@ export function SettingsView({
           </select>
         </div>
         <p className="muted">Os 12 temas preservam contraste, foco e alvos de toque. Preferência local não é dado acadêmico.</p>
+      </section>
+
+      <section className="panel" id="settings-overview" aria-labelledby="settings-overview-title">
+        <header className="section-header">
+          <h3 id="settings-overview-title">Visão geral</h3>
+          <span className="badge">{health.mode}</span>
+        </header>
+        <dl className="integrity-grid">
+          <div data-integrity="local"><dt>Local</dt><dd>{health.localCommitted ? 'Commit do dispositivo' : 'Sem dados locais'}</dd></div>
+          <div data-integrity="remote"><dt>ACK remoto</dt><dd>{health.remoteCommitted ? 'Confirmado' : 'Sem prova'}</dd></div>
+          <div data-integrity="convergence"><dt>Convergência</dt><dd>{health.converged ? 'Escopo verificado' : 'Não verificada'}</dd></div>
+          <div data-integrity="backup"><dt>Backup</dt><dd>{backupHealth?.status === 'VERIFIED' ? 'Destino verificado' : 'Não comprovado'}</dd></div>
+        </dl>
+        <p className="hint">Estados independentes: salvo não significa enviado, confirmado ou recuperável.</p>
       </section>
 
       <section className="panel" id="settings-profile" aria-labelledby="settings-profile-title">
