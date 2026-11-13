@@ -1105,7 +1105,9 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         {busy ? 'Gravando…' : reminders?.message ?? 'Central local pronta.'}
       </p>
 
-      <article className="session-card" id="review-agenda" data-testid="review-agenda">
+      <div className="review-columns">
+        <div className="review-column review-column-main">
+<article className="session-card" id="review-agenda" data-testid="review-agenda">
         <h3>Agenda de compromissos</h3>
         {mobileQueue ? (
           <button ref={queueTrigger} type="button" aria-haspopup="dialog" onClick={() => queueSheet.current?.showModal()}>
@@ -1334,45 +1336,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         <p className="hint">A dispensa de um aviso não cancela nem conclui o compromisso.</p>
       </article>
 
-      <article className="session-card" data-testid="review-suggestions">
-        <h3>Sugestões</h3>
-        {suggestions.length === 0 ? (
-          <p className="hint">Nenhuma sugestão calculada.</p>
-        ) : (
-          <>
-          <ul>
-            {suggestionPage.items.map((suggestion) => (
-              <li key={suggestion.key}>
-                {suggestion.label} · {suggestion.dueDate} · {suggestion.durationMinutes} min ·{' '}
-                {suggestion.explanation}
-                <div className="session-actions">
-                  <button
-                    type="button"
-                    onClick={() => void applySuggestion(suggestion)}
-                    disabled={locked || busy}
-                  >
-                    Confirmar revisão
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-          {suggestionPage.hasMore ? (
-            <button
-              type="button"
-              className="button-ghost"
-              onClick={() =>
-                setSuggestionLimit((current) => nextPageLimit(current, suggestions.length))
-              }
-            >
-              Mostrar mais {suggestionPage.remaining} sugestão(ões)
-            </button>
-          ) : null}
-          </>
-        )}
-      </article>
-
-      <article className="session-card" id="review-policy" data-testid="review-policy">
+<article className="session-card" id="review-policy" data-testid="review-policy">
         <h3>Política versionada</h3>
         <div className="session-grid">
           <label>
@@ -1465,7 +1429,215 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         </p>
       </article>
 
-      <article className="session-card" data-testid="review-policy-overrides">
+<article className="session-card" data-testid="review-topics">
+        <h3>Tópicos de revisão</h3>
+        <div className="session-grid">
+          <label>
+            Edital
+            <select
+              value={selectedEditalId}
+              onChange={(event) => {
+                setSelectedEditalId(event.target.value);
+                setSelectedDisciplineId('');
+                setSelectedAssuntoId('');
+              }}
+            >
+              <option value="">Selecione</option>
+              {editais.map((edital) => (
+                <option key={edital.id} value={edital.id}>{edital.title}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Disciplina
+            <select
+              value={selectedDisciplineId}
+              onChange={(event) => {
+                setSelectedDisciplineId(event.target.value);
+                setSelectedAssuntoId('');
+              }}
+            >
+              <option value="">Selecione</option>
+              {disciplines.map((link) => (
+                <option key={link.id} value={link.id}>
+                  {content.subjects.find((subject) => subject.id === link.subjectId)?.title ?? link.displayAlias ?? link.id}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Assunto
+            <select value={selectedAssuntoId} onChange={(event) => setSelectedAssuntoId(event.target.value)}>
+              <option value="">Selecione</option>
+              {assuntos.map((assunto) => (
+                <option key={assunto.id} value={assunto.id}>{assunto.title}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="session-actions">
+          <button type="button" onClick={() => void createTopic()} disabled={locked || busy}>
+            Criar tópico de revisão
+          </button>
+        </div>
+        {topics.length === 0 ? (
+          <p className="hint">Nenhum tópico vinculado. O vínculo é explícito e usa IDs da F2.</p>
+        ) : (
+          <ul>
+            {topics.map((topic) => (
+              <li key={topic.id}>
+                {topic.label}
+                {archivedEditalIds.includes(topic.editalId) ? ' · edital arquivado (vínculo preservado)' : ''}
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+
+<article className="session-card" data-testid="review-weak-points">
+        <h3>Pontos fracos e retenção</h3>
+        {weakPoints.length === 0 ? (
+          <p className="hint">Nenhum tópico com evidência.</p>
+        ) : (
+          <ul>
+            {weakPoints.map((item) => (
+              <li key={item.canonicalTopicKey} data-status={item.status}>
+                {item.label} · {weakStatusLabel(item.status)} · {item.correctAnswers}/{item.questions}{' '}
+                acertos · retenção esqueci {item.retention.forgot}, parcial {item.retention.partial},{' '}
+                boa {item.retention.good} · tendência {trendLabel(item.trend)}
+                {item.conflicts.length > 0
+                  ? ` · ${item.conflicts.length} conflito(s) F4 preservado(s)`
+                  : ''}
+                <p className="hint">
+                  Fontes: {item.evidence.length} evidência(s) F4/F5; status da projeção preservado.
+                </p>
+                <details data-testid={`review-evidence-${item.canonicalTopicKey}`}>
+                  <summary>Ver evidências e amostra</summary>
+                  <p>
+                    Amostra: {item.questions} questão(ões), {item.correctAnswers} acerto(s) ·
+                    política v{item.policyVersion} · projeção {item.status}.
+                  </p>
+                  {item.evidence.length === 0 ? (
+                    <p className="hint">Nenhuma evidência vinculada; nada foi inferido.</p>
+                  ) : (
+                    <ul>
+                      {evidenceIds(item.evidence, 'F4').map((sessionId) => (
+                        <SessionEvidenceItem
+                          key={sessionId}
+                          profileId={profileId}
+                          sessionId={sessionId}
+                        />
+                      ))}
+                      {evidenceIds(item.evidence, 'F5').map((executionId) => (
+                        <li key={executionId} data-testid={`review-evidence-execution-${executionId}`}>
+                          Execução de revisão (F5) · referência{' '}
+                          <code title={executionId}>{shortId(executionId)}</code>
+                          <span className="hint">
+                            {' '}— registro de auditoria sem tela própria nesta versão.
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </details>
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+
+<article className="session-card" data-testid="review-projections">
+        <h3>Cache de pontos fracos</h3>
+        <p className="hint">
+          Cache regenerável que acompanha os fatos de estudo. Quando algo muda, o cache é
+          marcado como desatualizado e os pontos fracos voltam a ser calculados sob demanda.
+        </p>
+        <p className="session-status" data-testid="projection-status" aria-live="polite">
+          {projectionStatus?.kind === 'READY'
+            ? `Atual · ${projectionStatus.rows} linha(s) · gerado em ${formatInstant(projectionStatus.projection?.generatedAt)}`
+            : projectionStatus?.kind === 'STALE'
+              ? `Desatualizado porque ${projectionReasonLabel(projectionStatus.reason)} · reconstrua para atualizar`
+              : 'Ainda não gerado · os pontos fracos são calculados sob demanda'}
+        </p>
+        <button type="button" onClick={() => void rebuildProjection()} disabled={locked || busy}>
+          Reconstruir cache
+        </button>
+      </article>
+
+<article className="session-card" data-testid="review-priorities">
+        <h3>Prioridade contextual</h3>
+        <div className="session-actions">
+          <select value={selectedEditalId} onChange={(event) => setSelectedEditalId(event.target.value)}>
+            <option value="">Edital</option>
+            {editais.map((edital) => (
+              <option key={edital.id} value={edital.id}>{edital.title}</option>
+            ))}
+          </select>
+          <button type="button" onClick={() => void updatePriority()} disabled={locked || busy || !selectedEditalId}>
+            Recalcular prioridade
+          </button>
+        </div>
+        {priority ? (
+          <ol>
+            {priority.rows.map((row) => (
+              <li key={row.canonicalTopicKey} data-insufficient={row.insufficient}>
+                <strong>{row.label}</strong> · score {row.score} · {row.explanation}
+                {row.insufficient ? ' · evidência insuficiente' : ''}
+                <ul className="priority-factors">
+                  {row.factors.map((factor) => (
+                    <li key={factor.name} data-factor={factor.name}>
+                      {factorLabel(factor.name)}: {factor.explanation}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="hint">Escolha um edital para explicar a prioridade.</p>
+        )}
+      </article>
+        </div>
+        <div className="review-column review-column-rail">
+<article className="session-card" data-testid="review-suggestions">
+        <h3>Sugestões</h3>
+        {suggestions.length === 0 ? (
+          <p className="hint">Nenhuma sugestão calculada.</p>
+        ) : (
+          <>
+          <ul>
+            {suggestionPage.items.map((suggestion) => (
+              <li key={suggestion.key}>
+                {suggestion.label} · {suggestion.dueDate} · {suggestion.durationMinutes} min ·{' '}
+                {suggestion.explanation}
+                <div className="session-actions">
+                  <button
+                    type="button"
+                    onClick={() => void applySuggestion(suggestion)}
+                    disabled={locked || busy}
+                  >
+                    Confirmar revisão
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {suggestionPage.hasMore ? (
+            <button
+              type="button"
+              className="button-ghost"
+              onClick={() =>
+                setSuggestionLimit((current) => nextPageLimit(current, suggestions.length))
+              }
+            >
+              Mostrar mais {suggestionPage.remaining} sugestão(ões)
+            </button>
+          ) : null}
+          </>
+        )}
+      </article>
+
+<article className="session-card" data-testid="review-policy-overrides">
         <h3>Ajustes por assunto</h3>
         <p className="hint">
           Cada ajuste cria uma nova versão da política. A prévia abaixo mostra o efeito
@@ -1580,76 +1752,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         )}
       </article>
 
-      <article className="session-card" data-testid="review-topics">
-        <h3>Tópicos de revisão</h3>
-        <div className="session-grid">
-          <label>
-            Edital
-            <select
-              value={selectedEditalId}
-              onChange={(event) => {
-                setSelectedEditalId(event.target.value);
-                setSelectedDisciplineId('');
-                setSelectedAssuntoId('');
-              }}
-            >
-              <option value="">Selecione</option>
-              {editais.map((edital) => (
-                <option key={edital.id} value={edital.id}>{edital.title}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Disciplina
-            <select
-              value={selectedDisciplineId}
-              onChange={(event) => {
-                setSelectedDisciplineId(event.target.value);
-                setSelectedAssuntoId('');
-              }}
-            >
-              <option value="">Selecione</option>
-              {disciplines.map((link) => (
-                <option key={link.id} value={link.id}>
-                  {content.subjects.find((subject) => subject.id === link.subjectId)?.title ?? link.displayAlias ?? link.id}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Assunto
-            <select value={selectedAssuntoId} onChange={(event) => setSelectedAssuntoId(event.target.value)}>
-              <option value="">Selecione</option>
-              {assuntos.map((assunto) => (
-                <option key={assunto.id} value={assunto.id}>{assunto.title}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div className="session-actions">
-          <button type="button" onClick={() => void createTopic()} disabled={locked || busy}>
-            Criar tópico de revisão
-          </button>
-        </div>
-        {topics.length === 0 ? (
-          <p className="hint">Nenhum tópico vinculado. O vínculo é explícito e usa IDs da F2.</p>
-        ) : (
-          <ul>
-            {topics.map((topic) => (
-              <li key={topic.id}>
-                {topic.label}
-                {archivedEditalIds.includes(topic.editalId) ? ' · edital arquivado (vínculo preservado)' : ''}
-              </li>
-            ))}
-          </ul>
-        )}
-      </article>
-
-
-
-
-
-      <article className="session-card" id="review-history-panel" data-testid="review-history-panel">
+<article className="session-card" id="review-history-panel" data-testid="review-history-panel">
         <h3>Histórico visual</h3>
         {closedCommitments.length === 0 ? (
           <p className="hint">Nenhuma revisão concluída ou cancelada neste perfil.</p>
@@ -1677,59 +1780,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         ) : null}
       </article>
 
-      <article className="session-card" data-testid="review-weak-points">
-        <h3>Pontos fracos e retenção</h3>
-        {weakPoints.length === 0 ? (
-          <p className="hint">Nenhum tópico com evidência.</p>
-        ) : (
-          <ul>
-            {weakPoints.map((item) => (
-              <li key={item.canonicalTopicKey} data-status={item.status}>
-                {item.label} · {weakStatusLabel(item.status)} · {item.correctAnswers}/{item.questions}{' '}
-                acertos · retenção esqueci {item.retention.forgot}, parcial {item.retention.partial},{' '}
-                boa {item.retention.good} · tendência {trendLabel(item.trend)}
-                {item.conflicts.length > 0
-                  ? ` · ${item.conflicts.length} conflito(s) F4 preservado(s)`
-                  : ''}
-                <p className="hint">
-                  Fontes: {item.evidence.length} evidência(s) F4/F5; status da projeção preservado.
-                </p>
-                <details data-testid={`review-evidence-${item.canonicalTopicKey}`}>
-                  <summary>Ver evidências e amostra</summary>
-                  <p>
-                    Amostra: {item.questions} questão(ões), {item.correctAnswers} acerto(s) ·
-                    política v{item.policyVersion} · projeção {item.status}.
-                  </p>
-                  {item.evidence.length === 0 ? (
-                    <p className="hint">Nenhuma evidência vinculada; nada foi inferido.</p>
-                  ) : (
-                    <ul>
-                      {evidenceIds(item.evidence, 'F4').map((sessionId) => (
-                        <SessionEvidenceItem
-                          key={sessionId}
-                          profileId={profileId}
-                          sessionId={sessionId}
-                        />
-                      ))}
-                      {evidenceIds(item.evidence, 'F5').map((executionId) => (
-                        <li key={executionId} data-testid={`review-evidence-execution-${executionId}`}>
-                          Execução de revisão (F5) · referência{' '}
-                          <code title={executionId}>{shortId(executionId)}</code>
-                          <span className="hint">
-                            {' '}— registro de auditoria sem tela própria nesta versão.
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </details>
-              </li>
-            ))}
-          </ul>
-        )}
-      </article>
-
-      <article className="session-card" data-testid="review-reminders">
+<article className="session-card" data-testid="review-reminders">
         <h3>Lembretes e avisos</h3>
         <p className="hint">
           A central local funciona offline. Avisos externos são opcionais, exigem permissão
@@ -1833,25 +1884,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         )}
       </article>
 
-      <article className="session-card" data-testid="review-projections">
-        <h3>Cache de pontos fracos</h3>
-        <p className="hint">
-          Cache regenerável que acompanha os fatos de estudo. Quando algo muda, o cache é
-          marcado como desatualizado e os pontos fracos voltam a ser calculados sob demanda.
-        </p>
-        <p className="session-status" data-testid="projection-status" aria-live="polite">
-          {projectionStatus?.kind === 'READY'
-            ? `Atual · ${projectionStatus.rows} linha(s) · gerado em ${formatInstant(projectionStatus.projection?.generatedAt)}`
-            : projectionStatus?.kind === 'STALE'
-              ? `Desatualizado porque ${projectionReasonLabel(projectionStatus.reason)} · reconstrua para atualizar`
-              : 'Ainda não gerado · os pontos fracos são calculados sob demanda'}
-        </p>
-        <button type="button" onClick={() => void rebuildProjection()} disabled={locked || busy}>
-          Reconstruir cache
-        </button>
-      </article>
-
-      <article className="session-card" data-testid="review-board">
+<article className="session-card" data-testid="review-board">
         <h3>Inteligência de banca</h3>
         <div className="session-grid">
           <label>
@@ -1905,43 +1938,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         ))}
       </article>
 
-      <article className="session-card" data-testid="review-priorities">
-        <h3>Prioridade contextual</h3>
-        <div className="session-actions">
-          <select value={selectedEditalId} onChange={(event) => setSelectedEditalId(event.target.value)}>
-            <option value="">Edital</option>
-            {editais.map((edital) => (
-              <option key={edital.id} value={edital.id}>{edital.title}</option>
-            ))}
-          </select>
-          <button type="button" onClick={() => void updatePriority()} disabled={locked || busy || !selectedEditalId}>
-            Recalcular prioridade
-          </button>
-        </div>
-        {priority ? (
-          <ol>
-            {priority.rows.map((row) => (
-              <li key={row.canonicalTopicKey} data-insufficient={row.insufficient}>
-                <strong>{row.label}</strong> · score {row.score} · {row.explanation}
-                {row.insufficient ? ' · evidência insuficiente' : ''}
-                <ul className="priority-factors">
-                  {row.factors.map((factor) => (
-                    <li key={factor.name} data-factor={factor.name}>
-                      {factorLabel(factor.name)}: {factor.explanation}
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="hint">Escolha um edital para explicar a prioridade.</p>
-        )}
-      </article>
-
-
-
-      <article className="session-card" data-testid="review-portability">
+<article className="session-card" data-testid="review-portability">
         <h3>Portabilidade e lembretes</h3>
         <p className="hint">
           Avisos externos são opcionais e nunca prometem disparo com o app fechado.
@@ -1983,6 +1980,36 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
           {reminders?.upcoming.length ?? 0} próxima(s).
         </p>
       </article>
+        </div>
+      </div>
+
+      
+
+      
+
+      
+
+      
+
+
+
+
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+
+
+      
     </section>
   );
 }

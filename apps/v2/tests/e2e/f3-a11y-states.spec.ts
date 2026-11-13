@@ -283,6 +283,8 @@ test('keyboard_focus_is_visible_ordered_and_not_trapped', async ({ page }) => {
 
 test('reduced_motion_and_zoom_keep_the_planning_usable', async ({ page }) => {
   await seed(page);
+  // Pin the theme so a previous test's preference cannot change box metrics.
+  await page.getByLabel('Tema').selectOption('grafite');
 
   const normalTransition = await page.evaluate(() => {
     const button = document.querySelector('[data-action="preview-generation"]');
@@ -297,13 +299,33 @@ test('reduced_motion_and_zoom_keep_the_planning_usable', async ({ page }) => {
   });
   expect(Number.parseFloat(reducedTransition || '0')).toBeLessThanOrEqual(0.001);
 
-  await page.evaluate(() => {
-    document.body.style.zoom = '200%';
-  });
+  // A real 200% browser zoom halves the CSS viewport. Emulate that first so
+  // the responsive breakpoints match what the user actually gets, then apply
+  // the CSS zoom for the scaled rendering check.
+  await page.setViewportSize({ width: 640, height: 720 });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        document.body.style.zoom = '200%';
+        // Give Chromium one full frame to settle the zoomed layout before
+        // measuring; a same-task read can catch an intermediate box.
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
   const overflowInfo = await page.evaluate(() => {
     const width = document.documentElement.clientWidth;
     return {
       overflow: document.documentElement.scrollWidth - width,
+      diag: {
+        clientWidth: width,
+        innerWidth: window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        bodyZoom: getComputedStyle(document.body).zoom,
+        theme: document.documentElement.dataset.theme ?? null,
+        shell: document.querySelector('.app-shell')
+          ? Math.round(document.querySelector('.app-shell')!.getBoundingClientRect().width)
+          : null,
+      },
       offenders: [...document.querySelectorAll('*')]
         .map((element) => {
           const rect = element.getBoundingClientRect();
@@ -319,7 +341,7 @@ test('reduced_motion_and_zoom_keep_the_planning_usable', async ({ page }) => {
         .slice(0, 8),
     };
   });
-  expect(overflowInfo.overflow, JSON.stringify(overflowInfo.offenders)).toBeLessThanOrEqual(1);
+  expect(overflowInfo.overflow, JSON.stringify(overflowInfo)).toBeLessThanOrEqual(1);
   const clipped = await page.evaluate(() =>
     [...document.querySelectorAll('[data-testid="planning-workspace"] *')]
       .filter(

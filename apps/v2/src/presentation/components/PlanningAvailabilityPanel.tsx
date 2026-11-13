@@ -6,6 +6,10 @@ import {
 } from '../../domain/planning-capacity';
 
 const ORDER: Weekday[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+const SCENARIO_KIND_LABEL: Record<string, string> = {
+  CYCLE: 'Ciclo',
+  FINAL_STRETCH: 'Reta Final',
+};
 const LABELS: Record<Weekday, string> = {
   MON: 'Segunda',
   TUE: 'Terça',
@@ -275,7 +279,9 @@ export function PlanningAvailabilityPanel({
             {scenarioBudgets.map((scenario) => (
               <li key={scenario.id}>
                 <span>{scenario.label}</span>
-                <span>{scenario.minutes} min · {scenario.status}</span>
+                <span>
+                  {scenario.minutes} min · {SCENARIO_KIND_LABEL[scenario.status] ?? 'cenário'}
+                </span>
               </li>
             ))}
           </ul>

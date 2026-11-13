@@ -3691,7 +3691,7 @@ body::before {
 
   .app-header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 46px 40px;
+    grid-template-columns: minmax(0, 1fr) 86px 40px;
     grid-template-areas:
       'brand theme command'
       'search search search';
@@ -4754,6 +4754,12 @@ body::before {
     height: 88px;
   }
 
+  .home-hero-actions button.button-ghost {
+    padding: 0 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
   .show-goal .goal-ring .goal-ring-value {
     font-size: 1.35rem;
   }
@@ -5015,7 +5021,7 @@ body::before {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 16px;
-    align-items: stretch;
+    align-items: start;
   }
 
   [data-studio='reviews'] > h2,
@@ -5027,58 +5033,31 @@ body::before {
     grid-column: 1 / -1;
   }
 
-  [data-studio='reviews'] > .session-card {
+  [data-studio='reviews'] > .review-columns {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .review-column {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+    min-width: 0;
+  }
+
+  .review-column > .session-card {
     min-width: 0;
     margin: 0;
-  }
-
-  [data-testid='review-agenda'] {
-    grid-column: span 8;
-  }
-
-  [data-testid='review-suggestions'] {
-    grid-column: span 4;
-  }
-
-  #review-policy {
-    grid-column: span 7;
-  }
-
-  [data-testid='review-policy-overrides'] {
-    grid-column: span 5;
-  }
-
-  [data-testid='review-topics'] {
-    grid-column: span 5;
-  }
-
-  #review-history-panel {
-    grid-column: span 7;
-  }
-
-  [data-testid='review-weak-points'] {
-    grid-column: span 7;
-  }
-
-  [data-testid='review-reminders'] {
-    grid-column: span 5;
-  }
-
-  [data-testid='review-projections'],
-  [data-testid='review-board'] {
-    grid-column: span 6;
-  }
-
-  [data-testid='review-priorities'],
-  [data-testid='review-portability'] {
-    grid-column: span 6;
   }
 
   .analytics-view {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 16px;
-    align-items: stretch;
+    align-items: start;
   }
 
   .analytics-view > .view-header,
@@ -5089,22 +5068,27 @@ body::before {
     grid-column: 1 / -1;
   }
 
-  .analytics-view > .analytics-editor {
-    grid-column: span 7;
-    margin: 0;
+  .analytics-view > .analytics-columns {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
   }
 
-  .analytics-view > .analytics-comparison {
-    grid-column: span 5;
+  .analytics-column {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+    min-width: 0;
+  }
+
+  .analytics-column > .panel {
+    min-width: 0;
     margin: 0;
   }
 
   .analytics-view > .analytics-drill {
-    grid-column: 1 / -1;
-    margin: 0;
-  }
-
-  .analytics-view > section[aria-labelledby='analytics-archive-title'] {
     grid-column: 1 / -1;
     margin: 0;
   }
@@ -5312,5 +5296,19 @@ body::before {
 
   .home-view .home-hero-actions {
     padding-bottom: 4px;
+  }
+}
+
+/* UX-H: keep the reference hero geometry, but never let the two onboarding
+   actions wrap outside the fixed 232px card. */
+@media (min-width: 1024px) {
+  .home-hero-actions {
+    flex-wrap: nowrap;
+  }
+
+  .home-hero-actions button.button-ghost {
+    padding: 0 12px;
+    font-size: 0.82rem;
+    white-space: nowrap;
   }
 }

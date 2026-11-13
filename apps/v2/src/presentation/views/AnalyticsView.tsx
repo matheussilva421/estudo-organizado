@@ -213,7 +213,9 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
 
       </section>
 
-      <section className="panel analytics-editor" aria-labelledby="analytics-editor-title">
+      <div className="analytics-columns">
+        <div className="analytics-column analytics-column-main">
+<section className="panel analytics-editor" aria-labelledby="analytics-editor-title">
         <header className="section-header">
           <div>
             <h3 id="analytics-editor-title" tabIndex={-1} ref={editorHeading}>Editor de análise</h3>
@@ -348,8 +350,9 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
         <p className="muted">Exportação é relatório, não backup. Nenhum token ou rascunho é incluído.</p>
         {archiveError ? <p className="inline-notice" role="alert" data-testid="analytics-archive-error">{archiveError}</p> : null}
       </section>
-
-        <section className="panel analytics-comparison" aria-labelledby="analytics-comparison-title">
+        </div>
+        <div className="analytics-column analytics-column-rail">
+<section className="panel analytics-comparison" aria-labelledby="analytics-comparison-title">
           <header className="section-header">
             <h3 id="analytics-comparison-title">Comparação com o período anterior</h3>
           </header>
@@ -363,7 +366,7 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
           <p className="hint">{comparison.note}</p>
         </section>
 
-      <section className="panel" aria-labelledby="analytics-archive-title">
+<section className="panel" aria-labelledby="analytics-archive-title">
         <header className="section-header">
           <h3 id="analytics-archive-title">Arquivo histórico local</h3>
           <span className="muted">{snapshots.length} snapshot(s)</span>
@@ -402,6 +405,12 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
           </div>
         ) : null}
       </section>
+        </div>
+      </div>
+
+        
+
+      
 
       <section className="panel analytics-drill" aria-labelledby="analytics-drill-title">
         <header className="section-header">
