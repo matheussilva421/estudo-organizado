@@ -14,7 +14,7 @@
 5. A composição dos Studios foi alterada com evidência abaixo da dobra.
 6. UX-16/17/19/21 têm estado honesto, teste e captura.
 7. Typecheck, lint, build, unitários e E2E foram executados neste HEAD.
-8. Git preservado: 167 commits à frente de `origin/v2`, `main` intocada, sem push.
+8. Git preservado: 169 commits à frente de `origin/v2` no HEAD de código, mais os commits documentais; `main` intocada, sem push.
 9. ZIP íntegro, com SHA-256 próprio e manifesto completo.
 
 A aprovação continua humana. Testes verdes não revogam a reprovação anterior.

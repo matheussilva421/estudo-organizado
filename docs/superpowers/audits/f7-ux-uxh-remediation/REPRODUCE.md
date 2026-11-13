@@ -17,7 +17,7 @@ O Playwright sobe `vite preview` em `127.0.0.1:$env:PLAYWRIGHT_PORT`. Em ambient
 ## Evidências
 
 ```powershell
-$root = 'C:\...\uxh-remediation-92745e0a'
+$root = 'C:\...\uxh-remediation-454f27e5'
 $env:F7_UX_EVIDENCE_DIR = "$root\evidencia-geral"
 $env:F7_UX_PREMIUM_EVIDENCE = "$root\premium"
 $env:F7_UX_PREMIUM_COMPARE = "$root\comparacoes"

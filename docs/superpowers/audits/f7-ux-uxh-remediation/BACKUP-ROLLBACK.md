@@ -16,7 +16,7 @@ Bundle `--all` criado após o commit documental, com `git bundle verify` e clone
 
 1. Não use `reset --hard` nem `clean -fd`.
 2. Para inspecionar o baseline: `git clone <bundle-T0> t0-check` e `git -C t0-check log --oneline -1` (deve mostrar `48548168`).
-3. Para desfazer a rodada mantendo o histórico: `git revert --no-commit 2ae4d012 92745e0a` na branch `v2` e revisar o diff antes de commitar.
+3. Para desfazer a rodada mantendo o histórico: `git revert --no-commit 2ae4d012 92745e0a 454f27e5` na branch `v2` e revisar o diff antes de commitar.
 4. Para voltar o checkout ao estado do T0 sem perder trabalho: criar uma branch nova a partir do bundle e comparar; não mover `v2` com force.
 5. `main`, `origin/v2` e as refs `recovery/*` não foram alterados; qualquer rollback local não os atinge.
 

@@ -6,10 +6,10 @@ Coletado no checkout `C:\Projetos\estudo-organizado\_v2-candidate`.
 |---|---|
 | Branch | `v2` |
 | HEAD de código | `454f27e5207a1ab46e926fe7c8849010f6e4b6a2` (169 à frente) |
-| HEAD documental | commit que contém este arquivo (171 à frente) |
+| HEAD documental | commit que contém este arquivo |
 | Baseline reprovado | `a4b56e5e` / documentação `48548168` |
 | `origin/v2` | `02b950cd842decde598820f89da3fa2aaa8274a8` |
-| Divergência | `0` atrás, `171` à frente no HEAD documental |
+| Divergência | `0` atrás; `169` à frente no commit de código |
 | `main` | `9046cfa2283cd293b38df9d52fabfcd5de9ac67c` |
 | `origin/main` | `9046cfa2283cd293b38df9d52fabfcd5de9ac67c` |
 | Push / PR / merge | não executados |

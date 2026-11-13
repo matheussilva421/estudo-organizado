@@ -1,6 +1,6 @@
 # Matriz F7-UX — UX-01 a UX-31 e AC-01 a AC-24
 
-**Remediação UX-H de 13/11/2026:** o candidato anterior a4b56e5e foi reprovado pelo proprietário. O código atual é 92745e0a e esta matriz registra a revalidação local após as revisões independentes; o aceite UX-H continua pendente.
+**Remediação UX-H de 13/11/2026:** o candidato anterior a4b56e5e foi reprovado pelo proprietário. O código atual é 454f27e5 e esta matriz registra a revalidação local após as revisões independentes; o aceite UX-H continua pendente.
 
 **Legenda:** `PASS_LOCAL` = implementação e teste local verificáveis; `PARTIAL_LOCAL` = comportamento local coberto com limitação documentada; `NOT_RUN` = gate externo/manual não executado. Nenhum `NOT_RUN` foi convertido em PASS.
 
