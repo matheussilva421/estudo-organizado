@@ -5095,6 +5095,7 @@ body::before {
 
   .analytics-view > .table-grid {
     grid-column: 1 / -1;
+    align-items: start;
   }
 
   .analytics-view > .view-header,
