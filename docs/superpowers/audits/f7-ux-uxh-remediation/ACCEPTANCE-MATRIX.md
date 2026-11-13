@@ -67,16 +67,58 @@ Fórmulas, dados, commits, outbox, relógio e restore não foram alterados. AC-0
 | UX-30 | PASS_LOCAL / A11Y_MANUAL_NOT_RUN | typecheck, lint, build, 880 unitários, 241 E2E |
 | UX-31 | PASS_LOCAL | bundle, hashes, revisões e ZIP |
 
-## F0 — 46 capacidades
++## F0 — 46 capacidades (detalhe)
 
-| Grupo | IDs | Estado |
+Prova por grupo de suíte; nenhuma capacidade foi reimplementada nesta rodada. `PASS_LOCAL` cobre contratos e testes locais; serviços externos ficam `NOT_RUN`.
+
+| ID | Estado | Prova |
 |---|---|---|
-| F1 | persistência, save, boot, PWA | PASS_LOCAL |
-| F2 | editais, principal, arquivados, verticalização, importação, aulas | PASS_LOCAL |
-| F3 | organizador, calendário, ciclo, wizard, Reta Final, importação, editor, histórico, conflitos, portabilidade, redistribuição | PASS_LOCAL |
-| F4 | timer/pomodoro, registro, histórico, hábitos | PASS_LOCAL |
-| F5 | revisões, pontos fracos, banca | PASS_LOCAL |
-| F6 | shell, fachadas, Home, Análises, busca, notificações, preferências, temas, acessibilidade, skeleton | PASS_LOCAL |
-| F7 | sync Firestore/Cloudflare/Drive, centro, diagnóstico, backup, dados | PASS_LOCAL em contratos/fakes; externo NOT_RUN |
-| Adiado | F-V1-VISUAL-LAYOUT-LAB | fora do escopo |
+| F-V1-PERSISTENCE-INDEXEDDB | PASS_LOCAL | tests/unit/storage*, f1-* |
+| F-V1-SAVE-STATUS | PASS_LOCAL | tests/unit/save-*, f1-* |
+| F-V1-BOOT-RECOVERY | PASS_LOCAL | tests/unit/boot-*, recovery |
+| F-V1-PWA-OFFLINE | PASS_LOCAL | tests/e2e/pwa-offline.spec.ts |
+| F-V1-EDITALS-CRUD | PASS_LOCAL | tests/e2e/f2-*, editais |
+| F-V1-PRINCIPAL-EDITAL | PASS_LOCAL | tests/unit/editais-* |
+| F-V1-ARCHIVED-EDITALS | PASS_LOCAL | tests/e2e/f2-archived* |
+| F-V1-VERTICAL-EDITAL | PASS_LOCAL | tests/e2e/f2-vertical* |
+| F-V1-EDITAL-IMPORT | PASS_LOCAL | tests/unit/import*, f2-import |
+| F-V1-LESSON-MAPPER | PASS_LOCAL | tests/unit/lesson* |
+| F-V1-STUDY-ORGANIZER | PASS_LOCAL | tests/e2e/f3-journey |
+| F-V1-CALENDAR | PASS_LOCAL | tests/unit/f3-calendar.test.ts |
+| F-V1-CYCLE | PASS_LOCAL | tests/unit/f3-scenarios.test.ts |
+| F-V1-PLANNING-WIZARD | PASS_LOCAL | tests/unit/f3-wizard* |
+| F-V1-RF-OVERVIEW | PASS_LOCAL | tests/e2e/f3-final-stretch-ui.spec.ts |
+| F-V1-RF-IMPORT | PASS_LOCAL | tests/e2e/f3-final-stretch-ui.spec.ts |
+| F-V1-RF-EDITOR-PLANNER | PASS_LOCAL | tests/e2e/f7-ux-planning-workspace.spec.ts |
+| F-V1-RF-HISTORY | PASS_LOCAL | tests/e2e/f7-ux-planning-workspace.spec.ts |
+| F-V1-RF-CONFLICTS | PASS_LOCAL | tests/unit/f3-conflicts* |
+| F-V1-RF-PORTABILITY | PASS_LOCAL | tests/unit/f3-portability* |
+| F-V1-RF-REDISTRIBUTION | PASS_LOCAL | tests/unit/f3-redistribution* |
+| F-V1-TIMER-POMODORO | PASS_LOCAL | tests/e2e/f4-pomodoro.spec.ts |
+| F-V1-SESSION-REGISTRATION | PASS_LOCAL | tests/e2e/f4-manual-details.spec.ts |
+| F-V1-SESSION-HISTORY | PASS_LOCAL | tests/e2e/f7-ux-sessions-history.spec.ts |
+| F-V1-HABITS | PASS_LOCAL | tests/e2e/f4-habits.spec.ts |
+| F-V1-REVISIONS | PASS_LOCAL | tests/e2e/f5-review-journey.spec.ts |
+| F-V1-WEAK-POINTS | PASS_LOCAL | tests/e2e/f5-review-journey.spec.ts |
+| F-V1-BANCA-ANALYZER | PASS_LOCAL | tests/unit/f5-banca* |
+| F-V1-APP-SHELL | PASS_LOCAL | tests/e2e/f7-ux-shell-navigation.spec.ts |
+| F-V1-LEGACY-FACADES | PASS_LOCAL | tests/unit/f6-legacy* |
+| F-V1-HOME-DASHBOARD | PASS_LOCAL | tests/e2e/f7-ux-home.spec.ts |
+| F-V1-ANALYTICS-DASHBOARD | PASS_LOCAL | tests/e2e/f7-uxh-remediation.spec.ts |
+| F-V1-GLOBAL-SEARCH | PASS_LOCAL | tests/e2e/f6-search* |
+| F-V1-NOTIFICATIONS | PASS_LOCAL | tests/e2e/f5-settings-ui.spec.ts |
+| F-V1-CONFIG-PREFERENCES | PASS_LOCAL | tests/e2e/f7-ux-settings-safety.spec.ts |
+| F-V1-THEMES | PASS_LOCAL | tests/e2e/f7-ux-premium-theme.spec.ts |
+| F-V1-ACCESSIBILITY | PASS_LOCAL / MANUAL_NOT_RUN | tests/e2e/visual-a11y.spec.ts, f3-a11y-states |
+| F-V1-SKELETON-LOADING | PASS_LOCAL | tests/unit/skeleton* |
+| F-V1-FIRESTORE-SYNC | PASS_LOCAL em fakes / NOT_RUN externo | tests/unit/sync* |
+| F-V1-CLOUDFLARE-SYNC | PASS_LOCAL em fakes / NOT_RUN externo | tests/unit/cloud-sync* |
+| F-V1-DRIVE-SYNC | PASS_LOCAL em fakes / NOT_RUN externo | tests/unit/drive-sync* |
+| F-V1-SYNC-CENTER | PASS_LOCAL | tests/unit/sync-center* |
+| F-V1-SYNC-DIAGNOSTICS | PASS_LOCAL | tests/unit/sync-health* |
+| F-V1-BACKUP-EXPORT-IMPORT | PASS_LOCAL | tests/unit/backup* |
+| F-V1-DATA-MANAGEMENT | PASS_LOCAL | tests/e2e/f7-settings* |
+| F-V1-VISUAL-LAYOUT-LAB | BLOCKED_NEW_APPROVAL | adiado por decisão; não implementado |
+
+Total: 46 (45 ativos + 1 adiado).
 
