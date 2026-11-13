@@ -2,6 +2,8 @@
 
 Candidato: 9457b7ca. Matriz complementar a D01–D71; não renumera decisões.
 
+**Registro histórico:** esta tabela descreve o estado em 9457b7ca e não é mais o cabeçalho vigente. A remediação UX-H de 13/11/2026 está em docs/superpowers/audits/f7-ux-uxh-remediation/ACCEPTANCE-MATRIX.md, candidato de código 92745e0a. Nenhum status histórico foi apagado.
+
 ## DV-01–DV-18
 
 | DV | Status | Evidência |

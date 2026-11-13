@@ -1,8 +1,8 @@
 # UX-H — como abrir a V2 localmente
 
-HEAD de código disponível para a avaliação atual: a4b56e5e. O roteiro usa somente loopback e dados sintéticos.
+HEAD de código disponível para a nova avaliação: 92745e0a. A decisão anterior REPROVOU a4b56e5e; este é um novo candidato de remediação.
 
-As capturas e comparações atuais estão em visual-match-v15 do pacote de revisão. O HEAD 0c31e6ef citado em registros anteriores é histórico.
+As capturas e comparações atuais estão em uxh-remediation-92745e0a do pacote de revisão. Os HEADs 0c31e6ef, a4b56e5e, 48548168, 862db594 e 2b63a179 citados em registros anteriores são históricos.
 
 ## Requisitos
 

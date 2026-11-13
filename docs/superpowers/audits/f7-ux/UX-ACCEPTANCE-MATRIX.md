@@ -1,5 +1,7 @@
 # Matriz F7-UX — UX-01 a UX-31 e AC-01 a AC-24
 
+**Remediação UX-H de 13/11/2026:** o candidato anterior a4b56e5e foi reprovado pelo proprietário. O código atual é 92745e0a e esta matriz registra a revalidação local após as revisões independentes; o aceite UX-H continua pendente.
+
 **Legenda:** `PASS_LOCAL` = implementação e teste local verificáveis; `PARTIAL_LOCAL` = comportamento local coberto com limitação documentada; `NOT_RUN` = gate externo/manual não executado. Nenhum `NOT_RUN` foi convertido em PASS.
 
 ## Tarefas do Writing Plans
@@ -21,12 +23,12 @@
 | UX-13 | PASS_LOCAL | cards e comandos explícitos; foco de procedência; testes de ação/render e regressões F2–F5 |
 | UX-14 | PASS_LOCAL | explorador F2 reutilizado; navegação por ID, arquivo somente leitura e árvore incremental F6 |
 | UX-15 | PASS_LOCAL | reordenação por drag/teclado, movimentação hierárquica, rejeição de ciclo e preservação de vínculos |
-| UX-16 | PARTIAL_LOCAL | prévia de ativação, baseRevision, calendário em lista, mês civil real e não alocados provados; falta diagnóstico/metas comparativas de capacidade (P-01) |
-| UX-17 | PARTIAL_LOCAL | disponibilidade/exceções/metas persistidas, prévia de ativação e checkpoint restaurável provados; P-05 e P-06 seguem parciais |
+| UX-16 | PASS_VERIFIED | capacidade compara janela, planejado global, saldo e excesso (>100%); teste cobre sobrecarga de 90 min; f7-ux-planning-workspace.spec.ts |
+| UX-17 | PASS_VERIFIED | encerramento exige prévia focável e confirmação; histórico compara o checkpoint escolhido com a revisão atual e exige confirmação; f3-final-stretch-ui.spec.ts e f7-ux-planning-workspace.spec.ts |
 | UX-18 | PASS_VERIFIED | foco/pausa/manual/duas abas e vínculo ≠ cumprimento; alocação validada no serviço |
-| UX-19 | PARTIAL_LOCAL | recuperação sem tempo inventado, conflitos e inspetor de histórico provados; E-07 parcial |
+| UX-19 | PASS_VERIFIED (limite) | sessão de hoje = hábito vigente; sessão antiga = vínculo não demonstrado, porque o modelo não guarda data de criação; f4-habits.spec.ts |
 | UX-20 | PASS_VERIFIED | fila, iniciar/concluir/avaliar, política com diff obrigatório e STALE_POLICY |
-| UX-21 | PARTIAL_LOCAL | encaixe, histórico e importação específicos; R-04 parcial |
+| UX-21 | PARTIAL_JUSTIFIED | amostra por medição e link F4 com data/estado; F5 permanece referência de auditoria sem tela própria; f5-review-journey.spec.ts |
 | UX-22 | PASS_LOCAL | `f7-ux-analytics.test.ts` e `f7-ux-analytics-cache.test.ts`; medições/alocações invalidam cache |
 | UX-23 | PASS_LOCAL | editor de métricas, validação de unidades, barras/linha e tabela equivalente |
 | UX-24 | PASS_LOCAL | snapshot congelado em profundidade, exportação CSV/JSON com metodologia e escape de fórmula |
@@ -71,7 +73,7 @@
 
 - G-EXT: `NOT_RUN`.
 - G-STAGING: `NOT_RUN`.
-- G-F7/UX-H: aceite humano `NOT_RUN`.
+- G-F7/UX-H: a4b56e5e REPROVED_BY_OWNER; novo candidato RE_REVIEW_PENDING.
 - F8/G-MAIN: não iniciados.
 - Acessibilidade manual e hardware modesto: `NOT_RUN`.
 
@@ -79,12 +81,12 @@
 
 | ID | Status | Evidência |
 |---|---|---|
-| P-01 | PARTIAL | workspace, metas semanais e progresso em PlanningAvailabilityPanel; diagnóstico de capacidade ainda resumido |
+| P-01 | PASS_VERIFIED | diagnóstico comparativo de capacidade e orçamento por cenário no workspace; f7-ux-planning-workspace.spec.ts |
 | P-02 | PASS_VERIFIED | f7-ux-planning-workspace.spec.ts: prévia explícita, substituição visível, sem autoswap |
 | P-03 | PASS_VERIFIED | calendário dia/semana/mês civil/lista; f7-ux-planning-calendar.test.ts; f3-journey |
 | P-04 | PASS_VERIFIED | disponibilidade, exceções, metas e CAS em f7-ux-planning-availability.test.ts + E2E |
-| P-05 | PARTIAL | adiamento/suspensão/transição com prévia; encerramento ainda direto |
-| P-06 | PARTIAL | checkpoint restaurável e rascunhos; comparação lado a lado de revisões ainda resumida |
+| P-05 | PASS_VERIFIED | encerramento com prévia explícita, confirmação e cancelamento; f3-final-stretch-ui.spec.ts |
+| P-06 | PASS_VERIFIED | comparação do checkpoint escolhido com a revisão atual antes de restaurar; f7-ux-planning-workspace.spec.ts |
 | P-07 | PASS_VERIFIED | f7-ux-plan-execution-truth.test.ts |
 | P-08 | PASS_VERIFIED | baseRevision e STALE em ativação, encaixe e política |
 | P-09 | PARTIAL | jornada integrada e capacidade compartilhada provadas; aceite único distribuído |
@@ -94,13 +96,13 @@
 | E-04 | PASS_VERIFIED | f4-manual.test.ts |
 | E-05 | PASS_VERIFIED | f7-ux-plan-execution-truth.test.ts |
 | E-06 | PASS_VERIFIED | f7-ux-sessions-history.spec.ts: filtros, inspetor, tempos separados |
-| E-07 | PARTIAL | hábitos/metas existentes; consistência contextual ainda resumida |
+| E-07 | PASS_VERIFIED (limite) | histórico separa hábito vigente de vínculo histórico não demonstrado; f4-habits.spec.ts |
 | E-08 | PASS_VERIFIED | estados F4/F7 e fake remote; externo NOT_RUN |
 | E-09 | PASS_VERIFIED | session-service valida sessionId, existência, arquivamento e vínculo |
 | R-01 | PASS_VERIFIED | f7-ux-reviews-queue.spec.ts: filtros e prioridade |
 | R-02 | PASS_VERIFIED | startedAt durável, idempotente, f7-ux-review-started.test.ts |
 | R-03 | PASS_VERIFIED | prévia base obrigatória e STALE_POLICY em f7-ux-review-policy.test.ts |
-| R-04 | PARTIAL | fatores explicados na UI; navegação por amostra/evidência ainda parcial |
+| R-04 | PASS_VERIFIED | drill-down de amostra, sessão F4 e execução F5 nas evidências; f5-review-journey.spec.ts |
 | R-05 | PASS_VERIFIED | f7-ux-review-placement.test.ts: sobreposição, meia-noite, prévia vencida |
 | R-06 | PASS_VERIFIED | histórico de compromisso, versões e links por ID |
 | R-07 | PASS_VERIFIED | integração por IDs canônicos e applyPlacement |
