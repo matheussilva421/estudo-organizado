@@ -77,6 +77,11 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   await evidence.locator('summary').click();
   await expect(evidence).toContainText('Amostra: 10 questão(ões), 7 acerto(s)');
   await expect(evidence.getByRole('link', { name: /Abrir sessão F4 session-f5/ })).toBeVisible();
+  if (process.env.F7_UXH_STATE_DIR) {
+    await weak.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/review-evidence-drilldown.png',
+    });
+  }
 
   const board = page.locator('[data-testid="review-board"]');
   await board.getByLabel('Título/fonte').fill('Banca TJPB');

@@ -100,6 +100,11 @@ test('closing a final stretch requires an explicit preview and confirmation', as
   const preview = page.getByTestId('final-stretch-close-preview');
   await expect(preview).toBeVisible();
   await expect(preview).toContainText('Nada foi gravado');
+  if (process.env.F7_UXH_STATE_DIR) {
+    await preview.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/final-stretch-close-preview.png',
+    });
+  }
   const beforeConfirm = await page.evaluate(() =>
     (window as unknown as HarnessWindow).__v2E2E.planningLoad('local-default', 'scenario-rf'),
   );

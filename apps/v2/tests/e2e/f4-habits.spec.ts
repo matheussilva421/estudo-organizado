@@ -19,4 +19,9 @@ test('f4 habit creation and explicit confirmation', async ({ page }) => {
   await expect(details).toContainText('Contexto de hábitos');
   await expect(details).toContainText('TIME');
   await expect(details).toContainText('não confirma cumprimento');
+  if (process.env.F7_UXH_STATE_DIR) {
+    await history.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/session-habit-context.png',
+    });
+  }
 });

@@ -159,6 +159,11 @@ test('availability and weekly goal persist and drive the shared capacity', async
   await page.getByTestId('planning-weekly-goal').fill('300');
   await page.getByTestId('planning-availability-save').click();
   await expect(page.getByTestId('planning-goal-progress')).toContainText('300 min');
+  if (process.env.F7_UXH_STATE_DIR) {
+    await comparison.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/planning-capacity.png',
+    });
+  }
 
   await page.reload();
   await expect(page.getByTestId('planning-workspace')).toBeVisible();
@@ -219,6 +224,11 @@ test('planning history compares the two latest checkpoints before restore', asyn
   await expect(comparison).toContainText('Anterior');
   await expect(comparison).toContainText('revisão');
   await expect(comparison).toContainText('blocos');
+  if (process.env.F7_UXH_STATE_DIR) {
+    await comparison.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/planning-history.png',
+    });
+  }
 });
 
 test('planning remembers the chosen view and keeps Day reachable', async ({ page }) => {
