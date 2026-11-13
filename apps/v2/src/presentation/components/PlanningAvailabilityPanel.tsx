@@ -142,11 +142,17 @@ export function PlanningAvailabilityPanel({
     weeklyGoal && Number(weeklyGoal) > 0
       ? Math.min(100, Math.round((plannedMinutes / Number(weeklyGoal)) * 100))
       : null;
-  const remainingMinutes = Math.max(0, availableMinutes - globalPlannedMinutes);
+  const remainingMinutes = availableMinutes - globalPlannedMinutes;
+  const overloadMinutes = Math.max(0, globalPlannedMinutes - availableMinutes);
   const plannedShare =
     availableMinutes > 0
-      ? Math.min(100, Math.round((globalPlannedMinutes / availableMinutes) * 100))
+      ? Math.round((globalPlannedMinutes / availableMinutes) * 100)
       : null;
+  const meterFill =
+    availableMinutes > 0
+      ? Math.min(100, (globalPlannedMinutes / availableMinutes) * 100)
+      : 0;
+  const overloaded = overloadMinutes > 0;
 
   return (
     <section className="panel" aria-labelledby="availability-title" data-testid="planning-availability">
@@ -231,29 +237,38 @@ export function PlanningAvailabilityPanel({
       <section className="capacity-diagnosis" data-testid="planning-capacity-comparison">
         <header>
           <strong>Capacidade comparada — próximos 7 dias</strong>
-          <span>{plannedShare === null ? 'Sem janela declarada' : `${plannedShare}% ocupado`}</span>
+          <span data-testid="planning-capacity-share" data-overloaded={overloaded ? 'true' : 'false'}>
+            {plannedShare === null
+              ? 'Sem janela declarada'
+              : overloaded
+                ? `${plannedShare}% da janela · excesso de ${overloadMinutes} min`
+                : `${plannedShare}% ocupado`}
+          </span>
         </header>
         <div
-          className="capacity-meter"
+          className={`capacity-meter${overloaded ? ' capacity-meter-overloaded' : ''}`}
           role="img"
           aria-label={
             availableMinutes > 0
-              ? `Capacidade semanal: ${globalPlannedMinutes} de ${availableMinutes} min planejados; ${remainingMinutes} min livres`
+              ? `Capacidade semanal: ${globalPlannedMinutes} de ${availableMinutes} min planejados; ${
+                  overloaded
+                    ? `excesso de ${overloadMinutes} min acima da janela`
+                    : `${remainingMinutes} min livres`
+                }`
               : 'Nenhuma capacidade declarada para os próximos sete dias'
           }
         >
           <span
             style={{
-              width:
-                availableMinutes > 0
-                  ? `${Math.min(100, (globalPlannedMinutes / availableMinutes) * 100)}%`
-                  : '0%',
+              width: `${meterFill}%`,
             }}
           />
         </div>
-        <p>
+        <p data-testid="planning-capacity-balance">
           Janela disponível: {availableMinutes} min · planejado global: {globalPlannedMinutes} min ·
-          saldo: {remainingMinutes} min
+          {overloaded
+            ? `excesso: ${overloadMinutes} min acima da janela`
+            : `saldo: ${remainingMinutes} min`}
         </p>
         {scenarioBudgets.length > 0 ? (
           <ul className="capacity-scenarios">

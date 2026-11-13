@@ -154,6 +154,48 @@ function compatibleHabitsForSession(
   );
 }
 
+const HABIT_KIND_LABEL: Record<StudyHabit['kind'], string> = {
+  TIME: 'Tempo',
+  QUESTIONS: 'Questões',
+  MANUAL: 'Manual',
+};
+
+const HABIT_RECURRENCE_LABEL: Record<StudyHabit['recurrence'], string> = {
+  DAILY: 'diário',
+  WEEKLY: 'semanal',
+};
+
+const SESSION_ORIGIN_LABEL: Record<StudySession['origin'], string> = {
+  TIMER: 'cronômetro',
+  POMODORO: 'pomodoro',
+  MANUAL: 'registro manual',
+};
+
+const SESSION_STATE_LABEL: Record<StudySession['state'], string> = {
+  DRAFT: 'rascunho',
+  RUNNING: 'em andamento',
+  PAUSED: 'pausada',
+  COMPLETED: 'concluída',
+  CANCELLED: 'cancelada',
+  RECOVERY_REQUIRED: 'recuperação pendente',
+};
+
+function habitTargetLabel(habit: StudyHabit): string {
+  if (habit.kind === 'TIME') return formatMs(habit.target ?? 0);
+  if (habit.kind === 'QUESTIONS') return String(habit.target ?? 0) + ' questões';
+  return 'manual';
+}
+
+function habitContextLabel(habit: StudyHabit): string {
+  return (
+    HABIT_KIND_LABEL[habit.kind] +
+    ' ' +
+    HABIT_RECURRENCE_LABEL[habit.recurrence] +
+    ' · meta ' +
+    habitTargetLabel(habit)
+  );
+}
+
 function formatInstant(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
@@ -2204,7 +2246,8 @@ export function SessionWorkspace({
                   : formatMs(evidence.progress);
               return (
                 <li key={habit.id}>
-                  {habit.kind} · meta {targetLabel} · progresso {progressLabel}
+                  {HABIT_KIND_LABEL[habit.kind]} {HABIT_RECURRENCE_LABEL[habit.recurrence]} ·
+                  meta {targetLabel} · progresso {progressLabel}
                   <button type="button" onClick={() => confirmHabit(habit)}>
                     Confirmar hoje
                   </button>
@@ -2313,8 +2356,8 @@ export function SessionWorkspace({
                 data-entity-id={item.id}
               >
                 <div>
-                  {item.recordedAtCivilDate ?? 'sem data'} · {item.origin} ·{' '}
-                  {item.state} ·{' '}
+                  {item.recordedAtCivilDate ?? 'sem data'} · {SESSION_ORIGIN_LABEL[item.origin]} ·{' '}
+                  {SESSION_STATE_LABEL[item.state]} ·{' '}
                   {formatMs(sessionTotalFocusMs(item))}
                 </div>
                 <details data-testid={`session-details-${item.id}`}>
@@ -2387,21 +2430,31 @@ export function SessionWorkspace({
                       ))}
                     </ul>
                   ) : null}
-                  <p data-testid={`session-habit-context-${item.id}`}>
-                    Contexto de hábitos:{' '}
-                    {compatibleHabitsForSession(habits, item)
-                      .map((habit) => {
-                        const target =
-                          habit.kind === 'TIME'
-                            ? formatMs(habit.target ?? 0)
-                            : habit.kind === 'QUESTIONS'
-                              ? String(habit.target ?? 0) + ' questões'
-                              : 'manual';
-                        return `${habit.kind} · ${habit.recurrence} · meta ${target}`;
-                      })
-                      .join(' · ') || 'nenhum hábito compatível'}
-                    . Isto é contexto; não confirma cumprimento sem registro próprio.
-                  </p>
+                  {(() => {
+                    const compatible = compatibleHabitsForSession(habits, item);
+                    const current = item.recordedAtCivilDate === todayInZone();
+                    return (
+                      <div
+                        className="habit-context"
+                        data-testid={`session-habit-context-${item.id}`}
+                        data-habit-attribution={current ? 'CURRENT' : 'UNDEMONSTRATED'}
+                      >
+                        <p>
+                          {current
+                            ? 'Hábitos vigentes hoje: '
+                            : 'Hábitos atuais que cobrem esta data: '}
+                          {compatible.length === 0
+                            ? 'nenhum'
+                            : compatible.map(habitContextLabel).join(' · ')}
+                        </p>
+                        <p className="hint">
+                          {current
+                            ? 'Isto é contexto; não confirma cumprimento sem registro próprio.'
+                            : 'O cadastro de hábitos não guarda a data de criação, então o vínculo com esta sessão antiga não está demonstrado. Isto é contexto; não confirma cumprimento.'}
+                        </p>
+                      </div>
+                    );
+                  })()}
                   {item.note ? <p>Nota: {item.note}</p> : null}
                   {item.planBlockIds.length > 0 ? (
                     <p>

@@ -67,7 +67,7 @@ test('F2 to F6 journey keeps content ids and separates manual, review and plan f
   await manual.getByLabel('Duração da sessão (min)').fill('30');
   await manual.getByLabel('Nota').fill('Jornada integrada');
   await manual.getByTestId('session-manual-submit').click();
-  await expect(page.getByTestId('session-history')).toContainText('MANUAL');
+  await expect(page.getByTestId('session-history')).toContainText('registro manual');
   await expect(page.getByTestId('session-history')).toContainText('00:30:00');
 
   await page.evaluate(async () => {

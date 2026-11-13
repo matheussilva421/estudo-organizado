@@ -133,7 +133,7 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
             Explorar indicadores
           </button>
         </header>
-        <dl className="scope-grid">
+        <dl className="scope-line" aria-label="Escopo da análise">
           <div>
             <dt>Período</dt>
             <dd>{analytics.period.from} a {analytics.period.to}</dd>
@@ -153,7 +153,7 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
         </dl>
 
         <div className="kpi-grid">
-          <article className="kpi-card">
+          <article className="kpi-card kpi-card-primary">
             <span className="kpi-label">Tempo de foco executado</span>
             <strong className="kpi-value">
               {analytics.sessions.inPeriod > 0 ? formatFocusDuration(analytics.sessions.focusMs) : '—'}
@@ -193,19 +193,7 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
           </article>
         </div>
 
-        <section className="panel" aria-labelledby="analytics-comparison-title">
-          <header className="section-header">
-            <h3 id="analytics-comparison-title">Comparação com o período anterior</h3>
-          </header>
-          <p>
-            Período anterior: {formatFocusDuration(comparison.previousFocusMs)} em{' '}
-            {comparison.previousSessions} sessão(ões). Variação de foco:{' '}
-            {comparison.focusDeltaPct === null
-              ? '—'
-              : (Math.round(comparison.focusDeltaPct * 10) / 10).toFixed(1) + '%'}.
-          </p>
-          <p className="hint">{comparison.note}</p>
-        </section>
+
 
         {analytics.status !== 'READY' ? (
           <p className="inline-notice" role="status">
@@ -360,6 +348,20 @@ export function AnalyticsView({ analytics, comparison, stale = false, days, onDa
         <p className="muted">Exportação é relatório, não backup. Nenhum token ou rascunho é incluído.</p>
         {archiveError ? <p className="inline-notice" role="alert" data-testid="analytics-archive-error">{archiveError}</p> : null}
       </section>
+
+        <section className="panel analytics-comparison" aria-labelledby="analytics-comparison-title">
+          <header className="section-header">
+            <h3 id="analytics-comparison-title">Comparação com o período anterior</h3>
+          </header>
+          <p>
+            Período anterior: {formatFocusDuration(comparison.previousFocusMs)} em{' '}
+            {comparison.previousSessions} sessão(ões). Variação de foco:{' '}
+            {comparison.focusDeltaPct === null
+              ? '—'
+              : (Math.round(comparison.focusDeltaPct * 10) / 10).toFixed(1) + '%'}.
+          </p>
+          <p className="hint">{comparison.note}</p>
+        </section>
 
       <section className="panel" aria-labelledby="analytics-archive-title">
         <header className="section-header">

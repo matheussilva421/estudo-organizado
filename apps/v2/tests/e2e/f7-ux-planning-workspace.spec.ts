@@ -174,61 +174,199 @@ test('availability and weekly goal persist and drive the shared capacity', async
   await expect(page.getByTestId('planning-goal-progress')).toContainText('300 min');
 });
 
-test('planning history compares the two latest checkpoints before restore', async ({ page }) => {
+test('capacity exposes overload beyond the declared window', async ({ page }) => {
+  await seed(page);
+  const civilDate = (() => {
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Fortaleza',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    const date = new Date(today + 'T12:00:00Z');
+    date.setUTCDate(date.getUTCDate() + 1);
+    return date.toISOString().slice(0, 10);
+  })();
+  await page.evaluate(
+    async ({ profile, civilDate: date }) => {
+      const harness = (window as unknown as HarnessWindow).__v2E2E;
+      await harness.planningCommit({
+        scope: { profileId: profile, operationId: 'overload-block', baseRevision: 1 },
+        scenarioId: 'scenario-a',
+        baseRevision: 1,
+        changes: {
+          upsertBlocks: [
+            {
+              id: 'block-overload',
+              profileId: profile,
+              editalId: 'edital-1',
+              scenarioId: 'scenario-a',
+              editalDisciplineId: 'disc-1',
+              plannedMinutes: 120,
+              allocation: 'PROJECTED',
+              civilDate: date,
+              priority: 0,
+              sourceOperationId: 'overload-block',
+              localRevision: 2,
+            },
+          ],
+        },
+      });
+    },
+    { profile: profileId, civilDate },
+  );
+  await page.reload();
+  await page.goto('/#/planning');
+  const panel = page.getByTestId('planning-availability');
+  for (const day of ['TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']) {
+    const box = panel.locator('[data-day="' + day + '"] input[type="checkbox"]');
+    if (await box.isChecked()) await box.uncheck();
+  }
+  const monday = panel.locator('[data-day="MON"]');
+  const mondayBox = monday.locator('input[type="checkbox"]');
+  if (!(await mondayBox.isChecked())) await mondayBox.check();
+  await monday.locator('input[type="time"]').nth(0).fill('08:00');
+  await monday.locator('input[type="time"]').nth(1).fill('08:30');
+  await page.getByTestId('planning-availability-save').click();
+
+  const share = page.getByTestId('planning-capacity-share');
+  await expect(share).toHaveAttribute('data-overloaded', 'true');
+  await expect(share).toContainText('% da janela');
+  await expect(share).toContainText('excesso de');
+  const balance = page.getByTestId('planning-capacity-balance');
+  await expect(balance).toContainText('excesso:');
+  await expect(balance).not.toContainText('saldo: 0 min');
+  const percent = await share.evaluate((element) => {
+    const match = element.textContent?.match(/(\d+)%/);
+    return match ? Number(match[1]) : null;
+  });
+  expect(percent).not.toBeNull();
+  expect(percent as number).toBeGreaterThan(100);
+  if (process.env.F7_UXH_STATE_DIR) {
+    await page.getByTestId('planning-capacity-comparison').screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/planning-capacity-overload.png',
+    });
+  }
+});
+
+test('history compares and restores the checkpoint the user selected', async ({ page }) => {
   await seed(page);
   await page.evaluate(async (profile) => {
     const harness = (window as unknown as HarnessWindow).__v2E2E;
-    const snapshot = await harness.planningLoad(profile, 'scenario-a');
-    if (!snapshot) throw new Error('scenario-a ausente');
+    const first = await harness.planningLoad(profile, 'scenario-b');
+    if (!first) throw new Error('scenario-b ausente');
+    const request = indexedDB.open('estudo-organizado-v2');
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open('estudo-organizado-v2');
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
-    const transaction = database.transaction('planning_checkpoints', 'readwrite');
-    const store = transaction.objectStore('planning_checkpoints');
-    for (let index = 0; index < 2; index += 1) {
-      await new Promise<void>((resolve, reject) => {
-        const request = store.put({
-          checkpointId: 'fixture-checkpoint-' + index,
-          profileId: profile,
-          scenarioId: 'scenario-a',
-          kind: 'MANUAL',
-          createdAt: '2026-11-12T10:0' + index + ':00.000Z',
-          operationId: 'fixture-checkpoint-op-' + index,
-          manifest: {
-            blockIds: snapshot.blocks.map((block) => block.id),
-            blockCount: snapshot.blocks.length,
-            scenarioRevision: snapshot.scenario.localRevision,
-            digest: String(index + 1).repeat(64),
-          },
-          snapshot,
-        });
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
+    const put = (record: unknown) =>
+      new Promise<void>((resolve, reject) => {
+        const tx = database.transaction('planning_checkpoints', 'readwrite');
+        const add = tx.objectStore('planning_checkpoints').put(record);
+        add.onsuccess = () => resolve();
+        add.onerror = () => reject(add.error);
+        tx.onerror = () => reject(tx.error);
       });
-    }
-    await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
+    await put({
+      checkpointId: 'fixture-checkpoint-old',
+      profileId: profile,
+      scenarioId: 'scenario-b',
+      kind: 'MANUAL',
+      createdAt: '2026-11-10T10:00:00.000Z',
+      operationId: 'fixture-checkpoint-old-op',
+      manifest: {
+        blockIds: first.blocks.map((block) => block.id),
+        blockCount: first.blocks.length,
+        scenarioRevision: first.scenario.localRevision,
+        digest: 'a'.repeat(64),
+      },
+      snapshot: first,
+    });
+    const secondBlock = {
+      id: 'block-second',
+      profileId: profile,
+      editalId: 'edital-1',
+      scenarioId: 'scenario-b',
+      editalDisciplineId: 'disc-1',
+      plannedMinutes: 30,
+      allocation: 'UNALLOCATED' as const,
+      priority: 0,
+      sourceOperationId: 'fixture-second-block',
+      localRevision: first.scenario.localRevision + 1,
+      label: 'Segundo bloco',
+      reason: 'NO_DAY_DEFINED' as const,
+    };
+    await harness.planningCommit({
+      scope: { profileId: profile, operationId: 'fixture-second-block', baseRevision: first.scenario.localRevision },
+      scenarioId: 'scenario-b',
+      baseRevision: first.scenario.localRevision,
+      changes: { upsertBlocks: [secondBlock] },
+    });
+    const second = await harness.planningLoad(profile, 'scenario-b');
+    if (!second) throw new Error('scenario-b recarregado ausente');
+    await put({
+      checkpointId: 'fixture-checkpoint-new',
+      profileId: profile,
+      scenarioId: 'scenario-b',
+      kind: 'AUTO',
+      createdAt: '2026-11-12T10:00:00.000Z',
+      operationId: 'fixture-checkpoint-new-op',
+      manifest: {
+        blockIds: second.blocks.map((block) => block.id),
+        blockCount: second.blocks.length,
+        scenarioRevision: second.scenario.localRevision,
+        digest: 'b'.repeat(64),
+      },
+      snapshot: second,
     });
     database.close();
   }, profileId);
   await page.reload();
   await page.goto('/#/planning');
+  await page.locator('[data-testid="scenario-scenario-b"] [data-action="select-scenario"]').click();
+
   const history = page.getByTestId('planning-history');
   await expect(history).toBeVisible();
+  await expect(history).toContainText('Checkpoint manual');
+  await expect(history).toContainText('Checkpoint automático');
+  const oldRow = history.locator('[data-checkpoint="fixture-checkpoint-old"]');
+  const oldTrigger = oldRow.getByRole('button', { name: 'Comparar e restaurar' });
+  await oldTrigger.click();
   const comparison = page.getByTestId('planning-history-comparison');
   await expect(comparison).toBeVisible();
-  await expect(comparison).toContainText('Mais recente');
-  await expect(comparison).toContainText('Anterior');
-  await expect(comparison).toContainText('revisão');
-  await expect(comparison).toContainText('blocos');
+  await expect(comparison).toContainText('Confirmar restauração do checkpoint selecionado');
+  await expect(comparison).toContainText('Checkpoint alvo');
+  await expect(comparison).toContainText('Revisão atual');
+  await expect(comparison).toContainText('revisão -1 · blocos -1');
+  await expect(
+    comparison.getByRole('strong').filter({ hasText: 'Confirmar restauração' }),
+  ).toBeFocused();
+
+  await comparison.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(comparison).toHaveCount(0);
+  await expect(oldTrigger).toBeFocused();
+
+  await oldTrigger.click();
+  await expect(comparison).toBeVisible();
   if (process.env.F7_UXH_STATE_DIR) {
     await comparison.screenshot({
       path: process.env.F7_UXH_STATE_DIR + '/planning-history.png',
     });
   }
+  await comparison.getByRole('button', { name: 'Confirmar restauração' }).click();
+  await expect(comparison).toHaveCount(0);
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(async (profile) => {
+          const harness = (window as unknown as HarnessWindow).__v2E2E;
+          const blocks = await harness.planningListBlocks(profile, 'scenario-b');
+          return blocks.length;
+        }, profileId),
+      { timeout: 15000 },
+    )
+    .toBe(1);
 });
 
 test('planning remembers the chosen view and keeps Day reachable', async ({ page }) => {

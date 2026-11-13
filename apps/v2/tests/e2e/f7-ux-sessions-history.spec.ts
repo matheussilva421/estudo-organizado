@@ -14,7 +14,7 @@ test('session history exposes filters and an auditable inspector', async ({ page
 
   const history = page.getByTestId('session-history');
   await expect(history.locator('[data-session-id]')).toHaveCount(1);
-  await expect(history).toContainText('MANUAL');
+  await expect(history).toContainText('registro manual');
   await expect(history).toContainText('00:45:00');
   await expect(page.getByTestId('session-stat-state')).toHaveText('LIVRE');
   await expect(page.getByTestId('session-stat-history')).toHaveText('1');

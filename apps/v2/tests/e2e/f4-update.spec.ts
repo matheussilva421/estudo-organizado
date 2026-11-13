@@ -37,7 +37,7 @@ test('f4 update is deferred during an active session and applies when safe', asy
   await expect(page.locator('[data-testid="session-start"]')).toBeVisible();
   await page.locator('[data-testid="session-apply-update"]').click();
   await expect(page.locator('body')).toContainText('aplicada');
-  await expect(page.locator('[data-testid="session-history"]')).toContainText('COMPLETED');
+  await expect(page.locator('[data-testid="session-history"]')).toContainText('concluída');
 });
 
 test('f4 update defers when another tab has an active session', async ({

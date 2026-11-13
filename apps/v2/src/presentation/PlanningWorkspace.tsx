@@ -1102,7 +1102,9 @@ export function PlanningWorkspace({
       </div>
       <PlanningHistory
         checkpoints={checkpoints}
-        onRestore={(checkpointId) => void restoreCheckpoint(checkpointId)}
+        currentRevision={selected?.localRevision ?? 0}
+        currentBlockCount={selectedBlocks.length}
+        onRestore={(checkpointId) => restoreCheckpoint(checkpointId)}
         locked={locked}
       />
       <PlanningConflicts

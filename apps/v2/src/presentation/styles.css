@@ -4889,10 +4889,10 @@ body::before {
 }
 
 .workspace-guide-links a {
-  min-height: 30px;
+  min-height: 32px;
   padding: 3px 9px;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: 0.8rem;
 }
 
 .workspace-guide > .source-note {
@@ -4954,20 +4954,41 @@ body::before {
   }
 
   #content-section > section[data-studio='knowledge'] {
-    grid-column: span 4;
+    grid-column: 1 / -1;
     margin: 0;
-    align-self: start;
+    display: grid;
+    grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+    gap: 10px 24px;
+    align-items: start;
+  }
+
+  #content-section > section[data-studio='knowledge'] > h2 {
+    grid-column: 1;
+    margin: 0;
   }
 
   #content-section > section[data-studio='knowledge'] .knowledge-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-column: 1;
+    margin: 0;
+  }
+
+  #content-section > section[data-studio='knowledge'] > .knowledge-library {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin: 0;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  }
+
+  #content-section > section[data-studio='knowledge'] > .hint {
+    grid-column: 1 / -1;
   }
 
   #content-section > .studio-subnav {
-    grid-column: span 8;
+    grid-column: 1 / -1;
     margin: 0;
-    align-self: start;
-    justify-self: start;
+    width: 100%;
+    justify-self: stretch;
   }
 
   #content-section > section[aria-labelledby='subjects-title'] {
@@ -4994,8 +5015,7 @@ body::before {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 16px;
-    align-items: start;
-    grid-auto-flow: row dense;
+    align-items: stretch;
   }
 
   [data-studio='reviews'] > h2,
@@ -5012,29 +5032,53 @@ body::before {
     margin: 0;
   }
 
-  #review-policy,
-  #review-agenda,
-  #review-history-panel,
-  [data-testid='review-projections'],
-  [data-testid='review-board'],
-  [data-testid='review-portability'] {
+  [data-testid='review-agenda'] {
+    grid-column: span 8;
+  }
+
+  [data-testid='review-suggestions'] {
+    grid-column: span 4;
+  }
+
+  #review-policy {
     grid-column: span 7;
   }
 
-  [data-testid='review-policy-overrides'],
-  [data-testid='review-suggestions'],
-  [data-testid='review-topics'],
-  [data-testid='review-weak-points'],
-  [data-testid='review-priorities'],
+  [data-testid='review-policy-overrides'] {
+    grid-column: span 5;
+  }
+
+  [data-testid='review-topics'] {
+    grid-column: span 5;
+  }
+
+  #review-history-panel {
+    grid-column: span 7;
+  }
+
+  [data-testid='review-weak-points'] {
+    grid-column: span 7;
+  }
+
   [data-testid='review-reminders'] {
     grid-column: span 5;
+  }
+
+  [data-testid='review-projections'],
+  [data-testid='review-board'] {
+    grid-column: span 6;
+  }
+
+  [data-testid='review-priorities'],
+  [data-testid='review-portability'] {
+    grid-column: span 6;
   }
 
   .analytics-view {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 16px;
-    align-items: start;
+    align-items: stretch;
   }
 
   .analytics-view > .view-header,
@@ -5050,14 +5094,23 @@ body::before {
     margin: 0;
   }
 
+  .analytics-view > .analytics-comparison {
+    grid-column: span 5;
+    margin: 0;
+  }
+
   .analytics-view > .analytics-drill {
     grid-column: 1 / -1;
     margin: 0;
   }
 
   .analytics-view > section[aria-labelledby='analytics-archive-title'] {
-    grid-column: span 5;
+    grid-column: 1 / -1;
     margin: 0;
+  }
+
+  .analytics-view > .table-grid {
+    grid-column: 1 / -1;
   }
 
   .analytics-view > .view-header,
@@ -5105,6 +5158,69 @@ body::before {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+}
+
+.capacity-meter-overloaded {
+  background: color-mix(in srgb, var(--warning, #e5b567) 24%, var(--surface));
+}
+
+.capacity-meter-overloaded span {
+  background: linear-gradient(90deg, var(--warning, #e5b567), #e5534b);
+}
+
+.capacity-diagnosis [data-overloaded='true'] {
+  color: var(--warning, #e5b567);
+  font-weight: 700;
+}
+
+.scope-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 12px 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.scope-line > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.scope-line dt {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.scope-line dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.habit-context {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0;
+}
+
+.habit-context p {
+  margin: 0;
+}
+
+@media (min-width: 900px) {
+  .analytics-view .kpi-grid {
+    grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(0, 1fr));
+  }
+
+  .analytics-view .kpi-card-primary .kpi-value {
+    font-size: 2.4rem;
+  }
 }
 
 .capacity-scenarios {
@@ -5177,5 +5293,24 @@ body::before {
 @media (max-width: 720px) {
   .history-comparison-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* UX-H: on small screens the theme select must show its name instead of a
+   lone glyph, and the secondary onboarding action must clear the bottom bar. */
+@media (max-width: 720px) {
+  .app-header .theme-picker::before {
+    content: none;
+  }
+
+  .app-header .theme-picker select {
+    width: 86px;
+    min-width: 86px;
+    padding-inline: 6px;
+    font-size: 0.68rem;
+  }
+
+  .home-view .home-hero-actions {
+    padding-bottom: 4px;
   }
 }

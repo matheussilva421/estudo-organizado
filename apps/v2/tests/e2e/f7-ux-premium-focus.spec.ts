@@ -65,7 +65,7 @@ test('focus mode uses the same session and clock without duplicating facts', asy
   await page.getByTestId('session-complete').click();
   await expect(page.getByTestId('session-start')).toBeVisible();
   await expect(page.getByTestId('session-history').locator('[data-session-id]')).toHaveCount(1);
-  await expect(page.getByTestId('session-history')).toContainText('TIMER');
+  await expect(page.getByTestId('session-history')).toContainText('cronômetro');
 });
 
 

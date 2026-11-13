@@ -175,51 +175,71 @@ test('knowledge review and insights use desktop workspace grids', async ({ page 
     )!;
     return {
       display: getComputedStyle(section).display,
+      rootWidth: Math.round(section.getBoundingClientRect().width),
+      libraryWidth: Math.round(library.getBoundingClientRect().width),
+      subnavWidth: Math.round(subnav.getBoundingClientRect().width),
       libraryTop: Math.round(library.getBoundingClientRect().top),
       subnavTop: Math.round(subnav.getBoundingClientRect().top),
       subjectsTop: Math.round(subjects.getBoundingClientRect().top),
       editaisTop: Math.round(editais.getBoundingClientRect().top),
+      scrollWidth: section.scrollWidth,
     };
   });
   expect(knowledge.display).toBe('grid');
-  expect(Math.abs(knowledge.libraryTop - knowledge.subnavTop)).toBeLessThanOrEqual(2);
+  expect(knowledge.libraryWidth).toBeGreaterThan(knowledge.rootWidth * 0.9);
+  expect(knowledge.subnavWidth).toBeGreaterThan(knowledge.rootWidth * 0.8);
+  expect(knowledge.subnavTop).toBeGreaterThan(knowledge.libraryTop);
   expect(Math.abs(knowledge.subjectsTop - knowledge.editaisTop)).toBeLessThanOrEqual(2);
+  expect(knowledge.scrollWidth).toBeLessThanOrEqual(knowledge.rootWidth + 1);
 
   await page.goto('/#/reviews');
   await expect(page.getByTestId('review-workspace')).toBeVisible();
   const review = await page.evaluate(() => {
     const root = document.querySelector<HTMLElement>('[data-studio="reviews"]')!;
+    const agenda = document.querySelector<HTMLElement>('[data-testid="review-agenda"]')!;
+    const suggestions = document.querySelector<HTMLElement>('[data-testid="review-suggestions"]')!;
     const policy = document.querySelector<HTMLElement>('#review-policy')!;
-    const overrides = document.querySelector<HTMLElement>(
-      '[data-testid="review-policy-overrides"]',
-    )!;
+    const overview = document.querySelector<HTMLElement>('#review-overview')!;
+    const rootRect = root.getBoundingClientRect();
     return {
       display: getComputedStyle(root).display,
+      agendaTop: Math.round(agenda.getBoundingClientRect().top),
+      suggestionsTop: Math.round(suggestions.getBoundingClientRect().top),
       policyTop: Math.round(policy.getBoundingClientRect().top),
-      overridesTop: Math.round(overrides.getBoundingClientRect().top),
-      policyWidth: Math.round(policy.getBoundingClientRect().width),
-      rootWidth: Math.round(root.getBoundingClientRect().width),
+      overviewBottom: Math.round(overview.getBoundingClientRect().bottom),
+      agendaWidth: Math.round(agenda.getBoundingClientRect().width),
+      rootWidth: Math.round(rootRect.width),
     };
   });
   expect(review.display).toBe('grid');
-  expect(Math.abs(review.policyTop - review.overridesTop)).toBeLessThanOrEqual(2);
-  expect(review.policyWidth).toBeGreaterThan(review.rootWidth * 0.45);
-  expect(review.policyWidth).toBeLessThan(review.rootWidth * 0.7);
+  expect(review.agendaTop).toBeLessThan(review.policyTop);
+  expect(review.agendaTop).toBeGreaterThanOrEqual(review.overviewBottom - 20);
+  expect(Math.abs(review.agendaTop - review.suggestionsTop)).toBeLessThanOrEqual(2);
+  expect(review.agendaWidth).toBeGreaterThan(review.rootWidth * 0.55);
 
   await page.goto('/#/analytics');
   await expect(page.getByTestId('f6-analytics')).toBeVisible();
   const analytics = await page.evaluate(() => {
     const root = document.querySelector<HTMLElement>('[data-testid="f6-analytics"]')!;
     const editor = document.querySelector<HTMLElement>('.analytics-editor')!;
-    const archive = document.querySelector<HTMLElement>(
-      '[aria-labelledby="analytics-archive-title"]',
-    )!;
+    const comparison = document.querySelector<HTMLElement>('.analytics-comparison')!;
+    const tables = [...root.querySelectorAll<HTMLElement>(':scope > .table-grid')];
+    const lastTable = tables[tables.length - 1]!;
+    const kpis = [...root.querySelectorAll<HTMLElement>('.kpi-card')];
     return {
       display: getComputedStyle(root).display,
       editorTop: Math.round(editor.getBoundingClientRect().top),
-      archiveTop: Math.round(archive.getBoundingClientRect().top),
+      comparisonTop: Math.round(comparison.getBoundingClientRect().top),
+      rootWidth: Math.round(root.getBoundingClientRect().width),
+      tableWidth: Math.round(lastTable.getBoundingClientRect().width),
+      scopeCards: root.querySelectorAll('.scope-grid > div').length,
+      primaryWidth: Math.round(kpis[0]!.getBoundingClientRect().width),
+      secondWidth: Math.round(kpis[1]!.getBoundingClientRect().width),
     };
   });
   expect(analytics.display).toBe('grid');
-  expect(Math.abs(analytics.editorTop - analytics.archiveTop)).toBeLessThanOrEqual(2);
+  expect(Math.abs(analytics.editorTop - analytics.comparisonTop)).toBeLessThanOrEqual(2);
+  expect(analytics.tableWidth).toBeGreaterThan(analytics.rootWidth * 0.9);
+  expect(analytics.scopeCards).toBe(0);
+  expect(analytics.primaryWidth).toBeGreaterThan(analytics.secondWidth);
 });

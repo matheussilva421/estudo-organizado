@@ -65,6 +65,20 @@ test('f7 ux sanitized visual evidence', async ({ page }) => {
     }
   }
 
+  // Full-page desktop captures prove the whole workspace composition, including
+  // the areas below the first fold where empty grid holes used to hide.
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await mkdir(resolve(out!, 'modules-full'), { recursive: true });
+  for (const [name, route, anchor] of moduleShots) {
+    await page.goto(route);
+    await expect(page.getByTestId(anchor)).toBeVisible();
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+    await page.screenshot({
+      path: resolve(out!, 'modules-full', `${name}-desktop-full.png`),
+      fullPage: true,
+    });
+  }
+
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/#/home');
   for (const theme of THEMES) {

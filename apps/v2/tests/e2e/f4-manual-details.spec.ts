@@ -81,7 +81,7 @@ test('f4 manual session records measurements materials and allocation', async ({
   await page.getByTestId('session-allocation-add').click();
   await expect(page.getByTestId('session-allocation-summary')).toContainText('00:30:00');
   await page.getByTestId('session-manual-submit').click();
-  await expect(page.locator('[data-testid="session-history"]')).toContainText('MANUAL');
+  await expect(page.locator('[data-testid="session-history"]')).toContainText('registro manual');
   const sessionId = await page
     .locator('[data-testid="session-history"] li')
     .first()
@@ -90,7 +90,7 @@ test('f4 manual session records measurements materials and allocation', async ({
   await expect(page.locator('[data-testid="session-history"]')).toContainText('CORRECTED');
 
   await page.getByTestId('session-history-filter-assunto').selectOption('assunto-1');
-  await expect(page.locator('[data-testid="session-history"]')).toContainText('MANUAL');
+  await expect(page.locator('[data-testid="session-history"]')).toContainText('registro manual');
   await page.getByTestId('session-history-filter-assunto').selectOption('assunto-2');
   await expect(page.locator('[data-testid="session-history"]')).toContainText(
     'Nenhuma sessão corresponde aos filtros atuais',

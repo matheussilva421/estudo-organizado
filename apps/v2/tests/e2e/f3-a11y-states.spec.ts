@@ -300,10 +300,26 @@ test('reduced_motion_and_zoom_keep_the_planning_usable', async ({ page }) => {
   await page.evaluate(() => {
     document.body.style.zoom = '200%';
   });
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
-  expect(overflow).toBeLessThanOrEqual(1);
+  const overflowInfo = await page.evaluate(() => {
+    const width = document.documentElement.clientWidth;
+    return {
+      overflow: document.documentElement.scrollWidth - width,
+      offenders: [...document.querySelectorAll('*')]
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return {
+            tag: element.tagName,
+            cls: typeof element.className === 'string' ? element.className.slice(0, 60) : '',
+            text: (element.textContent ?? '').trim().slice(0, 40),
+            right: Math.round(rect.right),
+            width: Math.round(rect.width),
+          };
+        })
+        .filter((item) => item.right > width + 1)
+        .slice(0, 8),
+    };
+  });
+  expect(overflowInfo.overflow, JSON.stringify(overflowInfo.offenders)).toBeLessThanOrEqual(1);
   const clipped = await page.evaluate(() =>
     [...document.querySelectorAll('[data-testid="planning-workspace"] *')]
       .filter(

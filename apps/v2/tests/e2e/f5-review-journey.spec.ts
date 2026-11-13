@@ -76,7 +76,13 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   const evidence = weak.locator('details').first();
   await evidence.locator('summary').click();
   await expect(evidence).toContainText('Amostra: 10 questão(ões), 7 acerto(s)');
-  await expect(evidence.getByRole('link', { name: /Abrir sessão F4 session-f5/ })).toBeVisible();
+  const evidenceLink = evidence.getByRole('link', { name: /Sessão F4/ });
+  await expect(evidenceLink).toBeVisible();
+  await expect(evidenceLink).toContainText('2026-11-01');
+  await expect(evidenceLink).toContainText('concluída');
+  await expect(evidenceLink).toHaveAttribute('title', 'session-f5');
+  await expect(evidence).toContainText('10 questão(ões) · 7 acerto(s)');
+  await expect(evidence).not.toContainText('Abrir sessão F4 session-f5');
   if (process.env.F7_UXH_STATE_DIR) {
     await weak.screenshot({
       path: process.env.F7_UXH_STATE_DIR + '/review-evidence-drilldown.png',

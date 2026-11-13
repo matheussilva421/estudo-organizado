@@ -16,7 +16,7 @@ test('f4 emergency export and idempotent reimport', async ({ page }) => {
   await expect(page.getByTestId('session-emergency-preview')).toContainText('READY');
   await page.getByTestId('session-emergency-apply').click();
   await expect(page.locator('body')).toContainText('Importação emergencial aplicada');
-  await expect(page.locator('[data-testid="session-history"]')).toContainText('MANUAL');
+  await expect(page.locator('[data-testid="session-history"]')).toContainText('registro manual');
   await expect(page.locator('[data-testid="session-history"]')).toContainText('00:20:00');
   await expect(page.locator('[data-testid="session-history"] li')).toHaveCount(1);
 

@@ -8,6 +8,7 @@ import {
 import { LocalPlanningRepository } from '../platform/local-planning-repository';
 import { LocalReviewRepository } from '../platform/local-review-repository';
 import { LocalSessionRepository } from '../platform/local-session-repository';
+import type { StudySession } from '../domain/session';
 import type {
   BoardEvidence,
   ReviewAssessment,
@@ -149,6 +150,79 @@ function evidenceIds(evidence: string[], source: 'F4' | 'F5'): string[] {
         .filter((entry): entry is string => Boolean(entry)),
     ),
   ];
+}
+
+const SESSION_STATE_LABEL: Record<string, string> = {
+  COMPLETED: 'concluída',
+  CANCELLED: 'cancelada',
+  RUNNING: 'em andamento',
+  PAUSED: 'pausada',
+};
+
+function shortId(value: string): string {
+  return value.length > 8 ? value.slice(0, 8) : value;
+}
+
+function SessionEvidenceItem({
+  profileId,
+  sessionId,
+}: {
+  profileId: string;
+  sessionId: string;
+}) {
+  const [session, setSession] = useState<StudySession | null>(null);
+  const [missing, setMissing] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    new LocalSessionRepository()
+      .load(profileId, sessionId)
+      .then((loaded) => {
+        if (!active) return;
+        if (loaded) setSession(loaded);
+        else setMissing(true);
+      })
+      .catch(() => {
+        if (active) setMissing(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [profileId, sessionId]);
+
+  const measurements = session?.measurements ?? [];
+  return (
+    <li data-testid={`review-evidence-session-${sessionId}`}>
+      <a
+        href={routeHref({
+          module: 'sessions',
+          entityId: null,
+          query: { focus: sessionId },
+          invalid: false,
+        })}
+        title={sessionId}
+      >
+        {session
+          ? `Sessão F4 · ${session.recordedAtCivilDate ?? 'sem data'} · ${
+              SESSION_STATE_LABEL[session.state] ?? 'estado não reconhecido'
+            }`
+          : missing
+            ? `Sessão F4 · registro ${shortId(sessionId)} não carregado`
+            : `Sessão F4 · carregando registro ${shortId(sessionId)}`}
+      </a>
+      {measurements.length > 0 ? (
+        <ul>
+          {measurements.map((measurement) => (
+            <li key={measurement.id}>
+              {measurement.questions} questão(ões) · {measurement.correctAnswers ?? 0} acerto(s)
+            </li>
+          ))}
+        </ul>
+      ) : session ? (
+        <span className="hint"> Sem medições registradas.</span>
+      ) : null}
+    </li>
+  );
 }
 
 export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId = null }: Props) {
@@ -1031,6 +1105,273 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         {busy ? 'Gravando…' : reminders?.message ?? 'Central local pronta.'}
       </p>
 
+      <article className="session-card" id="review-agenda" data-testid="review-agenda">
+        <h3>Agenda de compromissos</h3>
+        {mobileQueue ? (
+          <button ref={queueTrigger} type="button" aria-haspopup="dialog" onClick={() => queueSheet.current?.showModal()}>
+            Filtrar fila
+          </button>
+        ) : null}
+        {(() => {
+          const filters = (
+        <div className="session-actions" role="group" aria-label="Filtros da fila de revisão">
+          <label>
+            Situação
+            <select
+              value={queueBucket}
+              onChange={(event) =>
+                setQueueBucket(event.target.value as typeof queueBucket)
+              }
+              data-testid="review-queue-bucket"
+              autoFocus={mobileQueue}
+            >
+              <option value="PENDING">Pendentes</option>
+              <option value="STARTED">Em andamento</option>
+              <option value="OVERDUE">Atrasadas</option>
+              <option value="TODAY">Hoje</option>
+              <option value="UPCOMING">Futuras</option>
+              <option value="DONE">Concluídas/canceladas</option>
+              <option value="ALL">Todas</option>
+            </select>
+          </label>
+          <label>
+            Edital
+            <select
+              value={queueEditalId}
+              onChange={(event) => setQueueEditalId(event.target.value)}
+              data-testid="review-queue-edital"
+            >
+              <option value="">Todos</option>
+              {editais.map((edital) => (
+                <option key={edital.id} value={edital.id}>
+                  {edital.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Disciplina
+            <select
+              value={queueDisciplineId}
+              onChange={(event) => setQueueDisciplineId(event.target.value)}
+              data-testid="review-queue-discipline"
+            >
+              <option value="">Todas</option>
+              {content.links
+                .filter((link) => link.status === 'ACTIVE')
+                .map((link) => (
+                  <option key={link.id} value={link.id}>
+                    {content.subjects.find((subject) => subject.id === link.subjectId)
+                      ?.title ?? link.displayAlias ?? link.id}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={queueByPriority}
+              onChange={(event) => setQueueByPriority(event.target.checked)}
+              data-testid="review-queue-priority"
+            />
+            Ordenar por prioridade calculada
+          </label>
+        </div>
+          );
+          return mobileQueue ? (
+            <dialog ref={queueSheet} className="review-queue-sheet" aria-labelledby="review-queue-sheet-title"
+              onClose={() => queueTrigger.current?.focus()}>
+              <h4 id="review-queue-sheet-title">Filtros da fila de revisão</h4>
+              {filters}
+              <p role="status" aria-live="polite" data-testid="review-queue-sheet-count">
+                {queueSorted.length} de {commitments.length} compromisso(s) após os filtros.
+              </p>
+              <button type="button" onClick={() => queueSheet.current?.close()}>Fechar filtros</button>
+            </dialog>
+          ) : filters;
+        })()}
+        <p className="hint" data-testid="review-queue-count">
+          {queueSorted.length} de {commitments.length}
+        </p>
+        {queueSorted.length === 0 ? (
+          <p className="hint">
+            {commitments.length === 0
+              ? 'Nenhum compromisso confirmado.'
+              : 'Nenhum compromisso corresponde aos filtros atuais.'}
+          </p>
+        ) : (
+          <>
+          <ul>
+            {agendaPage.items.map((commitment) => (
+              <li key={commitment.id} data-entity-id={commitment.id}>
+                {commitment.label} · {commitmentLabel(commitment.status)} · vence{' '}
+                {commitment.currentDueDate} · cobertura {commitment.coverage}
+                {commitment.planBlockId ? ' · bloco F3 vinculado' : ''}
+                {commitment.startedAt ? (
+                  <span data-testid={`review-started-${commitment.id}`}>
+                    {' '}· iniciada em {formatInstant(commitment.startedAt)}
+                  </span>
+                ) : null}
+                <details data-testid={`review-history-${commitment.id}`}>
+                  <summary>Histórico e versões</summary>
+                  <p>
+                    Política v{commitment.policyVersion} · criado em{' '}
+                    {commitment.history[0]
+                      ? formatInstant(commitment.history[0].at)
+                      : 'sem registro'}
+                  </p>
+                  <div>
+                    {commitment.history.map((entry, index) => (
+                      <div key={`${entry.type}-${index}`}>
+                        {entry.type} · {formatInstant(entry.at)}
+                        {entry.dueDate ? ` · ${entry.dueDate}` : ''}
+                        {entry.note ? ` · ${entry.note}` : ''}
+                      </div>
+                    ))}
+                  </div>
+                  {commitment.planBlockId ? (
+                    <a
+                      href={`#/planning/${encodeURIComponent(commitment.planBlockId)}`}
+                    >
+                      Abrir bloco no Planejamento
+                    </a>
+                  ) : (
+                    <p className="hint">Sem bloco F3 vinculado.</p>
+                  )}
+                  {commitment.tombstone ? (
+                    <p className="hint">Compromisso arquivado; histórico preservado.</p>
+                  ) : null}
+                </details>
+                {commitment.status !== 'CANCELLED' && commitment.status !== 'FULFILLED' ? (
+                  <div className="session-actions">
+                    <button
+                      type="button"
+                      onClick={() => void startReview(commitment)}
+                      disabled={locked || busy}
+                      data-testid={`review-start-${commitment.id}`}
+                    >
+                      {commitment.startedAt ? 'Retomar revisão' : 'Iniciar revisão'}
+                    </button>
+                    <label>
+                      Avaliação
+                      <select
+                        value={assessmentByCommitment[commitment.id] ?? 'UNRATED'}
+                        onChange={(event) =>
+                          setAssessmentByCommitment((current) => ({
+                            ...current,
+                            [commitment.id]: event.target.value as ReviewAssessment,
+                          }))
+                        }
+                      >
+                        <option value="UNRATED">Sem avaliação</option>
+                        <option value="FORGOT">Esqueci</option>
+                        <option value="PARTIAL">Parcial</option>
+                        <option value="GOOD">Boa retenção</option>
+                      </select>
+                    </label>
+                    <button type="button" onClick={() => void execute(commitment, 'PARTIAL')} disabled={locked || busy}>
+                      Registrar parcial
+                    </button>
+                    <button type="button" onClick={() => void execute(commitment, 'FULL')} disabled={locked || busy}>
+                      Concluir
+                    </button>
+                    <label>
+                      Reagendar
+                      <input
+                        type="date"
+                        value={rescheduleDates[commitment.id] ?? commitment.currentDueDate}
+                        onChange={(event) =>
+                          setRescheduleDates((current) => ({
+                            ...current,
+                            [commitment.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <button type="button" onClick={() => void reschedule(commitment)} disabled={locked || busy}>
+                      Reagendar
+                    </button>
+                    <button type="button" onClick={() => void previewPlacement(commitment)} disabled={locked || busy}>
+                      Prévia F3
+                    </button>
+                    <button type="button" onClick={() => void cancel(commitment)} disabled={locked || busy}>
+                      Cancelar
+                    </button>
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {agendaPage.hasMore ? (
+            <button
+              type="button"
+              className="button-ghost"
+              onClick={() =>
+                setAgendaLimit((current) => nextPageLimit(current, queueSorted.length))
+              }
+            >
+              Mostrar mais {agendaPage.remaining} compromisso(s)
+            </button>
+          ) : null}
+          </>
+        )}
+        {placement ? (
+          <div data-testid="review-placement-preview">
+            <p className="hint">
+              {placement.preview.kind === 'READY' ||
+              placement.preview.kind === 'UNALLOCATED'
+                ? placement.preview.explanation
+                : (placement.preview.explanation ??
+                  placement.preview.reason)}
+            </p>
+            {placement.preview.kind === 'READY' ? (
+              <button type="button" onClick={() => void applyPlacement()} disabled={locked || busy}>
+                Aplicar encaixe F3
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        <p className="hint">A dispensa de um aviso não cancela nem conclui o compromisso.</p>
+      </article>
+
+      <article className="session-card" data-testid="review-suggestions">
+        <h3>Sugestões</h3>
+        {suggestions.length === 0 ? (
+          <p className="hint">Nenhuma sugestão calculada.</p>
+        ) : (
+          <>
+          <ul>
+            {suggestionPage.items.map((suggestion) => (
+              <li key={suggestion.key}>
+                {suggestion.label} · {suggestion.dueDate} · {suggestion.durationMinutes} min ·{' '}
+                {suggestion.explanation}
+                <div className="session-actions">
+                  <button
+                    type="button"
+                    onClick={() => void applySuggestion(suggestion)}
+                    disabled={locked || busy}
+                  >
+                    Confirmar revisão
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {suggestionPage.hasMore ? (
+            <button
+              type="button"
+              className="button-ghost"
+              onClick={() =>
+                setSuggestionLimit((current) => nextPageLimit(current, suggestions.length))
+              }
+            >
+              Mostrar mais {suggestionPage.remaining} sugestão(ões)
+            </button>
+          ) : null}
+          </>
+        )}
+      </article>
+
       <article className="session-card" id="review-policy" data-testid="review-policy">
         <h3>Política versionada</h3>
         <div className="session-grid">
@@ -1304,272 +1645,9 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         )}
       </article>
 
-      <article className="session-card" data-testid="review-suggestions">
-        <h3>Sugestões</h3>
-        {suggestions.length === 0 ? (
-          <p className="hint">Nenhuma sugestão calculada.</p>
-        ) : (
-          <>
-          <ul>
-            {suggestionPage.items.map((suggestion) => (
-              <li key={suggestion.key}>
-                {suggestion.label} · {suggestion.dueDate} · {suggestion.durationMinutes} min ·{' '}
-                {suggestion.explanation}
-                <div className="session-actions">
-                  <button
-                    type="button"
-                    onClick={() => void applySuggestion(suggestion)}
-                    disabled={locked || busy}
-                  >
-                    Confirmar revisão
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-          {suggestionPage.hasMore ? (
-            <button
-              type="button"
-              className="button-ghost"
-              onClick={() =>
-                setSuggestionLimit((current) => nextPageLimit(current, suggestions.length))
-              }
-            >
-              Mostrar mais {suggestionPage.remaining} sugestão(ões)
-            </button>
-          ) : null}
-          </>
-        )}
-      </article>
 
-      <article className="session-card" id="review-agenda" data-testid="review-agenda">
-        <h3>Agenda de compromissos</h3>
-        {mobileQueue ? (
-          <button ref={queueTrigger} type="button" aria-haspopup="dialog" onClick={() => queueSheet.current?.showModal()}>
-            Filtrar fila
-          </button>
-        ) : null}
-        {(() => {
-          const filters = (
-        <div className="session-actions" role="group" aria-label="Filtros da fila de revisão">
-          <label>
-            Situação
-            <select
-              value={queueBucket}
-              onChange={(event) =>
-                setQueueBucket(event.target.value as typeof queueBucket)
-              }
-              data-testid="review-queue-bucket"
-              autoFocus={mobileQueue}
-            >
-              <option value="PENDING">Pendentes</option>
-              <option value="STARTED">Em andamento</option>
-              <option value="OVERDUE">Atrasadas</option>
-              <option value="TODAY">Hoje</option>
-              <option value="UPCOMING">Futuras</option>
-              <option value="DONE">Concluídas/canceladas</option>
-              <option value="ALL">Todas</option>
-            </select>
-          </label>
-          <label>
-            Edital
-            <select
-              value={queueEditalId}
-              onChange={(event) => setQueueEditalId(event.target.value)}
-              data-testid="review-queue-edital"
-            >
-              <option value="">Todos</option>
-              {editais.map((edital) => (
-                <option key={edital.id} value={edital.id}>
-                  {edital.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Disciplina
-            <select
-              value={queueDisciplineId}
-              onChange={(event) => setQueueDisciplineId(event.target.value)}
-              data-testid="review-queue-discipline"
-            >
-              <option value="">Todas</option>
-              {content.links
-                .filter((link) => link.status === 'ACTIVE')
-                .map((link) => (
-                  <option key={link.id} value={link.id}>
-                    {content.subjects.find((subject) => subject.id === link.subjectId)
-                      ?.title ?? link.displayAlias ?? link.id}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={queueByPriority}
-              onChange={(event) => setQueueByPriority(event.target.checked)}
-              data-testid="review-queue-priority"
-            />
-            Ordenar por prioridade calculada
-          </label>
-        </div>
-          );
-          return mobileQueue ? (
-            <dialog ref={queueSheet} className="review-queue-sheet" aria-labelledby="review-queue-sheet-title"
-              onClose={() => queueTrigger.current?.focus()}>
-              <h4 id="review-queue-sheet-title">Filtros da fila de revisão</h4>
-              {filters}
-              <p role="status" aria-live="polite" data-testid="review-queue-sheet-count">
-                {queueSorted.length} de {commitments.length} compromisso(s) após os filtros.
-              </p>
-              <button type="button" onClick={() => queueSheet.current?.close()}>Fechar filtros</button>
-            </dialog>
-          ) : filters;
-        })()}
-        <p className="hint" data-testid="review-queue-count">
-          {queueSorted.length} de {commitments.length}
-        </p>
-        {queueSorted.length === 0 ? (
-          <p className="hint">
-            {commitments.length === 0
-              ? 'Nenhum compromisso confirmado.'
-              : 'Nenhum compromisso corresponde aos filtros atuais.'}
-          </p>
-        ) : (
-          <>
-          <ul>
-            {agendaPage.items.map((commitment) => (
-              <li key={commitment.id} data-entity-id={commitment.id}>
-                {commitment.label} · {commitmentLabel(commitment.status)} · vence{' '}
-                {commitment.currentDueDate} · cobertura {commitment.coverage}
-                {commitment.planBlockId ? ' · bloco F3 vinculado' : ''}
-                {commitment.startedAt ? (
-                  <span data-testid={`review-started-${commitment.id}`}>
-                    {' '}· iniciada em {formatInstant(commitment.startedAt)}
-                  </span>
-                ) : null}
-                <details data-testid={`review-history-${commitment.id}`}>
-                  <summary>Histórico e versões</summary>
-                  <p>
-                    Política v{commitment.policyVersion} · criado em{' '}
-                    {commitment.history[0]
-                      ? formatInstant(commitment.history[0].at)
-                      : 'sem registro'}
-                  </p>
-                  <div>
-                    {commitment.history.map((entry, index) => (
-                      <div key={`${entry.type}-${index}`}>
-                        {entry.type} · {formatInstant(entry.at)}
-                        {entry.dueDate ? ` · ${entry.dueDate}` : ''}
-                        {entry.note ? ` · ${entry.note}` : ''}
-                      </div>
-                    ))}
-                  </div>
-                  {commitment.planBlockId ? (
-                    <a
-                      href={`#/planning/${encodeURIComponent(commitment.planBlockId)}`}
-                    >
-                      Abrir bloco no Planejamento
-                    </a>
-                  ) : (
-                    <p className="hint">Sem bloco F3 vinculado.</p>
-                  )}
-                  {commitment.tombstone ? (
-                    <p className="hint">Compromisso arquivado; histórico preservado.</p>
-                  ) : null}
-                </details>
-                {commitment.status !== 'CANCELLED' && commitment.status !== 'FULFILLED' ? (
-                  <div className="session-actions">
-                    <button
-                      type="button"
-                      onClick={() => void startReview(commitment)}
-                      disabled={locked || busy}
-                      data-testid={`review-start-${commitment.id}`}
-                    >
-                      {commitment.startedAt ? 'Retomar revisão' : 'Iniciar revisão'}
-                    </button>
-                    <label>
-                      Avaliação
-                      <select
-                        value={assessmentByCommitment[commitment.id] ?? 'UNRATED'}
-                        onChange={(event) =>
-                          setAssessmentByCommitment((current) => ({
-                            ...current,
-                            [commitment.id]: event.target.value as ReviewAssessment,
-                          }))
-                        }
-                      >
-                        <option value="UNRATED">Sem avaliação</option>
-                        <option value="FORGOT">Esqueci</option>
-                        <option value="PARTIAL">Parcial</option>
-                        <option value="GOOD">Boa retenção</option>
-                      </select>
-                    </label>
-                    <button type="button" onClick={() => void execute(commitment, 'PARTIAL')} disabled={locked || busy}>
-                      Registrar parcial
-                    </button>
-                    <button type="button" onClick={() => void execute(commitment, 'FULL')} disabled={locked || busy}>
-                      Concluir
-                    </button>
-                    <label>
-                      Reagendar
-                      <input
-                        type="date"
-                        value={rescheduleDates[commitment.id] ?? commitment.currentDueDate}
-                        onChange={(event) =>
-                          setRescheduleDates((current) => ({
-                            ...current,
-                            [commitment.id]: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                    <button type="button" onClick={() => void reschedule(commitment)} disabled={locked || busy}>
-                      Reagendar
-                    </button>
-                    <button type="button" onClick={() => void previewPlacement(commitment)} disabled={locked || busy}>
-                      Prévia F3
-                    </button>
-                    <button type="button" onClick={() => void cancel(commitment)} disabled={locked || busy}>
-                      Cancelar
-                    </button>
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-          {agendaPage.hasMore ? (
-            <button
-              type="button"
-              className="button-ghost"
-              onClick={() =>
-                setAgendaLimit((current) => nextPageLimit(current, queueSorted.length))
-              }
-            >
-              Mostrar mais {agendaPage.remaining} compromisso(s)
-            </button>
-          ) : null}
-          </>
-        )}
-        {placement ? (
-          <div data-testid="review-placement-preview">
-            <p className="hint">
-              {placement.preview.kind === 'READY' ||
-              placement.preview.kind === 'UNALLOCATED'
-                ? placement.preview.explanation
-                : (placement.preview.explanation ??
-                  placement.preview.reason)}
-            </p>
-            {placement.preview.kind === 'READY' ? (
-              <button type="button" onClick={() => void applyPlacement()} disabled={locked || busy}>
-                Aplicar encaixe F3
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-        <p className="hint">A dispensa de um aviso não cancela nem conclui o compromisso.</p>
-      </article>
+
+
 
       <article className="session-card" id="review-history-panel" data-testid="review-history-panel">
         <h3>Histórico visual</h3>
@@ -1627,22 +1705,19 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                   ) : (
                     <ul>
                       {evidenceIds(item.evidence, 'F4').map((sessionId) => (
-                        <li key={sessionId}>
-                          <a
-                            href={routeHref({
-                              module: 'sessions',
-                              entityId: null,
-                              query: { focus: sessionId },
-                              invalid: false,
-                            })}
-                          >
-                            Abrir sessão F4 {sessionId}
-                          </a>
-                        </li>
+                        <SessionEvidenceItem
+                          key={sessionId}
+                          profileId={profileId}
+                          sessionId={sessionId}
+                        />
                       ))}
                       {evidenceIds(item.evidence, 'F5').map((executionId) => (
-                        <li key={executionId}>
-                          Execução F5 <code>{executionId}</code>
+                        <li key={executionId} data-testid={`review-evidence-execution-${executionId}`}>
+                          Execução de revisão (F5) · referência{' '}
+                          <code title={executionId}>{shortId(executionId)}</code>
+                          <span className="hint">
+                            {' '}— registro de auditoria sem tela própria nesta versão.
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -1651,6 +1726,110 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
               </li>
             ))}
           </ul>
+        )}
+      </article>
+
+      <article className="session-card" data-testid="review-reminders">
+        <h3>Lembretes e avisos</h3>
+        <p className="hint">
+          A central local funciona offline. Avisos externos são opcionais, exigem permissão
+          e, nesta fatia, são enviados apenas manualmente pelo botão de teste enquanto o app
+          está aberto. Não há promessa de disparo com o PWA fechado.
+        </p>
+        <div className="session-grid">
+          <label>
+            <input
+              type="checkbox"
+              checked={externalEnabled}
+              onChange={(event) => setExternalEnabled(event.target.checked)}
+            />
+            Permitir aviso externo uma vez por lembrete
+          </label>
+          <label>
+            Silêncio começa
+            <input
+              type="time"
+              value={quietStart}
+              onChange={(event) => setQuietStart(event.target.value)}
+            />
+          </label>
+          <label>
+            Silêncio termina
+            <input
+              type="time"
+              value={quietEnd}
+              onChange={(event) => setQuietEnd(event.target.value)}
+            />
+          </label>
+        </div>
+        <div className="session-actions">
+          <button type="button" onClick={() => void saveReminderPreferences()} disabled={locked || busy}>
+            Gravar preferências
+          </button>
+          <button
+            type="button"
+            onClick={() => void requestNotifications()}
+            disabled={locked || busy || notificationPermission === 'UNSUPPORTED'}
+          >
+            Autorizar avisos externos
+          </button>
+          <button
+            type="button"
+            onClick={() => void testExternalNotification()}
+            disabled={locked || busy || notificationPermission !== 'granted'}
+          >
+            Testar aviso externo
+          </button>
+        </div>
+        <p className="hint" data-testid="notification-permission" aria-live="polite">
+          Permissão: {notificationPermission === 'UNSUPPORTED'
+            ? 'não suportada neste navegador'
+            : notificationPermission === 'granted'
+              ? 'concedida'
+              : notificationPermission === 'denied'
+                ? 'negada'
+                : 'ainda não solicitada'}.
+          {reminders?.quietActive ? ' Horário de silêncio ativo para avisos externos.' : ''}
+        </p>
+        {reminderItems.length === 0 ? (
+          <p className="hint">Nenhum lembrete pendente no horizonte de 14 dias.</p>
+        ) : (
+          <>
+          <ul>
+            {reminderPage.items.map(({ commitment, label }) => {
+              const dismissed = reminders?.dismissedIds.includes(commitment.id) ?? false;
+              return (
+                <li
+                  key={commitment.id}
+                  data-dismissed={dismissed}
+                  data-entity-id={commitment.id}
+                >
+                  {commitment.label} · {label} · vence {commitment.currentDueDate}
+                  {dismissed ? ' · aviso dispensado' : ''}
+                  <button
+                    type="button"
+                    onClick={() => void dismissReminder(commitment)}
+                    disabled={locked || busy || dismissed}
+                    aria-label={`Dispensar aviso de ${commitment.label}`}
+                  >
+                    Dispensar aviso
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {reminderPage.hasMore ? (
+            <button
+              type="button"
+              className="button-ghost"
+              onClick={() =>
+                setReminderLimit((current) => nextPageLimit(current, reminderItems.length))
+              }
+            >
+              Mostrar mais {reminderPage.remaining} lembrete(s)
+            </button>
+          ) : null}
+          </>
         )}
       </article>
 
@@ -1760,109 +1939,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         )}
       </article>
 
-      <article className="session-card" data-testid="review-reminders">
-        <h3>Lembretes e avisos</h3>
-        <p className="hint">
-          A central local funciona offline. Avisos externos são opcionais, exigem permissão
-          e, nesta fatia, são enviados apenas manualmente pelo botão de teste enquanto o app
-          está aberto. Não há promessa de disparo com o PWA fechado.
-        </p>
-        <div className="session-grid">
-          <label>
-            <input
-              type="checkbox"
-              checked={externalEnabled}
-              onChange={(event) => setExternalEnabled(event.target.checked)}
-            />
-            Permitir aviso externo uma vez por lembrete
-          </label>
-          <label>
-            Silêncio começa
-            <input
-              type="time"
-              value={quietStart}
-              onChange={(event) => setQuietStart(event.target.value)}
-            />
-          </label>
-          <label>
-            Silêncio termina
-            <input
-              type="time"
-              value={quietEnd}
-              onChange={(event) => setQuietEnd(event.target.value)}
-            />
-          </label>
-        </div>
-        <div className="session-actions">
-          <button type="button" onClick={() => void saveReminderPreferences()} disabled={locked || busy}>
-            Gravar preferências
-          </button>
-          <button
-            type="button"
-            onClick={() => void requestNotifications()}
-            disabled={locked || busy || notificationPermission === 'UNSUPPORTED'}
-          >
-            Autorizar avisos externos
-          </button>
-          <button
-            type="button"
-            onClick={() => void testExternalNotification()}
-            disabled={locked || busy || notificationPermission !== 'granted'}
-          >
-            Testar aviso externo
-          </button>
-        </div>
-        <p className="hint" data-testid="notification-permission" aria-live="polite">
-          Permissão: {notificationPermission === 'UNSUPPORTED'
-            ? 'não suportada neste navegador'
-            : notificationPermission === 'granted'
-              ? 'concedida'
-              : notificationPermission === 'denied'
-                ? 'negada'
-                : 'ainda não solicitada'}.
-          {reminders?.quietActive ? ' Horário de silêncio ativo para avisos externos.' : ''}
-        </p>
-        {reminderItems.length === 0 ? (
-          <p className="hint">Nenhum lembrete pendente no horizonte de 14 dias.</p>
-        ) : (
-          <>
-          <ul>
-            {reminderPage.items.map(({ commitment, label }) => {
-              const dismissed = reminders?.dismissedIds.includes(commitment.id) ?? false;
-              return (
-                <li
-                  key={commitment.id}
-                  data-dismissed={dismissed}
-                  data-entity-id={commitment.id}
-                >
-                  {commitment.label} · {label} · vence {commitment.currentDueDate}
-                  {dismissed ? ' · aviso dispensado' : ''}
-                  <button
-                    type="button"
-                    onClick={() => void dismissReminder(commitment)}
-                    disabled={locked || busy || dismissed}
-                    aria-label={`Dispensar aviso de ${commitment.label}`}
-                  >
-                    Dispensar aviso
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          {reminderPage.hasMore ? (
-            <button
-              type="button"
-              className="button-ghost"
-              onClick={() =>
-                setReminderLimit((current) => nextPageLimit(current, reminderItems.length))
-              }
-            >
-              Mostrar mais {reminderPage.remaining} lembrete(s)
-            </button>
-          ) : null}
-          </>
-        )}
-      </article>
+
 
       <article className="session-card" data-testid="review-portability">
         <h3>Portabilidade e lembretes</h3>

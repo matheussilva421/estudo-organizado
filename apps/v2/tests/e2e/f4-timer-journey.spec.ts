@@ -27,7 +27,7 @@ test('f4 manual session reaches history and exports CSV', async ({ page }) => {
   await page.getByLabel('Duração da sessão (min)').fill('30');
   await page.getByLabel('Nota').fill('revisão manual');
   await page.locator('[data-testid="session-manual-submit"]').click();
-  await expect(page.locator('[data-testid="session-history"]')).toContainText('MANUAL');
+  await expect(page.locator('[data-testid="session-history"]')).toContainText('registro manual');
   const downloadPromise = page.waitForEvent('download');
   await page.locator('[data-testid="session-export-csv"]').click();
   const download = await downloadPromise;

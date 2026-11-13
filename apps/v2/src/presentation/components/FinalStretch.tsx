@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PlanningScenario } from '../../domain/planning';
 import type {
   ExamDateChange,
@@ -24,6 +24,30 @@ type Props = {
   locked: boolean;
 };
 
+const OUTCOME_LABEL: Record<'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED', string> = {
+  OCCURRED: 'Prova ocorreu',
+  RESCHEDULED: 'Prova remarcada',
+  UNDEFINED: 'Desfecho indefinido',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  DRAFT: 'rascunho',
+  ACTIVE: 'ativa',
+  INACTIVE: 'inativa',
+  SUSPENDED: 'suspensa',
+  CLOSED: 'encerrada',
+  ARCHIVED: 'arquivada',
+};
+
+function formatClosedAt(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(date);
+}
+
 export function FinalStretch({
   scenario,
   examPreview,
@@ -45,6 +69,17 @@ export function FinalStretch({
   const [closeOutcome, setCloseOutcome] = useState<'' | 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED'>('');
   const isFinalStretch = scenario?.kind === 'FINAL_STRETCH';
   const isCycle = scenario?.kind === 'CYCLE';
+  const closeTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const closeHeadingRef = useRef<HTMLHeadingElement | null>(null);
+
+  useEffect(() => {
+    if (closePreview) closeHeadingRef.current?.focus();
+  }, [closePreview]);
+
+  function cancelClose(): void {
+    onCancelClose();
+    requestAnimationFrame(() => closeTriggerRef.current?.focus());
+  }
 
   return (
     <section className="panel" aria-labelledby="final-stretch-title" data-testid="final-stretch">
@@ -72,7 +107,7 @@ export function FinalStretch({
             Propor Reta Final
           </button>
           {transitionPreview ? (
-            <div data-testid="transition-preview" role="status" aria-live="polite">
+            <div data-testid="transition-preview" role="group" aria-label="Prévia da transição para Reta Final">
               <p>
                 Prévia: {transitionPreview.blocks.length} bloco(s) na nova Reta Final,{' '}
                 {transitionPreview.preservedBlockIds.length} preservado(s),{' '}
@@ -103,7 +138,8 @@ export function FinalStretch({
       ) : (
         <div data-exam-date={scenario.examDate ?? ''} data-status={scenario.status}>
           <p>
-            Prova: <strong>{scenario.examDate ?? 'não definida'}</strong> · status {scenario.status}
+            Prova: <strong>{scenario.examDate ?? 'não definida'}</strong> · situação{' '}
+            {STATUS_LABEL[scenario.status] ?? 'desconhecida'}
           </p>
           <label>
             Nova data
@@ -132,9 +168,12 @@ export function FinalStretch({
               Suspender
             </button>
             <button
+              ref={closeTriggerRef}
               type="button"
               data-action="close-final-stretch"
-              disabled={locked || closeOutcome === '' || Boolean(closePreview)}
+              aria-expanded={closePreview ? 'true' : 'false'}
+              aria-controls={closePreview ? 'final-stretch-close-preview' : undefined}
+              disabled={locked || closeOutcome === ''}
               onClick={() => closeOutcome && onPreviewClose(closeOutcome)}
             >
               Revisar encerramento
@@ -158,14 +197,19 @@ export function FinalStretch({
           {closePreview ? (
             <div
               className="planning-preview"
+              id="final-stretch-close-preview"
               data-testid="final-stretch-close-preview"
-              role="status"
-              aria-live="polite"
+              role="group"
+              aria-labelledby="final-stretch-close-title"
             >
+              <h3 id="final-stretch-close-title" ref={closeHeadingRef} tabIndex={-1}>
+                Confirmar encerramento da Reta Final
+              </h3>
               <p>
-                Prévia: encerrar com desfecho <strong>{closePreview.outcome}</strong> em{' '}
-                {closePreview.closedAt}. A Reta Final ficará CLOSED e será preservada no
-                histórico; nenhum bloco será apagado. Nada foi gravado.
+                Desfecho <strong>{OUTCOME_LABEL[closePreview.outcome]}</strong>, encerrada em{' '}
+                {formatClosedAt(closePreview.closedAt)}. A Reta Final ficará como{' '}
+                <strong>encerrada</strong> e será preservada no histórico; nenhum bloco será
+                apagado. Nada foi gravado até a confirmação.
               </p>
               <div className="planning-actions">
                 <button
@@ -176,14 +220,14 @@ export function FinalStretch({
                 >
                   Confirmar encerramento
                 </button>
-                <button type="button" onClick={onCancelClose} disabled={locked}>
+                <button type="button" onClick={cancelClose} disabled={locked}>
                   Cancelar
                 </button>
               </div>
             </div>
           ) : null}
           {examPreview ? (
-            <div data-testid="exam-change-preview" role="status" aria-live="polite">
+            <div data-testid="exam-change-preview" role="group" aria-label="Prévia da mudança de data da prova">
               <p>
                 Prévia: prova em {examPreview.newScenario.examDate ?? 'sem data'} ·{' '}
                 {examPreview.affectedBlockIds.length} bloco(s) afetado(s) ·{' '}

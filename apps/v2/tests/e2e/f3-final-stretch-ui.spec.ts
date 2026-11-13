@@ -71,7 +71,7 @@ test('suspending_a_final_stretch_removes_the_date_without_false_success', async 
   await page.locator('[data-action="suspend-final-stretch"]').click();
   await expect(page.getByTestId('exam-change-preview')).toBeVisible();
   await page.locator('[data-action="confirm-exam-change"]').click();
-  await expect(page.locator('[data-testid="final-stretch"]')).toContainText('SUSPENDED');
+  await expect(page.locator('[data-testid="final-stretch"]')).toContainText('situação suspensa');
 
   const stored = await page.evaluate(() =>
     (window as unknown as HarnessWindow).__v2E2E.planningLoad('local-default', 'scenario-rf'),
@@ -96,10 +96,24 @@ test('closing a final stretch requires an explicit preview and confirmation', as
   await page.reload();
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
   await page.getByLabel('Desfecho').selectOption('OCCURRED');
-  await page.locator('[data-action="close-final-stretch"]').click();
+  const trigger = page.locator('[data-action="close-final-stretch"]');
+  await trigger.click();
   const preview = page.getByTestId('final-stretch-close-preview');
   await expect(preview).toBeVisible();
   await expect(preview).toContainText('Nada foi gravado');
+  await expect(preview).toContainText('Prova ocorreu');
+  await expect(preview).not.toContainText('OCCURRED');
+  await expect(
+    preview.getByRole('heading', { name: 'Confirmar encerramento da Reta Final' }),
+  ).toBeFocused();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+  await preview.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(preview).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+
+  await trigger.click();
+  await expect(preview).toBeVisible();
   if (process.env.F7_UXH_STATE_DIR) {
     await preview.screenshot({
       path: process.env.F7_UXH_STATE_DIR + '/final-stretch-close-preview.png',
