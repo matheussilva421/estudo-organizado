@@ -19,3 +19,7 @@
 
 A aprovação continua humana. Testes verdes não revogam a reprovação anterior.
 
+## Revisão delta
+
+A segunda rodada independente (visual e integridade) não encontrou P0. Cinco dos seis P1 visuais foram confirmados como resolvidos; o sexto ficou `PARTIAL` apenas pelo painel vazio de Análises, corrigido em `454f27e5`. O P1 de integridade (DV-14/VA-14) foi corrigido para `PARTIAL_JUSTIFIED`. Detalhes em `INDEPENDENT-REVIEWS.md`.
+

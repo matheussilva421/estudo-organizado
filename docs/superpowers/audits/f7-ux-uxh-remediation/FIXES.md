@@ -34,3 +34,9 @@
 - F5 permanece referência de auditoria sem tela própria; F4 abre a sessão.
 - Em 320×568 o CTA secundário do herói exige rolagem para aparecer.
 
+## Segunda rodada independente (delta)
+
+- O painel vazio "Série por dia" foi apontado como P2 visual; o `.table-grid` de Análises passou a usar `align-items: start` e a captura foi regerada.
+- DV-14 e VA-14 voltaram a `PARTIAL_JUSTIFIED` porque o inspetor de assunto continua básico, como a própria fidelidade visual registra.
+- O manifesto passou a separar `codeHead` (454f27e5) de `documentationHead`, e o checksum deixou de listar o gerador temporário.
+

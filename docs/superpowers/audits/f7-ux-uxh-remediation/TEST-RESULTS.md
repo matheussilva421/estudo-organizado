@@ -1,6 +1,6 @@
 # Resultados de teste
 
-Execução em `apps/v2` no HEAD `92745e0a`, Windows, Chromium do Playwright.
+Execução em `apps/v2` no HEAD `454f27e5`, Windows, Chromium do Playwright.
 
 | Comando | Resultado |
 |---|---|

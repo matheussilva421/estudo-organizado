@@ -1,12 +1,12 @@
 # Sumário da remediação UX-H
 
-**Candidato de código:** `92745e0a16b105d3679fc217560a6be554b8725d` (branch `v2`).
+**Candidato de código:** `454f27e5207a1ab46e926fe7c8849010f6e4b6a2` (branch `v2`).
 **Candidato reprovado:** `a4b56e5e` (HEAD documental `48548168`).
 **Status:** `LOCAL_UXH_REMEDIATION_READY_FOR_HUMAN_REVIEW` / `UX_H_RE_REVIEW_PENDING` / `REMOTE_PUSH_NOT_AUTHORIZED`. O Codex não aprova UX-H.
 
 ## O que mudou em relação ao reprovado
 
-| Área | Antes (a4b56e5e) | Agora (92745e0a) |
+| Área | Antes (a4b56e5e) | Agora (454f27e5) |
 |---|---|---|
 | Contraste dos atalhos de Conteúdo | azul padrão `rgb(0,0,238)`, ~1,46:1 estimado | pílulas temáticas, 36/36 amostras ≥ 4,5:1; mínimo 7,02:1 |
 | Studios | coluna única e painéis genéricos | Knowledge, Revisões e Análises em duas colunas independentes, com a tarefa principal na primeira dobra |

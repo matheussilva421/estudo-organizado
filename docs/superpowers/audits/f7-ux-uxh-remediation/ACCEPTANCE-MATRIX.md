@@ -1,6 +1,6 @@
 # Matriz de aceite — remediação UX-H
 
-**Código:** `92745e0a`. **Baseline reprovado:** `a4b56e5e` / `48548168`. **Aceite:** `UX_H_RE_REVIEW_PENDING`.
+**Código:** `454f27e5`. **Baseline reprovado:** `a4b56e5e` / `48548168`. **Aceite:** `UX_H_RE_REVIEW_PENDING`.
 
 ## D01–D71
 
@@ -26,7 +26,7 @@
 | DV-09–DV-11 | PASS | superfícies, Foco, calendário |
 | DV-12 | PASS_LOCAL | fila/execução/histórico em duas colunas |
 | DV-13 | PARTIAL_JUSTIFIED | drill-down F4 com contexto; F5 não navegável |
-| DV-14 | PASS_LOCAL | biblioteca em faixa, árvore e grid |
+| DV-14 | PARTIAL_JUSTIFIED | biblioteca em faixa, árvore e grid; inspetor ainda básico |
 | DV-15–DV-16 | PASS | Command Center, Busca, Settings |
 | DV-17 | PARTIAL_JUSTIFIED | sheet da fila existe; sistema geral de sheets não |
 | DV-18 | PARTIAL_JUSTIFIED | feedback contextual; avisos persistentes |
@@ -43,7 +43,7 @@
 | VA-10–VA-11 | PASS | sessão/Foco, Planning |
 | VA-12 | PASS_LOCAL | fila antes da política |
 | VA-13 | PARTIAL_JUSTIFIED | evidência F4 contextual; F5 só auditoria |
-| VA-14 | PASS_LOCAL | Knowledge |
+| VA-14 | PARTIAL_JUSTIFIED | Knowledge; inspetor ainda básico |
 | VA-15–VA-16 | PASS | rotas/IDs, Settings seguro |
 | VA-17 | PARTIAL_JUSTIFIED | sheets parciais |
 | VA-18–VA-19 | PASS_LOCAL | feedback, conflito em Foco |
