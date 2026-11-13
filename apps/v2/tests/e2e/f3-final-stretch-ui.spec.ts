@@ -80,6 +80,37 @@ test('suspending_a_final_stretch_removes_the_date_without_false_success', async 
   expect(stored?.scenario.examDate ?? null).toBeNull();
 });
 
+test('closing a final stretch requires an explicit preview and confirmation', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await page.evaluate(async (seed) => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    await harness.resetDb();
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'close-preview-seed' },
+      scenarioId: seed.id,
+      baseRevision: null,
+      changes: { scenario: seed },
+    });
+  }, scenario);
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await page.getByLabel('Desfecho').selectOption('OCCURRED');
+  await page.locator('[data-action="close-final-stretch"]').click();
+  const preview = page.getByTestId('final-stretch-close-preview');
+  await expect(preview).toBeVisible();
+  await expect(preview).toContainText('Nada foi gravado');
+  const beforeConfirm = await page.evaluate(() =>
+    (window as unknown as HarnessWindow).__v2E2E.planningLoad('local-default', 'scenario-rf'),
+  );
+  expect(beforeConfirm?.scenario.status).toBe('ACTIVE');
+  await page.locator('[data-action="confirm-close-final-stretch"]').click();
+  const closed = await page.evaluate(() =>
+    (window as unknown as HarnessWindow).__v2E2E.planningLoad('local-default', 'scenario-rf'),
+  );
+  expect(closed?.scenario.status).toBe('CLOSED');
+});
+
 test('a_cycle_can_propose_a_final_stretch_and_keeps_the_cycle', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();

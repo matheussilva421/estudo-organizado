@@ -35,6 +35,14 @@ type Props = {
   availability: PlanningAvailability;
   revision: number | null;
   plannedMinutes: number;
+  availableMinutes: number;
+  globalPlannedMinutes: number;
+  scenarioBudgets: Array<{
+    id: string;
+    label: string;
+    minutes: number;
+    status: string;
+  }>;
   locked: boolean;
   onSave: (next: PlanningAvailability, expectedRevision: number | null) => Promise<void>;
   onNotice: (message: string | null) => void;
@@ -44,6 +52,9 @@ export function PlanningAvailabilityPanel({
   availability,
   revision,
   plannedMinutes,
+  availableMinutes,
+  globalPlannedMinutes,
+  scenarioBudgets,
   locked,
   onSave,
   onNotice,
@@ -131,6 +142,11 @@ export function PlanningAvailabilityPanel({
     weeklyGoal && Number(weeklyGoal) > 0
       ? Math.min(100, Math.round((plannedMinutes / Number(weeklyGoal)) * 100))
       : null;
+  const remainingMinutes = Math.max(0, availableMinutes - globalPlannedMinutes);
+  const plannedShare =
+    availableMinutes > 0
+      ? Math.min(100, Math.round((globalPlannedMinutes / availableMinutes) * 100))
+      : null;
 
   return (
     <section className="panel" aria-labelledby="availability-title" data-testid="planning-availability">
@@ -212,6 +228,46 @@ export function PlanningAvailabilityPanel({
         {' '}{plannedMinutes} min
         {progress === null ? ' · sem meta declarada' : ` · ${progress}%`}
       </p>
+      <section className="capacity-diagnosis" data-testid="planning-capacity-comparison">
+        <header>
+          <strong>Capacidade comparada — próximos 7 dias</strong>
+          <span>{plannedShare === null ? 'Sem janela declarada' : `${plannedShare}% ocupado`}</span>
+        </header>
+        <div
+          className="capacity-meter"
+          role="img"
+          aria-label={
+            availableMinutes > 0
+              ? `Capacidade semanal: ${globalPlannedMinutes} de ${availableMinutes} min planejados; ${remainingMinutes} min livres`
+              : 'Nenhuma capacidade declarada para os próximos sete dias'
+          }
+        >
+          <span
+            style={{
+              width:
+                availableMinutes > 0
+                  ? `${Math.min(100, (globalPlannedMinutes / availableMinutes) * 100)}%`
+                  : '0%',
+            }}
+          />
+        </div>
+        <p>
+          Janela disponível: {availableMinutes} min · planejado global: {globalPlannedMinutes} min ·
+          saldo: {remainingMinutes} min
+        </p>
+        {scenarioBudgets.length > 0 ? (
+          <ul className="capacity-scenarios">
+            {scenarioBudgets.map((scenario) => (
+              <li key={scenario.id}>
+                <span>{scenario.label}</span>
+                <span>{scenario.minutes} min · {scenario.status}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="hint">Nenhum cenário ativo reserva capacidade neste período.</p>
+        )}
+      </section>
       <div className="planning-actions">
         <label>
           Fechar um dia

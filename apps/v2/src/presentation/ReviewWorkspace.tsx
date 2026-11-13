@@ -22,6 +22,7 @@ import type {
 } from '../domain/review';
 import { useFocusScroll } from './use-focus-scroll';
 import { nextPageLimit, pageItems, REVIEW_PAGE_SIZE } from './pagination';
+import { routeHref } from './routing';
 import {
   clearLocalDraft,
   loadLocalDraft,
@@ -137,6 +138,17 @@ function importReasonLabel(reason: string): string {
     return 'o arquivo tem campos ausentes ou inválidos';
   }
   return reason;
+}
+
+function evidenceIds(evidence: string[], source: 'F4' | 'F5'): string[] {
+  return [
+    ...new Set(
+      evidence
+        .filter((entry) => entry.startsWith(source + ':'))
+        .map((entry) => entry.split(':')[1])
+        .filter((entry): entry is string => Boolean(entry)),
+    ),
+  ];
 }
 
 export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId = null }: Props) {
@@ -1604,6 +1616,38 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                 <p className="hint">
                   Fontes: {item.evidence.length} evidência(s) F4/F5; status da projeção preservado.
                 </p>
+                <details data-testid={`review-evidence-${item.canonicalTopicKey}`}>
+                  <summary>Ver evidências e amostra</summary>
+                  <p>
+                    Amostra: {item.questions} questão(ões), {item.correctAnswers} acerto(s) ·
+                    política v{item.policyVersion} · projeção {item.status}.
+                  </p>
+                  {item.evidence.length === 0 ? (
+                    <p className="hint">Nenhuma evidência vinculada; nada foi inferido.</p>
+                  ) : (
+                    <ul>
+                      {evidenceIds(item.evidence, 'F4').map((sessionId) => (
+                        <li key={sessionId}>
+                          <a
+                            href={routeHref({
+                              module: 'sessions',
+                              entityId: null,
+                              query: { focus: sessionId },
+                              invalid: false,
+                            })}
+                          >
+                            Abrir sessão F4 {sessionId}
+                          </a>
+                        </li>
+                      ))}
+                      {evidenceIds(item.evidence, 'F5').map((executionId) => (
+                        <li key={executionId}>
+                          Execução F5 <code>{executionId}</code>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </details>
               </li>
             ))}
           </ul>

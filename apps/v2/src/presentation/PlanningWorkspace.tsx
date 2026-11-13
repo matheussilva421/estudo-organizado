@@ -16,6 +16,7 @@ import {
   previewFinalStretchTransition,
   type ExamDateChange,
   type ExamDateChangePreview,
+  type FinalStretchClosing,
   type TransitionPreview,
 } from '../domain/planning-final-stretch';
 import type { MergeConflict } from '../domain/planning-merge';
@@ -28,6 +29,7 @@ import {
 } from '../domain/planning';
 import {
   DEFAULT_PLANNING_AVAILABILITY,
+  resolveDailyAvailability,
   selectOfficialReservations,
   type PlanningAvailability,
 } from '../domain/planning-capacity';
@@ -100,6 +102,12 @@ export function PlanningWorkspace({
   const [examPreview, setExamPreview] = useState<ExamDateChangePreview | null>(null);
   const [transitionPreview, setTransitionPreview] =
     useState<TransitionPreview | null>(null);
+  const [closePreview, setClosePreview] = useState<{
+    scenarioId: string;
+    baseRevision: number;
+    scenario: PlanningScenario;
+    closing: FinalStretchClosing;
+  } | null>(null);
   const [view, setView] = useState<CalendarView>(() => {
     try {
       const stored = window.localStorage.getItem('estudo-organizado:v2:planning-view');
@@ -213,6 +221,7 @@ export function PlanningWorkspace({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setExamPreview(null);
     setTransitionPreview(null);
+    setClosePreview(null);
   }, [selectedId]);
 
   const selectedBlocks = useMemo(
@@ -278,6 +287,44 @@ export function PlanningWorkspace({
       )
       .reduce((total, block) => total + block.plannedMinutes, 0);
   }, [selectedBlocks]);
+
+  const capacityComparison = useMemo(() => {
+    const start = todayInZone(ZONE);
+    const end = addCivilDays(start, 6);
+    const availableMinutes = Array.from({ length: 7 }, (_, index) =>
+      resolveDailyAvailability({
+        date: addCivilDays(start, index),
+        weekly: availability.weekly,
+        exceptions: availability.exceptions,
+        zone: availability.zone,
+      }).availableMinutes,
+    ).reduce((total, minutes) => total + minutes, 0);
+    const scenarioBudgets = scenarios
+      .filter((scenario) => scenario.status === 'ACTIVE')
+      .map((scenario) => ({
+        id: scenario.id,
+        label: scenario.name,
+        status: scenario.kind,
+        minutes: blocks
+          .filter(
+            (block) =>
+              block.scenarioId === scenario.id &&
+              block.civilDate !== undefined &&
+              block.civilDate >= start &&
+              block.civilDate <= end &&
+              block.allocation !== 'UNALLOCATED',
+          )
+          .reduce((total, block) => total + block.plannedMinutes, 0),
+      }));
+    return {
+      availableMinutes,
+      scenarioBudgets,
+      globalPlannedMinutes: scenarioBudgets.reduce(
+        (total, scenario) => total + scenario.minutes,
+        0,
+      ),
+    };
+  }, [availability, blocks, scenarios]);
 
   function wizardPreview(input: WizardInput) {
     try {
@@ -668,21 +715,37 @@ export function PlanningWorkspace({
     onNotice('Transição cancelada; o Ciclo permanece intacto.');
   }
 
-  async function closeStretch(outcome: 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED'): Promise<void> {
+  function previewCloseStretch(outcome: 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED'): void {
     if (!selected) return;
     const closed = closeFinalStretch({
       scenario: selected,
       outcome,
       closedAt: new Date().toISOString(),
     });
-    const result = await repository().commit({
-      scope: { profileId, operationId: `close-${selected.id}-${selected.localRevision}` },
+    setClosePreview({
       scenarioId: selected.id,
       baseRevision: selected.localRevision,
+      scenario: closed.scenario,
+      closing: closed.closing,
+    });
+    onNotice('Prévia de encerramento pronta; nada foi gravado.');
+  }
+
+  async function confirmCloseStretch(): Promise<void> {
+    if (!selected || !closePreview || closePreview.scenarioId !== selected.id) {
+      setClosePreview(null);
+      onNotice('A prévia de encerramento não corresponde ao cenário atual.');
+      return;
+    }
+    const preview = closePreview;
+    const result = await repository().commit({
+      scope: { profileId, operationId: `close-${preview.scenarioId}-${preview.baseRevision}` },
+      scenarioId: selected.id,
+      baseRevision: preview.baseRevision,
       changes: {
         scenario: {
-          ...closed.scenario,
-          closing: closed.closing,
+          ...preview.scenario,
+          closing: preview.closing,
         },
       },
     });
@@ -691,7 +754,13 @@ export function PlanningWorkspace({
         ? 'Reta Final encerrada e preservada no histórico.'
         : 'Não foi possível encerrar a Reta Final.',
     );
+    setClosePreview(null);
     await refresh();
+  }
+
+  function cancelCloseStretch(): void {
+    setClosePreview(null);
+    onNotice('Encerramento cancelado; a Reta Final permanece ativa.');
   }
 
   async function saveDraft(change: {
@@ -949,6 +1018,9 @@ export function PlanningWorkspace({
         availability={availability}
         revision={availabilityRevision}
         plannedMinutes={plannedNextWeek}
+        availableMinutes={capacityComparison.availableMinutes}
+        globalPlannedMinutes={capacityComparison.globalPlannedMinutes}
+        scenarioBudgets={capacityComparison.scenarioBudgets}
         locked={locked}
         onSave={saveAvailability}
         onNotice={onNotice}
@@ -985,13 +1057,16 @@ export function PlanningWorkspace({
         scenario={selected}
         examPreview={examPreview}
         transitionPreview={transitionPreview}
+        closePreview={closePreview?.closing ?? null}
         onPreviewExamChange={previewExamChange}
         onConfirmExamChange={() => void confirmExamChange()}
         onCancelExamChange={cancelExamChange}
         onPreviewTransition={previewTransition}
         onConfirmTransition={() => void confirmTransition()}
         onCancelTransition={cancelTransition}
-        onClose={(outcome) => void closeStretch(outcome)}
+        onPreviewClose={previewCloseStretch}
+        onConfirmClose={() => void confirmCloseStretch()}
+        onCancelClose={cancelCloseStretch}
         locked={locked}
       />
       </div>

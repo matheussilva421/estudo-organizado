@@ -419,9 +419,22 @@ textarea {
   min-height: 44px;
   align-items: center;
   padding: 7px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
   border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  color: var(--accent);
   text-decoration: none;
+}
+
+.workspace-guide-links a:visited {
+  color: var(--accent);
+}
+
+.workspace-guide-links a:hover,
+.workspace-guide-links a:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--border));
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--accent-hover);
 }
 
 .workspace-guide > .source-note {
@@ -1724,6 +1737,7 @@ select {
 .edital-item,
 .discipline,
 .tree-node {
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 0.75rem;
@@ -1740,9 +1754,22 @@ select {
 .aula-row,
 .discipline-header {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.discipline-header h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tree-row .tree-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .edital-actions,
@@ -1807,10 +1834,17 @@ select {
 }
 
 .execution-state {
+  min-width: 0;
   border: 1px dashed var(--border);
   border-radius: 0.75rem;
   padding: 0.6rem 0.9rem;
   color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.execution-state strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .import-preview {
@@ -4899,5 +4933,249 @@ body::before {
 
   .focus-layer .inline-notice {
     font-size: 0.82rem;
+  }
+}
+
+/* UX-H remediation: desktop Studios use an intentional workspace grid instead
+   of one long stack of interchangeable panels. */
+@media (min-width: 1280px) {
+  #content-section {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+
+  #content-section > .workspace-guide,
+  #content-section > .execution-state,
+  #content-section > .inline-notice {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  #content-section > section[data-studio='knowledge'] {
+    grid-column: span 4;
+    margin: 0;
+    align-self: start;
+  }
+
+  #content-section > section[data-studio='knowledge'] .knowledge-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #content-section > .studio-subnav {
+    grid-column: span 8;
+    margin: 0;
+    align-self: start;
+    justify-self: start;
+  }
+
+  #content-section > section[aria-labelledby='subjects-title'] {
+    grid-column: span 7;
+    margin: 0;
+  }
+
+  #content-section > section[aria-labelledby='editais-title'] {
+    grid-column: span 5;
+    margin: 0;
+  }
+
+  #content-section > section[aria-labelledby='tree-title'] {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  #content-section > .execution-state {
+    padding: 6px 10px;
+    font-size: 0.74rem;
+  }
+
+  [data-studio='reviews'] {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+    grid-auto-flow: row dense;
+  }
+
+  [data-studio='reviews'] > h2,
+  [data-studio='reviews'] > .studio-subnav,
+  [data-studio='reviews'] > .review-overview,
+  [data-studio='reviews'] > .empty-state,
+  [data-studio='reviews'] > .session-status,
+  [data-studio='reviews'] > .inline-notice {
+    grid-column: 1 / -1;
+  }
+
+  [data-studio='reviews'] > .session-card {
+    min-width: 0;
+    margin: 0;
+  }
+
+  #review-policy,
+  #review-agenda,
+  #review-history-panel,
+  [data-testid='review-projections'],
+  [data-testid='review-board'],
+  [data-testid='review-portability'] {
+    grid-column: span 7;
+  }
+
+  [data-testid='review-policy-overrides'],
+  [data-testid='review-suggestions'],
+  [data-testid='review-topics'],
+  [data-testid='review-weak-points'],
+  [data-testid='review-priorities'],
+  [data-testid='review-reminders'] {
+    grid-column: span 5;
+  }
+
+  .analytics-view {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+
+  .analytics-view > .view-header,
+  .analytics-view > .studio-subnav,
+  .analytics-view > .inline-notice,
+  .analytics-view > section[aria-labelledby='analytics-overview-title'],
+  .analytics-view > #analytics-breakdown {
+    grid-column: 1 / -1;
+  }
+
+  .analytics-view > .analytics-editor {
+    grid-column: span 7;
+    margin: 0;
+  }
+
+  .analytics-view > .analytics-drill {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  .analytics-view > section[aria-labelledby='analytics-archive-title'] {
+    grid-column: span 5;
+    margin: 0;
+  }
+
+  .analytics-view > .view-header,
+  .analytics-view > .studio-subnav {
+    margin-top: 0;
+  }
+}
+
+.capacity-diagnosis,
+.history-comparison {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 16px;
+  background:
+    radial-gradient(100% 150% at 100% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 62%),
+    var(--surface);
+}
+
+.capacity-diagnosis header,
+.history-comparison header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 14px;
+}
+
+.capacity-diagnosis header span,
+.history-comparison header span {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.capacity-meter {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 70%, var(--surface));
+}
+
+.capacity-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+}
+
+.capacity-scenarios {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capacity-scenarios li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.history-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.history-comparison-grid article {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+}
+
+.history-comparison-grid article strong {
+  color: var(--text);
+}
+
+.planning-preview {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 48%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+
+[data-testid='review-weak-points'] details {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+[data-testid='review-weak-points'] summary {
+  min-height: 30px;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+[data-testid='review-weak-points'] details a,
+[data-testid='review-weak-points'] details code {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .history-comparison-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

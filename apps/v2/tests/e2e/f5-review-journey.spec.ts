@@ -73,6 +73,10 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   const weak = page.locator('[data-testid="review-weak-points"]');
   await expect(weak).toContainText('Controle de constitucionalidade');
   await expect(weak).toContainText('7/10');
+  const evidence = weak.locator('details').first();
+  await evidence.locator('summary').click();
+  await expect(evidence).toContainText('Amostra: 10 questão(ões), 7 acerto(s)');
+  await expect(evidence.getByRole('link', { name: /Abrir sessão F4 session-f5/ })).toBeVisible();
 
   const board = page.locator('[data-testid="review-board"]');
   await board.getByLabel('Título/fonte').fill('Banca TJPB');

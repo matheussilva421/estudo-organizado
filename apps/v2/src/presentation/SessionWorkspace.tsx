@@ -17,6 +17,7 @@ import type {
 } from '../domain/session';
 import { sessionTotalFocusMs } from '../domain/session-accounting';
 import type { PlanBlock } from '../domain/planning';
+import { addCivilDays, weekdayIndex } from '../domain/planning-time';
 import {
   buildIncomingFactPatch,
   preservedIncomingFields,
@@ -130,6 +131,27 @@ function todayInZone(): string {
     month: '2-digit',
     day: '2-digit',
   }).format(new Date());
+}
+
+function habitCoversDate(habit: StudyHabit, civilDate: string): boolean {
+  if (habit.recurrence === 'DAILY') return true;
+  const start = addCivilDays(civilDate, -weekdayIndex(civilDate));
+  const end = addCivilDays(start, 6);
+  return civilDate >= start && civilDate <= end;
+}
+
+function compatibleHabitsForSession(
+  habits: StudyHabit[],
+  session: StudySession,
+): StudyHabit[] {
+  if (!session.recordedAtCivilDate) return [];
+  return habits.filter(
+    (habit) =>
+      habitCoversDate(habit, session.recordedAtCivilDate!) &&
+      (habit.kind === 'MANUAL' ||
+        habit.kind === 'TIME' ||
+        (habit.kind === 'QUESTIONS' && (session.measurements ?? []).length > 0)),
+  );
 }
 
 function formatInstant(value: string): string {
@@ -2365,6 +2387,21 @@ export function SessionWorkspace({
                       ))}
                     </ul>
                   ) : null}
+                  <p data-testid={`session-habit-context-${item.id}`}>
+                    Contexto de hábitos:{' '}
+                    {compatibleHabitsForSession(habits, item)
+                      .map((habit) => {
+                        const target =
+                          habit.kind === 'TIME'
+                            ? formatMs(habit.target ?? 0)
+                            : habit.kind === 'QUESTIONS'
+                              ? String(habit.target ?? 0) + ' questões'
+                              : 'manual';
+                        return `${habit.kind} · ${habit.recurrence} · meta ${target}`;
+                      })
+                      .join(' · ') || 'nenhum hábito compatível'}
+                    . Isto é contexto; não confirma cumprimento sem registro próprio.
+                  </p>
                   {item.note ? <p>Nota: {item.note}</p> : null}
                   {item.planBlockIds.length > 0 ? (
                     <p>

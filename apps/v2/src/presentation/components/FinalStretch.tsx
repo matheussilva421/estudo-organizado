@@ -3,6 +3,7 @@ import type { PlanningScenario } from '../../domain/planning';
 import type {
   ExamDateChange,
   ExamDateChangePreview,
+  FinalStretchClosing,
   TransitionPreview,
 } from '../../domain/planning-final-stretch';
 
@@ -10,13 +11,16 @@ type Props = {
   scenario: PlanningScenario | null;
   examPreview: ExamDateChangePreview | null;
   transitionPreview: TransitionPreview | null;
+  closePreview: FinalStretchClosing | null;
   onPreviewExamChange: (change: ExamDateChange) => void;
   onConfirmExamChange: () => void;
   onCancelExamChange: () => void;
   onPreviewTransition: (examDate: string) => void;
   onConfirmTransition: () => void;
   onCancelTransition: () => void;
-  onClose: (outcome: 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED') => void;
+  onPreviewClose: (outcome: 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED') => void;
+  onConfirmClose: () => void;
+  onCancelClose: () => void;
   locked: boolean;
 };
 
@@ -24,13 +28,16 @@ export function FinalStretch({
   scenario,
   examPreview,
   transitionPreview,
+  closePreview,
   onPreviewExamChange,
   onConfirmExamChange,
   onCancelExamChange,
   onPreviewTransition,
   onConfirmTransition,
   onCancelTransition,
-  onClose,
+  onPreviewClose,
+  onConfirmClose,
+  onCancelClose,
   locked,
 }: Props) {
   const [nextDate, setNextDate] = useState('');
@@ -127,15 +134,16 @@ export function FinalStretch({
             <button
               type="button"
               data-action="close-final-stretch"
-              disabled={locked || closeOutcome === ''}
-              onClick={() => closeOutcome && onClose(closeOutcome)}
+              disabled={locked || closeOutcome === '' || Boolean(closePreview)}
+              onClick={() => closeOutcome && onPreviewClose(closeOutcome)}
             >
-              Encerrar Reta Final
+              Revisar encerramento
             </button>
             <label>
               Desfecho
               <select
                 value={closeOutcome}
+                disabled={locked || Boolean(closePreview)}
                 onChange={(event) =>
                   setCloseOutcome(event.target.value as '' | 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED')
                 }
@@ -147,6 +155,33 @@ export function FinalStretch({
               </select>
             </label>
           </div>
+          {closePreview ? (
+            <div
+              className="planning-preview"
+              data-testid="final-stretch-close-preview"
+              role="status"
+              aria-live="polite"
+            >
+              <p>
+                Prévia: encerrar com desfecho <strong>{closePreview.outcome}</strong> em{' '}
+                {closePreview.closedAt}. A Reta Final ficará CLOSED e será preservada no
+                histórico; nenhum bloco será apagado. Nada foi gravado.
+              </p>
+              <div className="planning-actions">
+                <button
+                  type="button"
+                  data-action="confirm-close-final-stretch"
+                  onClick={onConfirmClose}
+                  disabled={locked}
+                >
+                  Confirmar encerramento
+                </button>
+                <button type="button" onClick={onCancelClose} disabled={locked}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : null}
           {examPreview ? (
             <div data-testid="exam-change-preview" role="status" aria-live="polite">
               <p>
