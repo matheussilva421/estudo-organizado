@@ -38,8 +38,8 @@ function operation(uid: string, operationId = 'op-1', entityId = 'edital-1') {
   };
 }
 
-function change(uid: string, sequence = 1, entityId = 'edital-1') {
-  return { sequence, entityId, revision: 1, deleted: false, epoch: 1, uid };
+function change(uid: string, sequence = 1, entityId = 'edital-1', operationId = 'op-1') {
+  return { sequence, entityId, revision: 1, deleted: false, epoch: 1, operationId, uid };
 }
 
 function head(uid: string) {
@@ -92,12 +92,15 @@ describe('F7 Firestore rules', () => {
         revision: -1,
       }),
     );
-    await assertFails(
-      setDoc(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), {
-        ...operation('uid-a'),
-        payloadDigest: 'not-a-digest',
-      }),
-    );
+    const badDigest = writeBatch(db);
+    badDigest.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), entity('uid-a'));
+    badDigest.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), {
+      ...operation('uid-a'),
+      payloadDigest: 'not-a-digest',
+    });
+    badDigest.set(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a'));
+    badDigest.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
+    await assertFails(badDigest.commit());
   });
 
   it('f7_rules_deny_a_tombstone_with_payload', async () => {
@@ -135,12 +138,26 @@ describe('F7 Firestore rules', () => {
       setDoc(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a', 2)),
     );
     const initial = writeBatch(db);
+    initial.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), entity('uid-a'));
+    initial.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), operation('uid-a'));
     initial.set(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a'));
     initial.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
     await assertSucceeds(initial.commit());
 
     const next = writeBatch(db);
-    next.set(doc(db, `users/uid-a/libraries/${library}/changes/2`), change('uid-a', 2));
+    next.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), {
+      ...entity('uid-a'),
+      revision: 2,
+    });
+    next.set(doc(db, `users/uid-a/libraries/${library}/operations/op-2`), {
+      ...operation('uid-a', 'op-2'),
+      revision: 2,
+      changeSequence: 2,
+    });
+    next.set(doc(db, `users/uid-a/libraries/${library}/changes/2`), {
+      ...change('uid-a', 2, 'edital-1', 'op-2'),
+      revision: 2,
+    });
     next.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), {
       ...head('uid-a'),
       changeSequence: 2,
@@ -257,11 +274,101 @@ describe('F7 Firestore rules', () => {
     await assertFails(next.commit());
 
     const sequential = writeBatch(db);
-    sequential.set(doc(db, `users/uid-a/libraries/${library}/changes/2`), change('uid-a', 2));
+    sequential.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), {
+      ...entity('uid-a'),
+      revision: 2,
+    });
+    sequential.set(doc(db, `users/uid-a/libraries/${library}/operations/op-2`), {
+      ...operation('uid-a', 'op-2'),
+      revision: 2,
+      changeSequence: 2,
+    });
+    sequential.set(doc(db, `users/uid-a/libraries/${library}/changes/2`), {
+      ...change('uid-a', 2, 'edital-1', 'op-2'),
+      revision: 2,
+    });
     sequential.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), {
       ...head('uid-a'),
       changeSequence: 2,
     });
     await assertSucceeds(sequential.commit());
   });
+  it('f7_rules_deny_entity_revision_regression_or_jump', async () => {
+    const db = testEnv.authenticatedContext('uid-a').firestore();
+    const initial = writeBatch(db);
+    initial.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), entity('uid-a'));
+    initial.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), operation('uid-a'));
+    initial.set(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a'));
+    initial.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
+    await assertSucceeds(initial.commit());
+
+    const regression = writeBatch(db);
+    regression.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), {
+      ...entity('uid-a'),
+      revision: 1,
+    });
+    regression.set(doc(db, `users/uid-a/libraries/${library}/operations/op-2`), {
+      ...operation('uid-a', 'op-2'),
+      changeSequence: 2,
+    });
+    regression.set(doc(db, `users/uid-a/libraries/${library}/changes/2`), change('uid-a', 2));
+    regression.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), {
+      ...head('uid-a'),
+      changeSequence: 2,
+    });
+    await assertFails(regression.commit());
+
+    const jump = writeBatch(db);
+    jump.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), {
+      ...entity('uid-a'),
+      revision: 3,
+    });
+    jump.set(doc(db, `users/uid-a/libraries/${library}/operations/op-2`), {
+      ...operation('uid-a', 'op-2'),
+      revision: 3,
+      changeSequence: 2,
+    });
+    jump.set(doc(db, `users/uid-a/libraries/${library}/changes/2`), {
+      ...change('uid-a', 2),
+      revision: 3,
+    });
+    jump.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), {
+      ...head('uid-a'),
+      changeSequence: 2,
+    });
+    await assertFails(jump.commit());
+  });
+
+  it('f7_rules_deny_change_without_matching_entity_or_receipt', async () => {
+    const db = testEnv.authenticatedContext('uid-a').firestore();
+
+    const missingEntity = writeBatch(db);
+    missingEntity.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), operation('uid-a'));
+    missingEntity.set(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a'));
+    missingEntity.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
+    await assertFails(missingEntity.commit());
+
+    const missingReceipt = writeBatch(db);
+    missingReceipt.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), entity('uid-a'));
+    missingReceipt.set(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a'));
+    missingReceipt.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
+    await assertFails(missingReceipt.commit());
+
+    const mismatchedEntity = writeBatch(db);
+    mismatchedEntity.set(
+      doc(db, `users/uid-a/libraries/${library}/entities/edital-1`),
+      { ...entity('uid-a'), epoch: 1 },
+    );
+    mismatchedEntity.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), operation('uid-a'));
+    mismatchedEntity.set(
+      doc(db, `users/uid-a/libraries/${library}/changes/1`),
+      { ...change('uid-a'), epoch: 2 },
+    );
+    mismatchedEntity.set(
+      doc(db, `users/uid-a/libraries/${library}/meta/head`),
+      { ...head('uid-a'), epoch: 2 },
+    );
+    await assertFails(mismatchedEntity.commit());
+  });
+
 });

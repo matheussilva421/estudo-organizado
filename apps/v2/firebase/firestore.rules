@@ -14,6 +14,10 @@ service cloud.firestore {
       return value is string && value.size() > 0 && value.size() <= 200;
     }
 
+    function validPathId(value) {
+      return validId(value) && !value.matches('/');
+    }
+
     function validLibrary(value) {
       return value is string && value.matches('^[A-Za-z0-9_-]{1,128}$');
     }
@@ -23,7 +27,7 @@ service cloud.firestore {
           'entityId', 'entityType', 'schemaVersion', 'revision', 'deleted',
           'payload', 'epoch', 'uid'
         ])
-        && validId(data.entityId)
+        && validPathId(data.entityId)
         && data.entityType is string
         && data.entityType.size() > 0
         && data.entityType.size() <= 80
@@ -49,8 +53,8 @@ service cloud.firestore {
           'operationId', 'entityId', 'payloadDigest', 'revision',
           'changeSequence', 'uid'
         ])
-        && validId(data.operationId)
-        && validId(data.entityId)
+        && validPathId(data.operationId)
+        && validPathId(data.entityId)
         && data.payloadDigest is string
         && data.payloadDigest.matches('^[a-fA-F0-9]{64}$')
         && data.revision is int
@@ -65,12 +69,13 @@ service cloud.firestore {
 
     function validChange(data) {
       return data.keys().hasOnly([
-          'sequence', 'entityId', 'revision', 'deleted', 'epoch', 'uid'
+          'sequence', 'entityId', 'revision', 'deleted', 'epoch', 'operationId', 'uid'
         ])
         && data.sequence is int
         && data.sequence >= 1
         && data.sequence <= 1000000000
-        && validId(data.entityId)
+        && validPathId(data.entityId)
+        && validPathId(data.operationId)
         && data.revision is int
         && data.revision >= 1
         && data.revision <= 1000000000
@@ -100,10 +105,18 @@ service cloud.firestore {
 
         match /entities/{entityId} {
           allow read: if owns(uid) && validLibrary(remoteLibraryId);
-          allow create, update: if owns(uid)
+          allow create: if owns(uid)
             && validLibrary(remoteLibraryId)
             && entityId == request.resource.data.entityId
-            && validEnvelope(request.resource.data);
+            && validEnvelope(request.resource.data)
+            && request.resource.data.revision == 1;
+          allow update: if owns(uid)
+            && validLibrary(remoteLibraryId)
+            && entityId == request.resource.data.entityId
+            && validEnvelope(request.resource.data)
+            && request.resource.data.revision == resource.data.revision + 1
+            && request.resource.data.epoch == resource.data.epoch
+            && request.resource.data.entityType == resource.data.entityType;
           allow delete: if false;
         }
 
@@ -117,6 +130,8 @@ service cloud.firestore {
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.entityId == request.resource.data.entityId
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.revision == request.resource.data.revision
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.deleted == getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.deleted
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.epoch == getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.epoch
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.operationId == request.resource.data.operationId
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.epoch == getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.epoch
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.changeSequence == request.resource.data.changeSequence;
           allow update, delete: if false;
@@ -128,7 +143,14 @@ service cloud.firestore {
             && validLibrary(remoteLibraryId)
             && changeId == string(request.resource.data.sequence)
             && changeId == string(getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.changeSequence)
-            && validChange(request.resource.data);
+            && validChange(request.resource.data)
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.epoch == request.resource.data.epoch
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.revision == request.resource.data.revision
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.deleted == request.resource.data.deleted
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.epoch == request.resource.data.epoch
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(request.resource.data.operationId)).data.entityId == request.resource.data.entityId
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(request.resource.data.operationId)).data.revision == request.resource.data.revision
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(request.resource.data.operationId)).data.changeSequence == request.resource.data.sequence;
           allow update, delete: if false;
         }
 
@@ -152,7 +174,10 @@ service cloud.firestore {
             )
             && (
               request.resource.data.changeSequence == 0
-              || existsAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence)))
+              || (
+                existsAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence)))
+                && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.epoch == request.resource.data.epoch
+              )
             );
         }
       }

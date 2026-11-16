@@ -26,6 +26,8 @@ export type RemoteChange = {
   revision: number;
   deleted: boolean;
   epoch: number;
+  /** Receipt id that produced this change; required by Firestore Rules. */
+  operationId?: string;
 };
 
 export type RemoteValidation =
@@ -113,7 +115,7 @@ export function receiptMatches(
 
 export function validateRemoteChange(change: unknown): RemoteValidation {
   if (!isRecord(change)) return { ok: false, reason: 'INVALID' };
-  if (!hasOnlyKeys(change, ['sequence', 'entityId', 'revision', 'deleted', 'epoch'])) {
+  if (!hasOnlyKeys(change, ['sequence', 'entityId', 'revision', 'deleted', 'epoch', 'operationId'])) {
     return { ok: false, reason: 'INVALID' };
   }
   if (!isIntegerInRange(change.sequence, 1, REVISION_MAX)) return { ok: false, reason: 'INVALID' };
@@ -121,6 +123,9 @@ export function validateRemoteChange(change: unknown): RemoteValidation {
   if (!isIntegerInRange(change.revision, 1, REVISION_MAX)) return { ok: false, reason: 'INVALID' };
   if (typeof change.deleted !== 'boolean') return { ok: false, reason: 'INVALID' };
   if (!isIntegerInRange(change.epoch, 0, EPOCH_MAX)) return { ok: false, reason: 'INVALID' };
+  if (change.operationId !== undefined && !isId(change.operationId)) {
+    return { ok: false, reason: 'INVALID' };
+  }
   return { ok: true };
 }
 

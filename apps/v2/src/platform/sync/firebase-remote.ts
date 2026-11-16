@@ -227,6 +227,7 @@ export async function planRemoteMutation(
       revision: remoteRevision,
       deleted,
       epoch,
+      operationId: scope.operationId,
     },
     head: { epoch, changeSequence },
   };
@@ -379,6 +380,7 @@ export class FirebaseRemotePort implements RemoteMutationPort, RemoteChangePort 
         revision: row.revision as number,
         deleted: row.deleted as boolean,
         epoch: row.epoch as number,
+        ...(typeof row.operationId === 'string' ? { operationId: row.operationId } : {}),
       };
       const validation = validateRemoteChange(change);
       if (!validation.ok || change.epoch !== pageEpoch) {

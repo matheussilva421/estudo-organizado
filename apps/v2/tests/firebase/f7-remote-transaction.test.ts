@@ -52,7 +52,7 @@ beforeEach(async () => {
 });
 
 describe('F7 Firestore remote transaction', () => {
-  it('f7_apply_once_under_concurrency', async () => {
+  it('f7_apply_once_idempotently', async () => {
     const db = testEnv.authenticatedContext(uid).firestore();
     const remote = new FirebaseRemotePort({
       uid,
