@@ -414,3 +414,9 @@ Evidências, comparações lado a lado e matriz em docs/superpowers/audits/f7-ux
 ## F7-UX Convergência visual aos mockups — 2026-11-12
 
 Novo GOAL evolutivo após rejeição visual do Premium. Home reconstruída em 80c1d1df: shell, hero com recorte real das quatro referências, bento de três cartões, recursos e painel em segunda camada. Estado LOCAL_VISUAL_MATCH_IN_PROGRESS; estúdios Knowledge/Review/Insights e revisão independente visual ainda pendentes. Sem push, main, deploy ou F8.
+
+## F0 HIGH / Firebase Emulator — 16/11/2026
+
+Emulator Suite (Firestore/Auth) executado em loopback, projeto demo-estudo-v2, com 17/17 testes PASS: 15 de Rules e 2 de transação. Rules endurecidas com schema 1, revisão monotônica, epoch/entityType imutáveis e binding entity/change/head/receipt. Regressão no HEAD final: 881/881 unitários, 248/253 E2E (5 skips, 0 falhas), typecheck/lint/build PASS e capturas em desktop, tablet e celular.
+
+Estado: **FIREBASE_EMULATOR_LOCAL_VERIFIED / F0_HIGH_LOCAL_EVIDENCED / F7_EXTERNAL_PENDING / UX_HUMAN_PENDING / REMOTE_PUSH_NOT_AUTHORIZED / MAIN_UNCHANGED**. Código 6c0353bb; documentação no commit desta rodada. Evidências, matrizes, bundle e rollback em docs/superpowers/audits/f7-ux-high-risks/ e no ZIP de 16/11/2026. Gates mantidos: UX-H, G-EXT, G-STAGING, F4-T13, acessibilidade manual e F8. Nenhum push, deploy, staging, serviço real ou alteração em main.
