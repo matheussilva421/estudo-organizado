@@ -996,7 +996,7 @@ export function HomeView({
           </div>
           <ol className="dashboard-order" aria-label="Ordem dos widgets">
             {layout.widgets.map((widget, index) => (
-              <li key={widget.id}>
+              <li key={widget.id} data-widget={widget.id}>
                 <span>{WIDGET_LABELS[widget.id]}</span>
                 <button type="button" className="button-ghost" disabled={index === 0} onClick={() => moveWidget(widget.id, -1)}>
                   Mover para cima

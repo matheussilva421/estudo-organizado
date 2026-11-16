@@ -143,3 +143,58 @@ test('performance context follows recent sessions and offers no automatic reorde
   await expect(widgets.first()).toHaveAttribute('data-widget', 'study-time');
 });
 
+test('manual widget order persists, undoes and is not overridden by suggestion', async ({ page }) => {
+  await resetF7Ux(page, '/#/home');
+  await seedAcademicData(page);
+  await page.evaluate(async () => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'layout-scenario' },
+      scenarioId: 'layout-scenario',
+      baseRevision: null,
+      changes: {
+        scenario: {
+          id: 'layout-scenario',
+          profileId: 'local-default',
+          editalId: 'f7ux-edital',
+          kind: 'CYCLE',
+          name: 'Ciclo layout',
+          status: 'ACTIVE',
+          localRevision: 1,
+          schemaVersion: 1,
+          priorityProfileId: 'priority-default',
+          priorityProfileRevision: 1,
+          referenceZone: 'America/Fortaleza',
+        },
+      },
+    });
+  });
+  await page.goto('/#/sessions');
+  await page.getByLabel('Duração da sessão (min)').fill('20');
+  await page.locator('[data-testid="session-manual-submit"]').click();
+  await page.goto('/#/home');
+  await page.getByText('Explorar painel e widgets').click();
+  await page.getByText('Personalizar widgets e fontes').click();
+  const order = page.locator('.dashboard-order li');
+  const firstBefore = await order.nth(0).getAttribute('data-widget');
+  const secondBefore = await order.nth(1).getAttribute('data-widget');
+  expect(firstBefore).not.toBe(secondBefore);
+
+  await order.nth(1).getByRole('button', { name: 'Mover para cima' }).click();
+  await expect(order.nth(0)).toHaveAttribute('data-widget', secondBefore ?? '');
+  await expect(order.nth(1)).toHaveAttribute('data-widget', firstBefore ?? '');
+
+  await page
+    .getByRole('button', { name: 'Desfazer alteração de layout nesta sessão' })
+    .click();
+  await expect(order.nth(0)).toHaveAttribute('data-widget', firstBefore ?? '');
+
+  await order.nth(1).getByRole('button', { name: 'Mover para cima' }).click();
+  await expect(order.nth(0)).toHaveAttribute('data-widget', secondBefore ?? '');
+  await page.reload();
+  await page.getByText('Explorar painel e widgets').click();
+  await page.getByText('Personalizar widgets e fontes').click();
+  await expect(order.nth(0)).toHaveAttribute('data-widget', secondBefore ?? '');
+  await expect(page.getByTestId('home-hero')).toBeVisible();
+});
+
