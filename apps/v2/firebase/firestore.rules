@@ -28,8 +28,7 @@ service cloud.firestore {
         && data.entityType.size() > 0
         && data.entityType.size() <= 80
         && data.schemaVersion is int
-        && data.schemaVersion >= 1
-        && data.schemaVersion <= 100
+        && data.schemaVersion == 1
         && data.revision is int
         && data.revision >= 1
         && data.revision <= 1000000000

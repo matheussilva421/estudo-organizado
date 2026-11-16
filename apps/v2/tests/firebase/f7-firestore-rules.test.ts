@@ -119,6 +119,16 @@ describe('F7 Firestore rules', () => {
     );
   });
 
+  it('f7_rules_deny_future_schema_version', async () => {
+    const db = testEnv.authenticatedContext('uid-a').firestore();
+    await assertFails(
+      setDoc(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), {
+        ...entity('uid-a'),
+        schemaVersion: 99,
+      }),
+    );
+  });
+
   it('f7_rules_bind_change_id_to_sequence', async () => {
     const db = testEnv.authenticatedContext('uid-a').firestore();
     await assertFails(
