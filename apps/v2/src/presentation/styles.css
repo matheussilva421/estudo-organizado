@@ -5392,4 +5392,35 @@ body::before {
     font-size: 0.82rem;
     white-space: nowrap;
   }
+
+  /* Keep the suggestion control out of the fixed 232px hero flow. */
+  .home-hero > details {
+    position: absolute;
+    top: 14px;
+    right: 24px;
+    z-index: 3;
+    max-width: 280px;
+    margin: 0;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+  }
+
+  .home-hero > details summary {
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+  }
+
+  .home-hero > details[open] {
+    max-height: 180px;
+    overflow: auto;
+  }
+
+  /* The Bento link sits under the copy, not over the goal ring. */
+  .show-card a {
+    left: auto;
+    right: 18px;
+  }
 }

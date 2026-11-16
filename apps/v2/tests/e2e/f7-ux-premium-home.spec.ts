@@ -126,6 +126,13 @@ test('performance context follows recent sessions and offers no automatic reorde
   await expect(hero).toHaveAttribute('data-context', 'PERFORMANCE');
   await expect(hero).toContainText('Acompanhe o que já rendeu');
   await expect(hero).toContainText('Tempo, revisões e evidências derivados dos seus dados locais.');
+  if (process.env.F7_UXH_STATE_DIR) {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/home-performance.png',
+      fullPage: false,
+    });
+  }
   await page.getByText('Explorar painel e widgets').click();
   const widgets = page.getByRole('region', { name: 'Widgets da Home' }).locator('[data-widget]');
   const firstBefore = await widgets.first().getAttribute('data-widget');
@@ -134,11 +141,5 @@ test('performance context follows recent sessions and offers no automatic reorde
   await expect(widgets.first()).toHaveAttribute('data-widget', firstBefore ?? '');
   await hero.getByRole('button', { name: 'Aplicar ordem sugerida' }).click();
   await expect(widgets.first()).toHaveAttribute('data-widget', 'study-time');
-  if (process.env.F7_UXH_STATE_DIR) {
-    await page.screenshot({
-      path: process.env.F7_UXH_STATE_DIR + '/home-performance.png',
-      fullPage: false,
-    });
-  }
 });
 
