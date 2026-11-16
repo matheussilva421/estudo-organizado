@@ -439,13 +439,13 @@ export function HomeView({
       { id: `custom-${Date.now()}`, label: customLabel.trim().slice(0, 80), formula },
     ];
     setCustomWidgets(next);
-    persist(`${CUSTOM_WIDGETS_KEY}:${profileId}`, next);
+    setLayoutPersistError(!persist(`${CUSTOM_WIDGETS_KEY}:${profileId}`, next));
   }
 
   function removeCustomWidget(id: string): void {
     const next = customWidgets.filter((widget) => widget.id !== id);
     setCustomWidgets(next);
-    persist(`${CUSTOM_WIDGETS_KEY}:${profileId}`, next);
+    setLayoutPersistError(!persist(`${CUSTOM_WIDGETS_KEY}:${profileId}`, next));
   }
 
   function renderWidget(id: DashboardWidgetId) {
@@ -743,7 +743,7 @@ export function HomeView({
       </section>
       {layoutPersistError ? (
         <p className="inline-notice" role="alert" data-testid="home-layout-unsaved-top">
-          Layout aplicado nesta aba, mas não gravado no armazenamento local. Recarregar
+          Painel aplicado nesta aba, mas não gravado no armazenamento local. Recarregar
           restaura a ordem anterior; os fatos acadêmicos não foram alterados.
         </p>
       ) : null}
@@ -1021,7 +1021,7 @@ export function HomeView({
           </ol>
           {layoutPersistError ? (
             <p className="inline-notice" role="alert" data-testid="home-layout-unsaved">
-              Alteração de layout aplicada nesta aba, mas não foi gravada no armazenamento
+              Alteração de painel aplicada nesta aba, mas não foi gravada no armazenamento
               local. Ela será perdida ao recarregar; os fatos acadêmicos não foram alterados.
             </p>
           ) : null}
