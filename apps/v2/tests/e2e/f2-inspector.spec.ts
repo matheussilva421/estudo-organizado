@@ -100,6 +100,8 @@ test('large content tree exposes an inspector with identity, structure and focus
   await expect(more).toBeVisible();
   await more.click();
   await expect(page.locator('.tree > .tree-node')).toHaveCount(100);
+  await page.getByRole('button', { name: /Mostrar mais 20 assunto/ }).click();
+  await expect(page.locator('.tree > .tree-node')).toHaveCount(120);
   expect(elapsed).toBeLessThan(5000);
 
   const node = page.locator('[data-entity-id="assunto-3"]');
@@ -132,6 +134,11 @@ test('large content tree exposes an inspector with identity, structure and focus
   await expect(page.getByTestId('content-inspector')).toContainText('12 subassunto(s)');
   await page.getByTestId('content-inspector').getByRole('button', { name: 'Fechar' }).click();
 
+  const lastNode = page.locator('[data-entity-id="assunto-119"]');
+  await lastNode.getByRole('button', { name: 'Ver detalhes de Assunto 119' }).click();
+  await expect(page.getByTestId('content-inspector')).toContainText('Assunto 119');
+  await page.getByTestId('content-inspector').getByRole('button', { name: 'Fechar' }).click();
+
   const aula = page.locator('[data-entity-id="aula-1"]');
   await aula.getByRole('button', { name: 'Ver detalhes da aula Aula magna' }).click();
   await expect(page.getByTestId('content-inspector')).toContainText('Aula magna');
@@ -161,5 +168,9 @@ test('content inspector remains usable at 320px without horizontal overflow', as
       fullPage: false,
     });
   }
+  await inspector.getByRole('button', { name: 'Fechar' }).click();
+  await expect(
+    node.getByRole('button', { name: 'Ver detalhes de Assunto 002' }),
+  ).toBeFocused();
 });
 

@@ -95,6 +95,11 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
       path: process.env.F7_UXH_STATE_DIR + '/review-execution-detail.png',
     });
   }
+  const commitmentLink = execution.getByRole('button', { name: /ver compromisso/ });
+  await expect(commitmentLink).toBeVisible();
+  await commitmentLink.click();
+  await expect(page.locator('li[id^="review-commitment-"]').first()).toBeFocused();
+  await expect(page.locator('li[id^="review-commitment-"]').first()).toBeVisible();
   if (process.env.F7_UXH_STATE_DIR) {
     await weak.screenshot({
       path: process.env.F7_UXH_STATE_DIR + '/review-evidence-drilldown.png',
@@ -112,4 +117,8 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   const priorities = page.locator('[data-testid="review-priorities"]');
   await priorities.getByRole('button', { name: 'Recalcular prioridade' }).click();
   await expect(priorities).toContainText('Controle de constitucionalidade');
+
+  await evidenceLink.click();
+  await expect(page).toHaveURL(/#\/sessions/);
+  await expect(page.getByTestId('session-history')).toContainText('2026-11-01');
 });

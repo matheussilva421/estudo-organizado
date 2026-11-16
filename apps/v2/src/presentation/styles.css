@@ -5344,6 +5344,17 @@ body::before {
   text-underline-offset: 2px;
 }
 
+.link-like {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--text);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
 @media (max-width: 720px) {
   .history-comparison-grid {
     grid-template-columns: minmax(0, 1fr);

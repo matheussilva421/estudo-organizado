@@ -134,5 +134,11 @@ test('performance context follows recent sessions and offers no automatic reorde
   await expect(widgets.first()).toHaveAttribute('data-widget', firstBefore ?? '');
   await hero.getByRole('button', { name: 'Aplicar ordem sugerida' }).click();
   await expect(widgets.first()).toHaveAttribute('data-widget', 'study-time');
+  if (process.env.F7_UXH_STATE_DIR) {
+    await page.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/home-performance.png',
+      fullPage: false,
+    });
+  }
 });
 

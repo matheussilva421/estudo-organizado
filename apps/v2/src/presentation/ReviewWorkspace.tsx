@@ -1587,9 +1587,19 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                                     <dt>Compromisso</dt>
                                     <dd>
                                       {execution.commitmentId ? (
-                                        <a href="#review-history-panel">
-                                          {shortId(execution.commitmentId)}
-                                        </a>
+                                        <button
+                                          type="button"
+                                          className="link-like"
+                                          onClick={() => {
+                                            const target = document.getElementById(
+                                              'review-commitment-' + execution.commitmentId,
+                                            );
+                                            target?.scrollIntoView({ block: 'center' });
+                                            target?.focus();
+                                          }}
+                                        >
+                                          ver compromisso {shortId(execution.commitmentId)}
+                                        </button>
                                       ) : (
                                         'sem compromisso'
                                       )}
@@ -1834,7 +1844,12 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         ) : (
           <ol className="review-timeline">
             {closedCommitments.slice(0, 12).map((commitment) => (
-              <li key={commitment.id}>
+              <li
+                key={commitment.id}
+                id={`review-commitment-${commitment.id}`}
+                data-commitment-id={commitment.id}
+                tabIndex={-1}
+              >
                 <span className="review-timeline-dot" aria-hidden="true" />
                 <div>
                   <strong>{commitment.label}</strong>
