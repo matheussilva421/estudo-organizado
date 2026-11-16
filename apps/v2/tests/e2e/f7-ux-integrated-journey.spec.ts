@@ -61,6 +61,9 @@ test('F2 to F6 journey keeps content ids and separates manual, review and plan f
   await page.goto('/#/planning');
   await expect(page.getByTestId('planning-workspace')).toBeVisible();
   await expect(page.getByTestId('planning-calendar')).toContainText('Conteúdo integrado');
+  const capacity = page.getByTestId('planning-capacity-comparison');
+  await expect(capacity).toContainText('Ciclo integrado');
+  await expect(capacity).toContainText('60 min');
 
   await page.goto('/#/sessions');
   const manual = page.getByTestId('session-manual');
@@ -81,10 +84,21 @@ test('F2 to F6 journey keeps content ids and separates manual, review and plan f
   await page.getByRole('button', { name: 'Concluir' }).click();
   await expect(page.getByTestId('review-agenda')).toContainText('Cumprida');
 
+  // R-09: the review execution did not rewrite the planned block or the session
+  // duration that originated it.
+  await page.goto('/#/planning');
+  await expect(page.getByTestId('planning-calendar')).toContainText('Conteúdo integrado');
+  await page.goto('/#/sessions');
+  await expect(page.getByTestId('session-history')).toContainText('00:30:00');
+
   await page.goto('/#/home');
   await expect(page.getByTestId('f6-home')).toBeVisible();
   await expect(page.getByTestId('f6-load-error')).toHaveCount(0);
   await page.goto('/#/analytics');
   await expect(page.getByTestId('f6-analytics')).toBeVisible();
+  const focusKpi = page.locator('.kpi-card', { hasText: 'Tempo de foco executado' });
+  const plannedKpi = page.locator('.kpi-card', { hasText: 'Tempo planejado' });
+  await expect(focusKpi).toContainText('30 min');
+  await expect(plannedKpi).toContainText('60 min');
 });
 

@@ -19,6 +19,7 @@ import type {
   ReviewTopicOverride,
   ReviewSuggestion,
   ReviewTopicLink,
+  ReviewExecution,
   WeakPointProjection,
 } from '../domain/review';
 import { useFocusScroll } from './use-focus-scroll';
@@ -163,6 +164,19 @@ function shortId(value: string): string {
   return value.length > 8 ? value.slice(0, 8) : value;
 }
 
+const ASSESSMENT_LABEL: Record<string, string> = {
+  FORGOT: 'esqueci',
+  PARTIAL: 'parcial',
+  GOOD: 'boa',
+  UNRATED: 'não avaliada',
+};
+
+const COVERAGE_LABEL: Record<string, string> = {
+  FULL: 'integral',
+  PARTIAL: 'parcial',
+  UNKNOWN: 'não informada',
+};
+
 function SessionEvidenceItem({
   profileId,
   sessionId,
@@ -243,6 +257,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   useFocusScroll(focusId, commitments.length);
   const [suggestions, setSuggestions] = useState<ReviewSuggestion[]>([]);
   const [weakPoints, setWeakPoints] = useState<WeakPointProjection[]>([]);
+  const [executions, setExecutions] = useState<ReviewExecution[]>([]);
   const [boardEvidence, setBoardEvidence] = useState<BoardEvidence[]>([]);
   const [reminders, setReminders] = useState<Awaited<ReturnType<ReviewService['reminders']>> | null>(null);
   const [priority, setPriority] = useState<Awaited<ReturnType<ReviewService['previewPriorities']>> | null>(null);
@@ -422,7 +437,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
       setPolicy(nextPolicy);
       setDefaultDuration(String(nextPolicy.defaultDurationMinutes));
       setAutoApprove(nextPolicy.autoApprove);
-      const [nextTopics, nextCommitments, nextSuggestions, nextWeak, nextBoard, nextReminders] =
+      const [nextTopics, nextCommitments, nextSuggestions, nextWeak, nextBoard, nextReminders, nextExecutions] =
         await Promise.all([
           service.listTopics(profileId),
           service.listCommitments(profileId),
@@ -430,6 +445,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
           service.weakPoints(profileId),
           service.listBoardEvidence(profileId),
           service.reminders(profileId),
+          new LocalReviewRepository().listExecutions(profileId),
         ]);
       setTopics(nextTopics);
       setCommitments(nextCommitments);
@@ -437,6 +453,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
       setWeakPoints(nextWeak);
       setBoardEvidence(nextBoard);
       setReminders(nextReminders);
+      setExecutions(nextExecutions);
       try {
         setProjectionStatus(await service.weakPointProjectionStatus(profileId));
       } catch {
@@ -1528,15 +1545,73 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                           sessionId={sessionId}
                         />
                       ))}
-                      {evidenceIds(item.evidence, 'F5').map((executionId) => (
-                        <li key={executionId} data-testid={`review-evidence-execution-${executionId}`}>
-                          Execução de revisão (F5) · referência{' '}
-                          <code title={executionId}>{shortId(executionId)}</code>
-                          <span className="hint">
-                            {' '}— registro de auditoria sem tela própria nesta versão.
-                          </span>
-                        </li>
-                      ))}
+                      {evidenceIds(item.evidence, 'F5').map((executionId) => {
+                        const execution = executions.find(
+                          (entry) => entry.id === executionId,
+                        );
+                        return (
+                          <li
+                            key={executionId}
+                            data-testid={`review-evidence-execution-${executionId}`}
+                          >
+                            <details>
+                              <summary>
+                                Execução de revisão (F5) ·{' '}
+                                {execution
+                                  ? `${ASSESSMENT_LABEL[execution.assessment]} em ${execution.civilDate}`
+                                  : `referência ${shortId(executionId)}`}
+                              </summary>
+                              {execution ? (
+                                <dl>
+                                  <div>
+                                    <dt>Tópico</dt>
+                                    <dd>{execution.canonicalTopicKey}</dd>
+                                  </div>
+                                  <div>
+                                    <dt>Avaliação</dt>
+                                    <dd>{ASSESSMENT_LABEL[execution.assessment]}</dd>
+                                  </div>
+                                  <div>
+                                    <dt>Cobertura</dt>
+                                    <dd>{COVERAGE_LABEL[execution.coverage]}</dd>
+                                  </div>
+                                  <div>
+                                    <dt>Duração</dt>
+                                    <dd>
+                                      {execution.durationMinutes
+                                        ? `${execution.durationMinutes} min`
+                                        : 'não registrada'}
+                                    </dd>
+                                  </div>
+                                  <div>
+                                    <dt>Compromisso</dt>
+                                    <dd>
+                                      {execution.commitmentId ? (
+                                        <a href="#review-history-panel">
+                                          {shortId(execution.commitmentId)}
+                                        </a>
+                                      ) : (
+                                        'sem compromisso'
+                                      )}
+                                    </dd>
+                                  </div>
+                                  <div>
+                                    <dt>Identidade</dt>
+                                    <dd>
+                                      <code>{execution.id}</code>
+                                    </dd>
+                                  </div>
+                                </dl>
+                              ) : (
+                                <p className="hint">
+                                  Execução não encontrada no perfil atual; o identificador
+                                  permanece apenas para auditoria.
+                                </p>
+                              )}
+                            </details>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </details>

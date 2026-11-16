@@ -77,6 +77,7 @@ test('an active session takes precedence in the home hero', async ({ page }) => 
   await expect(hero).toHaveAttribute('data-context', 'ACTIVE');
   await expect(hero).toContainText('Sessão em andamento');
   await expect(hero.getByRole('link', { name: 'Continuar sessão' })).toBeVisible();
+  await expect(hero.getByText('Ver sugestão de ordem')).toHaveCount(0);
 });
 
 test('academic priority leads the hero while diagnostics stay out of it', async ({ page }) => {
@@ -89,5 +90,49 @@ test('academic priority leads the hero while diagnostics stay out of it', async 
   await expect(hero.getByRole('link', { name: 'Começar agora' })).toBeVisible();
   const repeated = page.getByText(/aguardando envio remoto/i);
   expect(await repeated.count()).toBeLessThanOrEqual(1);
+});
+
+test('performance context follows recent sessions and offers no automatic reorder', async ({ page }) => {
+  await resetF7Ux(page, '/#/home');
+  await seedAcademicData(page);
+  await page.evaluate(async () => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'perf-scenario' },
+      scenarioId: 'scenario-perf',
+      baseRevision: null,
+      changes: {
+        scenario: {
+          id: 'scenario-perf',
+          profileId: 'local-default',
+          editalId: 'f7ux-edital',
+          kind: 'CYCLE',
+          name: 'Ciclo desempenho',
+          status: 'ACTIVE',
+          localRevision: 1,
+          schemaVersion: 1,
+          priorityProfileId: 'priority-default',
+          priorityProfileRevision: 1,
+          referenceZone: 'America/Fortaleza',
+        },
+      },
+    });
+  });
+  await page.goto('/#/sessions');
+  await page.getByLabel('Duração da sessão (min)').fill('25');
+  await page.locator('[data-testid="session-manual-submit"]').click();
+  await page.goto('/#/home');
+  const hero = page.getByTestId('home-hero');
+  await expect(hero).toHaveAttribute('data-context', 'PERFORMANCE');
+  await expect(hero).toContainText('Acompanhe o que já rendeu');
+  await expect(hero).toContainText('Tempo, revisões e evidências derivados dos seus dados locais.');
+  await page.getByText('Explorar painel e widgets').click();
+  const widgets = page.getByRole('region', { name: 'Widgets da Home' }).locator('[data-widget]');
+  const firstBefore = await widgets.first().getAttribute('data-widget');
+  expect(firstBefore).not.toBe('study-time');
+  await hero.getByText('Ver sugestão de ordem').click();
+  await expect(widgets.first()).toHaveAttribute('data-widget', firstBefore ?? '');
+  await hero.getByRole('button', { name: 'Aplicar ordem sugerida' }).click();
+  await expect(widgets.first()).toHaveAttribute('data-widget', 'study-time');
 });
 

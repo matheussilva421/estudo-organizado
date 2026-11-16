@@ -226,6 +226,12 @@ test('knowledge review and insights use desktop workspace grids', async ({ page 
     const tables = [...root.querySelectorAll<HTMLElement>(':scope > .table-grid')];
     const lastTable = tables[tables.length - 1]!;
     const kpis = [...root.querySelectorAll<HTMLElement>('.kpi-card')];
+    const dayPanel = document.querySelector<HTMLElement>(
+      '[aria-labelledby="analytics-day-title"]',
+    )!;
+    const statePanel = document.querySelector<HTMLElement>(
+      '[aria-labelledby="analytics-state-title"]',
+    )!;
     return {
       display: getComputedStyle(root).display,
       editorTop: Math.round(editor.getBoundingClientRect().top),
@@ -235,6 +241,9 @@ test('knowledge review and insights use desktop workspace grids', async ({ page 
       scopeCards: root.querySelectorAll('.scope-grid > div').length,
       primaryWidth: Math.round(kpis[0]!.getBoundingClientRect().width),
       secondWidth: Math.round(kpis[1]!.getBoundingClientRect().width),
+      tableAlign: getComputedStyle(lastTable).alignItems,
+      dayHeight: Math.round(dayPanel.getBoundingClientRect().height),
+      stateHeight: Math.round(statePanel.getBoundingClientRect().height),
     };
   });
   expect(analytics.display).toBe('grid');
@@ -242,4 +251,6 @@ test('knowledge review and insights use desktop workspace grids', async ({ page 
   expect(analytics.tableWidth).toBeGreaterThan(analytics.rootWidth * 0.9);
   expect(analytics.scopeCards).toBe(0);
   expect(analytics.primaryWidth).toBeGreaterThan(analytics.secondWidth);
+  expect(analytics.tableAlign).toBe('start');
+  expect(analytics.dayHeight).toBeLessThan(analytics.stateHeight);
 });

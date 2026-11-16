@@ -444,12 +444,18 @@ textarea {
 
 .tree-actions {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 2px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .tree-actions button {
   min-width: 44px;
   min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
   font-family: var(--font-mono);
 }
 
@@ -1770,6 +1776,63 @@ select {
   min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.tree-node[data-selected='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.content-inspector {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 14px;
+  background:
+    radial-gradient(100% 140% at 100% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 62%),
+    var(--surface);
+}
+
+.content-inspector header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 14px;
+}
+
+.content-inspector header h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.content-inspector dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.content-inspector dl > div {
+  min-width: 0;
+}
+
+.content-inspector dt {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.content-inspector dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.aula-row button {
+  margin-left: auto;
 }
 
 .edital-actions,

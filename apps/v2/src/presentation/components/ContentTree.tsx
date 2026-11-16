@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { EditalDiscipline } from '../../domain/edital';
 import type { Assunto, Aula, LessonTopicLink } from '../../domain/content';
 import { sortByOrder } from '../../domain/content';
@@ -60,6 +60,29 @@ export function ContentTree({
   const [draggedAssunto, setDraggedAssunto] = useState<string | null>(null);
   const [moveSource, setMoveSource] = useState<Record<string, string>>({});
   const [moveParent, setMoveParent] = useState<Record<string, string>>({});
+  const [inspector, setInspector] = useState<{ kind: 'assunto' | 'aula'; id: string } | null>(
+    null,
+  );
+  const inspectorHeading = useRef<HTMLHeadingElement | null>(null);
+  const inspectorTrigger = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (inspector) inspectorHeading.current?.focus();
+  }, [inspector]);
+
+  function openInspector(
+    kind: 'assunto' | 'aula',
+    id: string,
+    trigger: HTMLElement,
+  ): void {
+    inspectorTrigger.current = trigger;
+    setInspector({ kind, id });
+  }
+
+  function closeInspector(): void {
+    setInspector(null);
+    requestAnimationFrame(() => inspectorTrigger.current?.focus());
+  }
   function localKeyFor(linkId: string, kind: 'assunto' | 'aula'): string {
     return localDraftKey(profileId, kind + '-new', linkId);
   }
@@ -215,6 +238,7 @@ export function ContentTree({
         data-depth={depth}
         data-entity-id={assunto.id}
         data-focus={assunto.id === focusId ? 'true' : undefined}
+        data-selected={inspector?.kind === 'assunto' && inspector.id === assunto.id ? 'true' : undefined}
         draggable={!locked}
         onDragStart={(event) => {
           setDraggedAssunto(assunto.id);
@@ -234,6 +258,14 @@ export function ContentTree({
           <span className="tree-title">{assunto.title}</span>
           <span className="tree-meta">{topics.length} aula(s)</span>
           <span className="tree-actions">
+            <button
+              type="button"
+              className="button-ghost"
+              aria-label={`Ver detalhes de ${assunto.title}`}
+              onClick={(event) => openInspector('assunto', assunto.id, event.currentTarget)}
+            >
+              Detalhes
+            </button>
             <button
               type="button"
               className="button-ghost"
@@ -287,6 +319,36 @@ export function ContentTree({
     );
   }
 
+  const inspectedAssunto =
+    inspector?.kind === 'assunto'
+      ? assuntos.find((item) => item.id === inspector.id) ?? null
+      : null;
+  const inspectedAula =
+    inspector?.kind === 'aula'
+      ? aulas.find((item) => item.id === inspector.id) ?? null
+      : null;
+  const inspectedLink =
+    links.find(
+      (item) =>
+        item.id ===
+        (inspectedAssunto?.editalDisciplineId ?? inspectedAula?.editalDisciplineId),
+    ) ?? null;
+  const inspectedSubject = inspectedLink
+    ? subjects.find((item) => item.id === inspectedLink.subjectId) ?? null
+    : null;
+  const inspectedParent =
+    inspectedAssunto?.parentId
+      ? assuntos.find((item) => item.id === inspectedAssunto.parentId) ?? null
+      : null;
+  const inspectorOpen = Boolean(inspectedAssunto || inspectedAula);
+  const inspectorId = inspectedAssunto?.id ?? inspectedAula?.id ?? '';
+  const inspectorChildren = inspectedAssunto
+    ? assuntos.filter((item) => item.parentId === inspectedAssunto.id).length
+    : 0;
+  const inspectorTopics = lessonTopics.filter((item) =>
+    inspectedAssunto ? item.assuntoId === inspectedAssunto.id : item.aulaId === inspectedAula?.id,
+  ).length;
+
   return (
     <div className="content-tree">
       {draftSaveFailed ? (
@@ -297,6 +359,79 @@ export function ContentTree({
       ) : null}
       {orderError ? (
         <p className="inline-notice" role="alert" data-testid="f7-order-error">{orderError}</p>
+      ) : null}
+      {inspectorOpen ? (
+        <aside
+          className="content-inspector"
+          aria-labelledby="content-inspector-title"
+          data-testid="content-inspector"
+        >
+          <header>
+            <div>
+              <p className="eyebrow">Inspetor de conteúdo</p>
+              <h3 id="content-inspector-title" ref={inspectorHeading} tabIndex={-1}>
+                {inspectedAssunto?.title ?? inspectedAula?.title}
+              </h3>
+            </div>
+            <button type="button" onClick={closeInspector} aria-label="Fechar detalhes">
+              Fechar
+            </button>
+          </header>
+          <dl>
+            <div>
+              <dt>Tipo</dt>
+              <dd>{inspectedAssunto ? 'Assunto' : 'Aula'}</dd>
+            </div>
+            <div>
+              <dt>Identidade</dt>
+              <dd>
+                <code>{inspectorId}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Disciplina</dt>
+              <dd>
+                {inspectedSubject?.title ??
+                  inspectedLink?.displayAlias ??
+                  inspectedLink?.id ??
+                  'não vinculada'}
+              </dd>
+            </div>
+            {inspectedAssunto ? (
+              <div>
+                <dt>Assunto pai</dt>
+                <dd>{inspectedParent?.title ?? 'Raiz'}</dd>
+              </div>
+            ) : null}
+            <div>
+              <dt>Estrutura</dt>
+              <dd>
+                {inspectedAssunto
+                  ? `${inspectorChildren} subassunto(s) · ${inspectorTopics} aula(s) mapeada(s)`
+                  : `${inspectorTopics} assunto(s) mapeado(s)`}
+              </dd>
+            </div>
+            <div>
+              <dt>Estado</dt>
+              <dd>
+                {locked ? 'somente leitura' : 'editável'} · ordem{' '}
+                {inspectedAssunto?.orderKey || inspectedAula?.orderKey || 'não definida'}
+              </dd>
+            </div>
+          </dl>
+          <div className="session-actions">
+            <button
+              type="button"
+              onClick={() => {
+                document
+                  .querySelector('[data-entity-id="' + inspectorId + '"]')
+                  ?.scrollIntoView({ block: 'center', behavior: 'auto' });
+              }}
+            >
+              Destacar na árvore
+            </button>
+          </div>
+        </aside>
       ) : null}
       {links.map((link) => {
         const subject = subjectById.get(link.subjectId);
@@ -512,6 +647,14 @@ export function ContentTree({
                       <div className="aula-row">
                         <span>{aula.title}</span>
                         <span className="tree-meta">{linked.length} assunto(s) mapeado(s)</span>
+                        <button
+                          type="button"
+                          className="button-ghost"
+                          aria-label={`Ver detalhes da aula ${aula.title}`}
+                          onClick={(event) => openInspector('aula', aula.id, event.currentTarget)}
+                        >
+                          Detalhes
+                        </button>
                       </div>
                       <div className="aula-map">
                         <select

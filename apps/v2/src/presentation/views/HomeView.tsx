@@ -300,6 +300,10 @@ export function HomeView({
       : filteredPriorities;
   const nextAction =
     displayPriorities[0] ?? (filter === 'ALL' ? summary.nextAction : null);
+  // The hero is an academic surface: operational diagnostics must not become
+  // the "next study action" when no academic priority is pending.
+  const academicNextAction =
+    displayPriorities.find((item) => !isSystemPriority(item)) ?? null;
   const indicators = selectHomeIndicators(summary.counts, visibleIndicators);
   const metricInput = { summary, analytics, content: emptyContent(), sessions };
   const metricValues: Partial<Record<WidgetMetricSpec, ReturnType<typeof queryWidgetMetric>>> = {
@@ -571,7 +575,7 @@ export function HomeView({
       ? 'ONBOARDING'
       : examDays !== null && examDays >= 0 && examDays <= 45
         ? 'FINAL_STRETCH'
-        : summary.nextAction
+        : academicNextAction
           ? 'DAILY'
           : summary.counts.completedLast7Days > 0
             ? 'PERFORMANCE'
@@ -585,7 +589,7 @@ export function HomeView({
           ? 'Reta Final em foco'
           : heroContext === 'PERFORMANCE'
             ? 'Acompanhe o que já rendeu'
-            : (nextAction?.title ?? 'Próximo passo');
+            : (academicNextAction?.title ?? 'Próximo passo');
   const heroDetail =
     heroContext === 'ACTIVE'
       ? 'Continue de onde parou; esta é a mesma sessão do cronômetro.'
@@ -595,7 +599,7 @@ export function HomeView({
           ? `${finalStretch?.name ?? 'Reta Final'} · ${examDays} dia(s) até a prova registrada.`
           : heroContext === 'PERFORMANCE'
             ? 'Tempo, revisões e evidências derivados dos seus dados locais.'
-            : (nextAction?.detail ?? 'Abra o planejamento para escolher o próximo bloco.');
+            : (academicNextAction?.detail ?? 'Abra o planejamento para escolher o próximo bloco.');
   const heroHref =
     heroContext === 'ACTIVE'
       ? '#/sessions'
@@ -603,8 +607,10 @@ export function HomeView({
         ? '#/content'
         : heroContext === 'FINAL_STRETCH'
           ? '#/planning'
-          : nextAction
-            ? routeHref(routeForTarget(nextAction.target, nextAction.entityId ?? null))
+          : academicNextAction
+            ? routeHref(
+                routeForTarget(academicNextAction.target, academicNextAction.entityId ?? null),
+              )
             : '#/planning';
   const heroCta =
     heroContext === 'ACTIVE'

@@ -74,7 +74,7 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   await expect(weak).toContainText('Controle de constitucionalidade');
   await expect(weak).toContainText('7/10');
   const evidence = weak.locator('details').first();
-  await evidence.locator('summary').click();
+  await evidence.locator('summary').first().click();
   await expect(evidence).toContainText('Amostra: 10 questão(ões), 7 acerto(s)');
   const evidenceLink = evidence.getByRole('link', { name: /Sessão F4/ });
   await expect(evidenceLink).toBeVisible();
@@ -83,6 +83,13 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   await expect(evidenceLink).toHaveAttribute('title', 'session-f5');
   await expect(evidence).toContainText('10 questão(ões) · 7 acerto(s)');
   await expect(evidence).not.toContainText('Abrir sessão F4 session-f5');
+  const execution = evidence.getByTestId(/review-evidence-execution-/).first();
+  await expect(execution).toContainText('Execução de revisão (F5)');
+  await expect(execution).toContainText(/boa em \d{4}-\d{2}-\d{2}/);
+  await execution.locator('summary').click();
+  await expect(execution).toContainText('Cobertura');
+  await expect(execution).toContainText('integral');
+  await expect(execution).toContainText('Compromisso');
   if (process.env.F7_UXH_STATE_DIR) {
     await weak.screenshot({
       path: process.env.F7_UXH_STATE_DIR + '/review-evidence-drilldown.png',
