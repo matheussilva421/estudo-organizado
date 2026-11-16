@@ -6,6 +6,6 @@
 
 ## Rollback
 
-1. `git revert --no-commit 3cf1ad56 7f37428f` na branch `v2` e revisar o diff.
+1. `git revert --no-commit 3cf1ad56 7f37428f 1d77a93a 610a9673 819c3c66 4e7c9575 17ccda36` na branch `v2` e revisar o diff. O commit documental desta rodada entra depois.
 2. Não usar `reset --hard`, `clean -fd` ou force.
 3. `main`, `origin/v2` e refs `recovery/*` não foram alterados.

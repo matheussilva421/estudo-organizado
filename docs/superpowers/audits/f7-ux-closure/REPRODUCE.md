@@ -13,7 +13,7 @@ npx playwright test --project=chromium --reporter=line
 ## Evidências
 
 ```powershell
-$root = 'C:\...\closure-final-7f37428f'
+$root = '<EVIDENCE_ROOT>'  # ex.: closure-final-4e7c9575
 $env:F7_UX_EVIDENCE_DIR = "$root\evidencia-geral"
 $env:F7_UX_PREMIUM_EVIDENCE = "$root\premium"
 $env:F7_UX_PREMIUM_COMPARE = "$root\comparacoes"

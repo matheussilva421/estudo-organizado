@@ -1,6 +1,6 @@
 # Matriz de aceite — remediação UX-H
 
-**Código:** `454f27e5`. **Baseline reprovado:** `a4b56e5e` / `48548168`. **Aceite:** `UX_H_RE_REVIEW_PENDING`.
+**Código:** `17ccda36` (rodada de evidências de 16/11/2026; a tabela mantém os IDs da remediação de 13/11). **Baseline reprovado:** `a4b56e5e` / `48548168`. **Aceite:** `UX_H_RE_REVIEW_PENDING`.
 
 ## D01–D71
 
@@ -18,7 +18,7 @@
 | ID | Estado | Evidência/limite |
 |---|---|---|
 | DV-01–DV-03 | PASS | catálogo, galeria, glow/densidade |
-| DV-04 | PARTIAL_JUSTIFIED | cenário desempenho depende de fixture dirigida |
+| DV-04 | PASS_VERIFIED (fixture) | cenário PERFORMANCE com cenário ativo + sessão concluída; f7-ux-premium-home |
 | DV-05 | PARTIAL_JUSTIFIED | sugestão com consentimento; layout fixado com teste limitado |
 | DV-06 | PARTIAL_JUSTIFIED | Studios recompostos; não há mock 1:1 para eles |
 | DV-07 | PASS | onboarding e estados vazios reais |
@@ -36,8 +36,8 @@
 | VA | Estado | Prova |
 |---|---|---|
 | VA-01–VA-05 | PASS | temas, persistência, onboarding |
-| VA-06 | PARTIAL_JUSTIFIED | performance sem fixture dirigida |
-| VA-07 | PARTIAL_JUSTIFIED | layout fixado com teste limitado |
+| VA-06 | PARTIAL_JUSTIFIED | fixture acadêmica coberta; benchmark formal de renderização/hardware não executado |
+| VA-07 | PASS_VERIFIED | consentimento de ordem em PERFORMANCE e FINAL_STRETCH; nada muda antes de aplicar |
 | VA-08 | PASS_LOCAL | Studios com hierarquia própria |
 | VA-09 | PASS_LOCAL | ações em camadas e duas colunas |
 | VA-10–VA-11 | PASS | sessão/Foco, Planning |
@@ -62,7 +62,7 @@ Fórmulas, dados, commits, outbox, relógio e restore não foram alterados. AC-0
 | UX-17 / P-05 | PASS_VERIFIED | `states/final-stretch-close-preview.png`; foco e confirmação |
 | UX-17 / P-06 | PASS_VERIFIED | `states/planning-history.png`; alvo -1/-1 e confirmação |
 | UX-19 / E-07 | PASS_VERIFIED (limite) | `states/session-habit-context.png`; vínculo antigo = não demonstrado |
-| UX-21 / R-04 | PARTIAL_JUSTIFIED | amostra por medição, link F4 e detalhe F5; lista de prioridades sem drill-down por amostra |
+| UX-21 / R-04 | PASS_VERIFIED | prioridade abre o ponto fraco e o detalhe F5; F4 abre a sessão; aviso sem amostra |
 | UX-22–UX-29 | PASS_LOCAL | Insights, Settings, jornadas, offline |
 | UX-30 | PASS_LOCAL / A11Y_MANUAL_NOT_RUN | typecheck, lint, build, 880 unitários, 241 E2E |
 | UX-31 | PASS_LOCAL | bundle, hashes, revisões e ZIP |

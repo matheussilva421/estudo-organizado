@@ -29,3 +29,21 @@ Veredito: **PARTIAL**, sem P0/P1. Confirmou que `application/`, `domain/`, `plat
 ## Limites das revisões
 
 Nenhum revisor executou NVDA/Narrator, toque físico, hardware modesto ou staging. O revisor de integridade reexecutou typecheck, lint e 880 unitários; o E2E completo foi executado pelo autor e está em `TEST-RESULTS.md`.
+
+## Rodada delta — provas P-09/R-09/UX-21
+
+Os dois revisores avaliaram o delta até `4e7c9575`:
+
+- **P-09:** PASS local. Jornada cria A/B, abre prévia, cancela, mantém status e confere sessão/KPIs; capacidade de dois editais tem teste unitário.
+- **R-09:** PASS local para prévia e validação de importação. Política 35 min não é aplicada; v1 permanece. Portabilidade classifica compatível, inválido e outro perfil sem oferecer aplicação.
+- **UX-21:** ambos mantiveram PARTIAL porque o teste cobria apenas um tópico com amostra e não exercitava o aviso sem amostra.
+
+Correções após o parecer, no commit `17ccda36`:
+
+1. A fixture passou a ter dois assuntos; o teste cria duas prioridades.
+2. O botão sem amostra é acionado e o aviso “não tem amostra individual” é verificado.
+3. Os botões receberam nome acessível único (`Ver evidência de <tópico>`).
+4. Foram adicionadas capturas de prioridade→evidência, prévia de política, prévia de ativação e prévia de importação.
+5. A seção de pendências deixou de listar P-09/R-09 como parciais.
+
+Os revisores não reexecutaram a suíte após `17ccda36`; a correção é comprovada pelo teste `f5-review-journey.spec.ts` e pela captura `states/review-priority-evidence.png` no HEAD final.
