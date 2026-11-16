@@ -10,8 +10,10 @@
 
 ## Alvos
 
-1. **Só o endurecimento:** `git revert --no-commit $(git log -1 --format=%H -- docs/superpowers/audits/f7-ux-high-risks) 6c0353bb c5abdf6c`. Volta à árvore de `ccf03457`.
-2. **Toda a execução F0/F7:** `git revert --no-commit $(git log -1 --format=%H -- docs/superpowers/audits/f7-ux-high-risks) 6c0353bb c5abdf6c ccf03457 ee04aabc e4339dd0 e0856dc2 92148784 2f43fe60`. Volta à árvore de `e2164e3f`.
+O comando git rev-list 6c0353bb..HEAD inclui todos os commits documentais desde 6c0353bb, inclusive este.
+
+1. **Só o endurecimento:** `git revert --no-commit $(git rev-list 6c0353bb..HEAD) 6c0353bb c5abdf6c`. Volta à árvore de `ccf03457`.
+2. **Toda a execução F0/F7:** `git revert --no-commit $(git rev-list 6c0353bb..HEAD) 6c0353bb c5abdf6c ccf03457 ee04aabc e4339dd0 e0856dc2 92148784 2f43fe60`. Volta à árvore de `e2164e3f`.
 
 ## Avisos
 
