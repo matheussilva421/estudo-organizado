@@ -216,15 +216,46 @@ test('layout write failure is explicit and does not fake persistence', async ({ 
   });
   await resetF7Ux(page, '/#/home');
   await seedAcademicData(page);
+  await page.evaluate(async () => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'ls-fail-scenario' },
+      scenarioId: 'ls-fail-scenario',
+      baseRevision: null,
+      changes: {
+        scenario: {
+          id: 'ls-fail-scenario',
+          profileId: 'local-default',
+          editalId: 'f7ux-edital',
+          kind: 'CYCLE',
+          name: 'Ciclo falha',
+          status: 'ACTIVE',
+          localRevision: 1,
+          schemaVersion: 1,
+          priorityProfileId: 'priority-default',
+          priorityProfileRevision: 1,
+          referenceZone: 'America/Fortaleza',
+        },
+      },
+    });
+  });
+  await page.goto('/#/sessions');
+  await page.getByLabel('Duração da sessão (min)').fill('20');
+  await page.locator('[data-testid="session-manual-submit"]').click();
   await page.goto('/#/home');
   await page.getByText('Explorar painel e widgets').click();
   await page.getByText('Personalizar widgets e fontes').click();
   const order = page.locator('.dashboard-order li');
   const firstBefore = await order.nth(0).getAttribute('data-widget');
-  const secondBefore = await order.nth(1).getAttribute('data-widget');
+  await page.getByText('Ver sugestão de ordem').click();
+  await page.getByRole('button', { name: 'Aplicar ordem sugerida' }).click();
+  await expect(page.getByTestId('home-layout-unsaved-top')).toBeVisible();
+  await expect(page.getByText(/Ordem atualizada para/)).toHaveCount(0);
+  const secondAfterSuggestion = await order.nth(1).getAttribute('data-widget');
   await order.nth(1).getByRole('button', { name: 'Mover para cima' }).click();
-  await expect(order.nth(0)).toHaveAttribute('data-widget', secondBefore ?? '');
+  await expect(order.nth(0)).toHaveAttribute('data-widget', secondAfterSuggestion ?? '');
   await expect(page.getByTestId('home-layout-unsaved')).toBeVisible();
+  await expect(page.getByTestId('home-layout-unsaved-top')).toBeVisible();
   await page.reload();
   await page.getByText('Explorar painel e widgets').click();
   await page.getByText('Personalizar widgets e fontes').click();

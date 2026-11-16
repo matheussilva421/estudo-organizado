@@ -34,6 +34,12 @@ describe('F7 remote schema', () => {
     expect(giant.payload.title).toHaveLength(1_100_000);
   });
 
+  it('f7_rejects_future_remote_schema_version_without_apply', () => {
+    const future = { ...validEntity, schemaVersion: 99 };
+    expect(validateRemoteEnvelope(future)).toEqual({ ok: false, reason: 'INVALID' });
+    expect(future.payload.title).toBe('TJPB');
+  });
+
   it('f7_receipt_binds_operation_entity_digest', () => {
     const receipt = {
       operationId: 'op-1',

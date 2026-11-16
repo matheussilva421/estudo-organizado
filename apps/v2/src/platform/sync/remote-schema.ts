@@ -1,4 +1,5 @@
 import type { OutboxEntityType, OutboxPayload } from '../../application/sync-types';
+import { DOMAIN_SCHEMA_VERSION } from '../../domain/versions';
 import { estimateRemoteEnvelopeBytes, MAX_SAFE_DOCUMENT_BYTES } from './document-budget';
 
 export type RemoteEntity = {
@@ -60,7 +61,12 @@ export function validateRemoteEnvelope(entity: unknown): RemoteValidation {
   }
   if (!isId(entity.entityId)) return { ok: false, reason: 'INVALID' };
   if (!isId(entity.entityType, ENTITY_TYPE_MAX)) return { ok: false, reason: 'INVALID' };
-  if (!isIntegerInRange(entity.schemaVersion, 1, SCHEMA_MAX)) return { ok: false, reason: 'INVALID' };
+  if (
+    !isIntegerInRange(entity.schemaVersion, 1, SCHEMA_MAX) ||
+    entity.schemaVersion > DOMAIN_SCHEMA_VERSION
+  ) {
+    return { ok: false, reason: 'INVALID' };
+  }
   if (!isIntegerInRange(entity.revision, 1, REVISION_MAX)) return { ok: false, reason: 'INVALID' };
   if (typeof entity.deleted !== 'boolean') return { ok: false, reason: 'INVALID' };
   if (!isIntegerInRange(entity.epoch, 0, EPOCH_MAX)) return { ok: false, reason: 'INVALID' };

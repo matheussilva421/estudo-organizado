@@ -398,10 +398,12 @@ export function HomeView({
     persistScalar(profilePreferenceKey(INDICATORS_KEY, profileId), selected.join(','));
   }
 
-  function commitDashboard(next: DashboardState): void {
+  function commitDashboard(next: DashboardState): boolean {
     setLayoutHistory((history) => [...history, dashboard].slice(-10));
     setDashboard(next);
-    setLayoutPersistError(!persist(`${DASHBOARD_KEY}:${profileId}`, next));
+    const saved = persist(`${DASHBOARD_KEY}:${profileId}`, next);
+    setLayoutPersistError(!saved);
+    return saved;
   }
 
   function undoLayout(): void {
@@ -723,8 +725,10 @@ export function HomeView({
             <p>Ordem sugerida para {device === 'desktop' ? 'computador' : device === 'mobile' ? 'celular' : 'tablet'}:</p>
             <ol>{suggestedOrder.map((id) => <li key={id}>{WIDGET_LABELS[id]}</li>)}</ol>
             <button type="button" className="button-ghost" onClick={() => {
-              commitDashboard(updateDashboardDevice(dashboard, device, { widgetIds: suggestedOrder }));
-              setOrderApplied(true);
+              const saved = commitDashboard(
+                updateDashboardDevice(dashboard, device, { widgetIds: suggestedOrder }),
+              );
+              setOrderApplied(saved);
               window.requestAnimationFrame(() => {
                 document.querySelector<HTMLElement>('.dashboard-widget')?.focus();
               });
@@ -737,6 +741,12 @@ export function HomeView({
           </p>
         ) : null}
       </section>
+      {layoutPersistError ? (
+        <p className="inline-notice" role="alert" data-testid="home-layout-unsaved-top">
+          Layout aplicado nesta aba, mas não gravado no armazenamento local. Recarregar
+          restaura a ordem anterior; os fatos acadêmicos não foram alterados.
+        </p>
+      ) : null}
       {heroContext === 'ONBOARDING' && !onboardingDismissed ? (
         <div className="home-onboarding-row">
           <p className="home-onboarding-intro">Em poucos passos, você deixa tudo pronto:</p>
