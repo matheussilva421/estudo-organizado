@@ -20,6 +20,13 @@ test('f4 update is deferred during an active session and applies when safe', asy
   await expect(page.locator('[data-testid="session-pause"]')).toBeVisible();
 
   expect(existsSync(serviceWorkerPath)).toBe(true);
+  await page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.ready;
+    while (registration.installing || registration.waiting) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  });
+  await page.waitForTimeout(300);
   appendFileSync(serviceWorkerPath, '\n// f4-update-test-' + Date.now());
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
