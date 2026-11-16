@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Home | contextos ONBOARDING/DAILY/FINAL_STRETCH/PERFORMANCE/ACTIVE; sugestão com consentimento; layout manual, undo e persistência; widgets e filtros | PASS_LOCAL | `f7-ux-premium-home`, `f7-ux-premium-layout`, `f7-ux-home` |
 | Conteúdo | editais, disciplinas, assuntos, aulas, árvore paginada, inspetor, importação, arquivamento | PASS_LOCAL | `f2-*`, `f2-inspector`, `f7-ux-knowledge-library` |
-| Planejamento | cenários, prévia/cancelamento, capacidade compartilhada, calendário, Reta Final, portabilidade | PASS_LOCAL, com ressalva F3 | `f3-*`, `f7-ux-planning-workspace`, P-09 |
+| Planejamento | cenários, prévia/cancelamento, capacidade compartilhada, calendário, Reta Final, portabilidade | PASS_LOCAL | `f3-*`, `f7-ux-planning-workspace`, P-09 |
 | Sessões | timer, Pomodoro, manual, pausa/retomada, histórico, hábitos, duas abas, Foco mobile | PASS_LOCAL | `f4-*`, `f7-ux-premium-focus`, `f7-ux-sessions-history` |
 | Revisões | fila, política versionada, execução, pontos fracos, evidências, prioridade | PASS_LOCAL | `f5-*`, `f7-ux-review-sheet`, R-09, UX-21 |
 | Análises | KPIs, gráfico/tabela, filtros, drill-down, snapshot, exportação | PASS_LOCAL | `f7-ux-attention-analytics`, `f7-ux-analytics` |
@@ -37,7 +37,7 @@ Total: 46 (45 ativos + 1 bloqueado).
 |---|---|---|
 | F1 | PASS_LOCAL | quatro HIGH F0 UNVERIFIED |
 | F2 | PASS_LOCAL | F2-T22 tratado por testes de importação/associação; histórico preservado |
-| F3 | PARTIAL_JUSTIFIED | hardware modesto NOT_RUN; alerta automático de prova vencida não implementado (data visível, sem alerta) |
+| F3 | PASS_LOCAL | aviso de prova vencida implementado e testado; hardware modesto NOT_RUN |
 | F4 | PASS_LOCAL | F4-T13 NOT_RUN_ENVIRONMENT; INCOMING parcial documentado |
 | F5 | PASS_LOCAL | política/importação/conflito cobertos |
 | F6 | PASS_LOCAL | a11y manual NOT_RUN |

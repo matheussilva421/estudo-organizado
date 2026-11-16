@@ -19,13 +19,13 @@
 |---|---|---|
 | DV-01–DV-03 | PASS | catálogo, galeria, glow/densidade |
 | DV-04 | PASS_VERIFIED (fixture) | cenário PERFORMANCE com cenário ativo + sessão concluída; f7-ux-premium-home |
-| DV-05 | PARTIAL_JUSTIFIED | sugestão com consentimento; layout fixado com teste limitado |
+| DV-05 | PARTIAL_JUSTIFIED | sugestão com consentimento e layout manual com undo/persistência; preferência “fixada” sem prova dedicada |
 | DV-06 | PARTIAL_JUSTIFIED | Studios recompostos; não há mock 1:1 para eles |
 | DV-07 | PASS | onboarding e estados vazios reais |
 | DV-08 | PARTIAL_JUSTIFIED | hierarquia corrigida; sistema universal de três camadas não existe |
 | DV-09–DV-11 | PASS | superfícies, Foco, calendário |
 | DV-12 | PASS_LOCAL | fila/execução/histórico em duas colunas |
-| DV-13 | PASS_VERIFIED (leitura) | F4 abre a sessão; F5 mostra execução com tópico, avaliação, cobertura, duração e compromisso |
+| DV-13 | PASS_VERIFIED | Análises com visão geral, drill por edital/disciplina, gráfico×tabela e amostra; f7-ux-attention-analytics |
 | DV-14 | PASS_VERIFIED (escopo local) | biblioteca, árvore e inspetor; fixture de 120 assuntos e 320 px testados |
 | DV-15–DV-16 | PASS | Command Center, Busca, Settings |
 | DV-17 | PARTIAL_JUSTIFIED | sheet da fila existe; sistema geral de sheets não |
@@ -36,13 +36,13 @@
 | VA | Estado | Prova |
 |---|---|---|
 | VA-01–VA-05 | PASS | temas, persistência, onboarding |
-| VA-06 | PARTIAL_JUSTIFIED | fixture acadêmica coberta; benchmark formal de renderização/hardware não executado |
+| VA-06 | PASS_VERIFIED (fixtures) | contextos diário/reta/desempenho exibem projeções coerentes; benchmark de hardware é gate separado |
 | VA-07 | PASS_VERIFIED | consentimento de ordem em PERFORMANCE e FINAL_STRETCH; nada muda antes de aplicar |
 | VA-08 | PASS_LOCAL | Studios com hierarquia própria |
 | VA-09 | PASS_LOCAL | ações em camadas e duas colunas |
 | VA-10–VA-11 | PASS | sessão/Foco, Planning |
 | VA-12 | PASS_LOCAL | fila antes da política |
-| VA-13 | PASS_VERIFIED (leitura) | F4 contextual e detalhe F5 sob demanda, sem nova tela de edição |
+| VA-13 | PASS_VERIFIED | mesmo dataset em KPI, gráfico, tabela, drill e exportação; f7-ux-analytics |
 | VA-14 | PASS_VERIFIED (escopo local) | Knowledge com inspetor contextual, seleção e retorno de foco |
 | VA-15–VA-16 | PASS | rotas/IDs, Settings seguro |
 | VA-17 | PARTIAL_JUSTIFIED | sheets parciais |

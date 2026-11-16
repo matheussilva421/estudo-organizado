@@ -14,7 +14,7 @@
 | Item | Estado |
 |---|---|
 | F2-T22 (importação/associações) | coberto por testes de importação/atomicidade; histórico preservado |
-| F3 aviso de prova vencida | não implementado como alerta automático; planejamento exibe datas |
+| F3 aviso de prova vencida | implementado na Reta Final e testado; não altera o plano sozinho |
 | F4-T13 | NOT_RUN_ENVIRONMENT |
 | F4 INCOMING parcial | documentado; conciliação preservada |
 | F6 AC24 | diferido para F7 |
