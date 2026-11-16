@@ -92,6 +92,11 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   await expect(execution).toContainText('Compromisso');
   if (process.env.F7_UXH_STATE_DIR) {
     await weak.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/review-execution-detail.png',
+    });
+  }
+  if (process.env.F7_UXH_STATE_DIR) {
+    await weak.screenshot({
       path: process.env.F7_UXH_STATE_DIR + '/review-evidence-drilldown.png',
     });
   }

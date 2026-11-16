@@ -1565,7 +1565,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                                 <dl>
                                   <div>
                                     <dt>Tópico</dt>
-                                    <dd>{execution.canonicalTopicKey}</dd>
+                                    <dd>{item.label}</dd>
                                   </div>
                                   <div>
                                     <dt>Avaliação</dt>

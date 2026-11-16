@@ -5338,6 +5338,12 @@ body::before {
   overflow-wrap: anywhere;
 }
 
+[data-testid='review-weak-points'] details a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 @media (max-width: 720px) {
   .history-comparison-grid {
     grid-template-columns: minmax(0, 1fr);

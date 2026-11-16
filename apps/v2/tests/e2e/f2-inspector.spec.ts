@@ -113,6 +113,13 @@ test('large content tree exposes an inspector with identity, structure and focus
   await expect(inspector).toContainText('0 subassunto(s)');
   await expect(inspector.getByRole('heading', { name: 'Assunto 003' })).toBeFocused();
   await expect(node).toHaveAttribute('data-selected', 'true');
+  if (process.env.F7_UXH_STATE_DIR) {
+    await inspector.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/content-inspector-desktop.png',
+      fullPage: false,
+    });
+  }
 
   await inspector.getByRole('button', { name: 'Fechar' }).click();
   await expect(inspector).toHaveCount(0);
@@ -147,5 +154,12 @@ test('content inspector remains usable at 320px without horizontal overflow', as
   expect(overflow).toBeLessThanOrEqual(1);
   const box = await inspector.boundingBox();
   expect(box?.width ?? 0).toBeLessThanOrEqual(320);
+  if (process.env.F7_UXH_STATE_DIR) {
+    await inspector.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/content-inspector-320.png',
+      fullPage: false,
+    });
+  }
 });
 
