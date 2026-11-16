@@ -1,6 +1,6 @@
 # Matriz F7-UX — UX-01 a UX-31 e AC-01 a AC-24
 
-**Remediação UX-H de 13/11/2026:** o candidato anterior a4b56e5e foi reprovado pelo proprietário. O código atual é 454f27e5 e esta matriz registra a revalidação local após as revisões independentes; o aceite UX-H continua pendente.
+**Remediação UX-H de 13/11/2026:** o candidato anterior a4b56e5e foi reprovado pelo proprietário. O código atual é 7f37428f (fechamento de 16/11/2026) e esta matriz registra a revalidação local; o aceite UX-H continua pendente.
 
 **Legenda:** `PASS_LOCAL` = implementação e teste local verificáveis; `PARTIAL_LOCAL` = comportamento local coberto com limitação documentada; `NOT_RUN` = gate externo/manual não executado. Nenhum `NOT_RUN` foi convertido em PASS.
 
@@ -28,7 +28,7 @@
 | UX-18 | PASS_VERIFIED | foco/pausa/manual/duas abas e vínculo ≠ cumprimento; alocação validada no serviço |
 | UX-19 | PASS_VERIFIED (limite) | sessão de hoje = hábito vigente; sessão antiga = vínculo não demonstrado, porque o modelo não guarda data de criação; f4-habits.spec.ts |
 | UX-20 | PASS_VERIFIED | fila, iniciar/concluir/avaliar, política com diff obrigatório e STALE_POLICY |
-| UX-21 | PARTIAL_JUSTIFIED | amostra por medição e link F4 com data/estado; F5 permanece referência de auditoria sem tela própria; f5-review-journey.spec.ts |
+| UX-21 | PARTIAL_JUSTIFIED | detalhe F4/F5 com dados reais; a lista de prioridades ainda não navega por amostra; f5-review-journey.spec.ts |
 | UX-22 | PASS_LOCAL | `f7-ux-analytics.test.ts` e `f7-ux-analytics-cache.test.ts`; medições/alocações invalidam cache |
 | UX-23 | PASS_LOCAL | editor de métricas, validação de unidades, barras/linha e tabela equivalente |
 | UX-24 | PASS_LOCAL | snapshot congelado em profundidade, exportação CSV/JSON com metodologia e escape de fórmula |
@@ -89,7 +89,7 @@
 | P-06 | PASS_VERIFIED | comparação do checkpoint escolhido com a revisão atual antes de restaurar; f7-ux-planning-workspace.spec.ts |
 | P-07 | PASS_VERIFIED | f7-ux-plan-execution-truth.test.ts |
 | P-08 | PASS_VERIFIED | baseRevision e STALE em ativação, encaixe e política |
-| P-09 | PARTIAL | jornada integrada e capacidade compartilhada provadas; aceite único distribuído |
+| P-09 | PARTIAL_JUSTIFIED | jornada cobre capacidade, plano, sessão e Análises; conflitos/prévia ainda fora do fluxo |
 | E-01 | PASS_VERIFIED | f7-ux-shell-navigation; f4-timer-journey |
 | E-02 | PASS_VERIFIED | f4-timer-journey; f4-pomodoro |
 | E-03 | PASS_VERIFIED | f7-ux-session-integrity.test.ts |
@@ -107,7 +107,7 @@
 | R-06 | PASS_VERIFIED | histórico de compromisso, versões e links por ID |
 | R-07 | PASS_VERIFIED | integração por IDs canônicos e applyPlacement |
 | R-08 | PASS_VERIFIED | mensagens específicas de importação e conflito; variantes preservadas |
-| R-09 | PARTIAL | fila e política coerentes; aceite final distribuído em testes |
+| R-09 | PARTIAL_JUSTIFIED | fila, execução e histórico cobertos; importação/conflito de revisão fora da jornada |
 
 
 ## Histórico preservado — estado em 0d2ee339

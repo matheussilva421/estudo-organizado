@@ -1,8 +1,8 @@
 # UX-H — como abrir a V2 localmente
 
-HEAD de código disponível para a nova avaliação: 454f27e5. A decisão anterior REPROVOU a4b56e5e; este é um novo candidato de remediação.
+HEAD de código disponível para a nova avaliação: 7f37428f (fechamento de 16/11/2026). A decisão anterior REPROVOU a4b56e5e; este é um novo candidato de remediação.
 
-As capturas e comparações atuais estão em uxh-remediation-454f27e5 do pacote de revisão. Os HEADs 0c31e6ef, a4b56e5e, 48548168, 862db594 e 2b63a179 citados em registros anteriores são históricos.
+As capturas e comparações atuais estão em closure-final-610a9673 do pacote de revisão. Os HEADs 0c31e6ef, a4b56e5e, 48548168, 862db594, 2b63a179 e 454f27e5 citados em registros anteriores são históricos.
 
 ## Requisitos
 

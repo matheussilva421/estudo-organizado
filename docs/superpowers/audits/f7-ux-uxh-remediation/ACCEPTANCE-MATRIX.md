@@ -25,8 +25,8 @@
 | DV-08 | PARTIAL_JUSTIFIED | hierarquia corrigida; sistema universal de três camadas não existe |
 | DV-09–DV-11 | PASS | superfícies, Foco, calendário |
 | DV-12 | PASS_LOCAL | fila/execução/histórico em duas colunas |
-| DV-13 | PARTIAL_JUSTIFIED | drill-down F4 com contexto; F5 não navegável |
-| DV-14 | PARTIAL_JUSTIFIED | biblioteca em faixa, árvore e grid; inspetor ainda básico |
+| DV-13 | PASS_VERIFIED (leitura) | F4 abre a sessão; F5 mostra execução com tópico, avaliação, cobertura, duração e compromisso |
+| DV-14 | PASS_VERIFIED (escopo local) | biblioteca, árvore e inspetor; fixture de 120 assuntos e 320 px testados |
 | DV-15–DV-16 | PASS | Command Center, Busca, Settings |
 | DV-17 | PARTIAL_JUSTIFIED | sheet da fila existe; sistema geral de sheets não |
 | DV-18 | PARTIAL_JUSTIFIED | feedback contextual; avisos persistentes |
@@ -42,8 +42,8 @@
 | VA-09 | PASS_LOCAL | ações em camadas e duas colunas |
 | VA-10–VA-11 | PASS | sessão/Foco, Planning |
 | VA-12 | PASS_LOCAL | fila antes da política |
-| VA-13 | PARTIAL_JUSTIFIED | evidência F4 contextual; F5 só auditoria |
-| VA-14 | PARTIAL_JUSTIFIED | Knowledge; inspetor ainda básico |
+| VA-13 | PASS_VERIFIED (leitura) | F4 contextual e detalhe F5 sob demanda, sem nova tela de edição |
+| VA-14 | PASS_VERIFIED (escopo local) | Knowledge com inspetor contextual, seleção e retorno de foco |
 | VA-15–VA-16 | PASS | rotas/IDs, Settings seguro |
 | VA-17 | PARTIAL_JUSTIFIED | sheets parciais |
 | VA-18–VA-19 | PASS_LOCAL | feedback, conflito em Foco |
@@ -62,7 +62,7 @@ Fórmulas, dados, commits, outbox, relógio e restore não foram alterados. AC-0
 | UX-17 / P-05 | PASS_VERIFIED | `states/final-stretch-close-preview.png`; foco e confirmação |
 | UX-17 / P-06 | PASS_VERIFIED | `states/planning-history.png`; alvo -1/-1 e confirmação |
 | UX-19 / E-07 | PASS_VERIFIED (limite) | `states/session-habit-context.png`; vínculo antigo = não demonstrado |
-| UX-21 / R-04 | PARTIAL_JUSTIFIED | amostra por medição e link F4; F5 sem tela própria |
+| UX-21 / R-04 | PARTIAL_JUSTIFIED | amostra por medição, link F4 e detalhe F5; lista de prioridades sem drill-down por amostra |
 | UX-22–UX-29 | PASS_LOCAL | Insights, Settings, jornadas, offline |
 | UX-30 | PASS_LOCAL / A11Y_MANUAL_NOT_RUN | typecheck, lint, build, 880 unitários, 241 E2E |
 | UX-31 | PASS_LOCAL | bundle, hashes, revisões e ZIP |

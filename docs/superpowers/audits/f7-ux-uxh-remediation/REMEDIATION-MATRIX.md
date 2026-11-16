@@ -1,5 +1,7 @@
 # Matriz de remediação
 
+**Registro histórico da rodada de 13/11/2026 (código 454f27e5).** O fechamento de 16/11/2026 está em `docs/superpowers/audits/f7-ux-closure/DELTA-ACCEPTANCE-MATRIX.md`, código `610a9673`. Os números desta tabela descrevem a rodada anterior e não o HEAD atual.
+
 | Achado | Origem | Correção | Teste | Captura | Commit |
 |---|---|---|---|---|---|
 | Contraste 1,46:1 nos atalhos | GOAL T2 | pílulas temáticas | 36 amostras ≥ 4,5:1 | `contrast/*.png` | 862db594 |
