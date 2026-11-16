@@ -141,8 +141,15 @@ test('large content tree exposes an inspector with identity, structure and focus
 
   const aula = page.locator('[data-entity-id="aula-1"]');
   await aula.getByRole('button', { name: 'Ver detalhes da aula Aula magna' }).click();
-  await expect(page.getByTestId('content-inspector')).toContainText('Aula magna');
-  await expect(page.getByTestId('content-inspector')).toContainText('0 assunto(s) mapeado(s)');
+  const aulaInspector = page.getByTestId('content-inspector');
+  await expect(aulaInspector).toContainText('Aula magna');
+  await expect(aulaInspector).toContainText('0 assunto(s) mapeado(s)');
+  await expect(aula).toHaveAttribute('data-selected', 'true');
+  await expect(aulaInspector.getByRole('heading', { name: 'Aula magna' })).toBeFocused();
+  await aulaInspector.getByRole('button', { name: 'Fechar' }).click();
+  await expect(
+    aula.getByRole('button', { name: 'Ver detalhes da aula Aula magna' }),
+  ).toBeFocused();
 });
 
 test('content inspector remains usable at 320px without horizontal overflow', async ({ page }) => {

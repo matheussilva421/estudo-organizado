@@ -423,8 +423,8 @@ export function ContentTree({
             <button
               type="button"
               onClick={() => {
-                document
-                  .querySelector('[data-entity-id="' + inspectorId + '"]')
+                [...document.querySelectorAll('[data-entity-id]')]
+                  .find((element) => element.getAttribute('data-entity-id') === inspectorId)
                   ?.scrollIntoView({ block: 'center', behavior: 'auto' });
               }}
             >
@@ -643,6 +643,11 @@ export function ContentTree({
                       key={aula.id}
                       data-entity-id={aula.id}
                       data-focus={aula.id === focusId ? 'true' : undefined}
+                      data-selected={
+                        inspector?.kind === 'aula' && inspector.id === aula.id
+                          ? 'true'
+                          : undefined
+                      }
                     >
                       <div className="aula-row">
                         <span>{aula.title}</span>

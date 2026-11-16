@@ -1578,9 +1578,9 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                                   <div>
                                     <dt>Duração</dt>
                                     <dd>
-                                      {execution.durationMinutes
-                                        ? `${execution.durationMinutes} min`
-                                        : 'não registrada'}
+                                      {execution.durationMinutes === undefined
+                                        ? 'não registrada'
+                                        : `${execution.durationMinutes} min`}
                                     </dd>
                                   </div>
                                   <div>
@@ -1594,8 +1594,14 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                                             const target = document.getElementById(
                                               'review-commitment-' + execution.commitmentId,
                                             );
-                                            target?.scrollIntoView({ block: 'center' });
-                                            target?.focus();
+                                            if (!target) {
+                                              onNotice(
+                                                'Compromisso fora da lista dos 12 concluídos/cancelados mais recentes. Use a fila em Concluídas/canceladas.',
+                                              );
+                                              return;
+                                            }
+                                            target.scrollIntoView({ block: 'center' });
+                                            target.focus();
                                           }}
                                         >
                                           ver compromisso {shortId(execution.commitmentId)}
