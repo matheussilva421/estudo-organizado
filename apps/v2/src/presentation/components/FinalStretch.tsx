@@ -48,6 +48,19 @@ function formatClosedAt(value: string): string {
   }).format(date);
 }
 
+function todayInZone(zone: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: zone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
 export function FinalStretch({
   scenario,
   examPreview,
@@ -69,6 +82,11 @@ export function FinalStretch({
   const [closeOutcome, setCloseOutcome] = useState<'' | 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED'>('');
   const isFinalStretch = scenario?.kind === 'FINAL_STRETCH';
   const isCycle = scenario?.kind === 'CYCLE';
+  const examPast =
+    scenario?.kind === 'FINAL_STRETCH' &&
+    scenario.examDate !== null &&
+    scenario.examDate !== undefined &&
+    scenario.examDate < todayInZone(scenario.referenceZone);
   const closeTriggerRef = useRef<HTMLButtonElement | null>(null);
   const closeHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
@@ -141,6 +159,16 @@ export function FinalStretch({
             Prova: <strong>{scenario.examDate ?? 'não definida'}</strong> · situação{' '}
             {STATUS_LABEL[scenario.status] ?? 'desconhecida'}
           </p>
+          {examPast && scenario.status === 'ACTIVE' ? (
+            <p
+              className="inline-notice"
+              role="status"
+              data-testid="final-stretch-past-exam"
+            >
+              Data da prova vencida em {scenario.examDate}. Isto não comprova realização:
+              confirme o desfecho (ocorreu, remarcada ou indefinida) antes de continuar.
+            </p>
+          ) : null}
           <label>
             Nova data
             <input

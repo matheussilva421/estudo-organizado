@@ -204,3 +204,33 @@ test('manual widget order persists, undoes and is not overridden by suggestion',
   await expect(page.getByTestId('home-hero')).toBeVisible();
 });
 
+test('layout write failure is explicit and does not fake persistence', async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key: string, value: string) {
+      if (String(key).includes('home-dashboard')) {
+        throw new DOMException('quota', 'QuotaExceededError');
+      }
+      return original.call(this, key, value);
+    };
+  });
+  await resetF7Ux(page, '/#/home');
+  await seedAcademicData(page);
+  await page.goto('/#/home');
+  await page.getByText('Explorar painel e widgets').click();
+  await page.getByText('Personalizar widgets e fontes').click();
+  const order = page.locator('.dashboard-order li');
+  const firstBefore = await order.nth(0).getAttribute('data-widget');
+  const secondBefore = await order.nth(1).getAttribute('data-widget');
+  await order.nth(1).getByRole('button', { name: 'Mover para cima' }).click();
+  await expect(order.nth(0)).toHaveAttribute('data-widget', secondBefore ?? '');
+  await expect(page.getByTestId('home-layout-unsaved')).toBeVisible();
+  await page.reload();
+  await page.getByText('Explorar painel e widgets').click();
+  await page.getByText('Personalizar widgets e fontes').click();
+  await expect(page.locator('.dashboard-order li').nth(0)).toHaveAttribute(
+    'data-widget',
+    firstBefore ?? '',
+  );
+});
+

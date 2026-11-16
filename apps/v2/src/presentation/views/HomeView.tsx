@@ -193,11 +193,12 @@ function readCustomWidgets(profileId: string): CustomWidget[] {
   }
 }
 
-function persist(key: string, value: unknown): void {
+function persist(key: string, value: unknown): boolean {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    // Presentation preferences remain available in memory.
+    return false;
   }
 }
 
@@ -254,6 +255,7 @@ export function HomeView({
   });
   const [dashboard, setDashboard] = useState<DashboardState>(() => readDashboard(profileId));
   const [layoutHistory, setLayoutHistory] = useState<DashboardState[]>([]);
+  const [layoutPersistError, setLayoutPersistError] = useState(false);
   const [device, setDevice] = useState<DashboardDevice>(inferDevice);
   const [widgetFilters, setWidgetFilters] = useState(EMPTY_WIDGET_FILTERS);
   const [inspector, setInspector] = useState<DashboardWidgetId | null>(null);
@@ -399,7 +401,7 @@ export function HomeView({
   function commitDashboard(next: DashboardState): void {
     setLayoutHistory((history) => [...history, dashboard].slice(-10));
     setDashboard(next);
-    persist(`${DASHBOARD_KEY}:${profileId}`, next);
+    setLayoutPersistError(!persist(`${DASHBOARD_KEY}:${profileId}`, next));
   }
 
   function undoLayout(): void {
@@ -407,7 +409,7 @@ export function HomeView({
     if (!previous) return;
     setLayoutHistory((history) => history.slice(0, -1));
     setDashboard(previous);
-    persist(`${DASHBOARD_KEY}:${profileId}`, previous);
+    setLayoutPersistError(!persist(`${DASHBOARD_KEY}:${profileId}`, previous));
   }
 
   function changeTemplate(template: DashboardTemplate): void {
@@ -1007,6 +1009,12 @@ export function HomeView({
               </li>
             ))}
           </ol>
+          {layoutPersistError ? (
+            <p className="inline-notice" role="alert" data-testid="home-layout-unsaved">
+              Alteração de layout aplicada nesta aba, mas não foi gravada no armazenamento
+              local. Ela será perdida ao recarregar; os fatos acadêmicos não foram alterados.
+            </p>
+          ) : null}
           <button type="button" className="button-ghost" disabled={layoutHistory.length === 0} onClick={undoLayout}>
             Desfazer alteração de layout nesta sessão
           </button>

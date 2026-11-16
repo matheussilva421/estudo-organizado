@@ -80,6 +80,32 @@ test('suspending_a_final_stretch_removes_the_date_without_false_success', async 
   expect(stored?.scenario.examDate ?? null).toBeNull();
 });
 
+test('a past exam date asks for an outcome without proving completion', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await page.evaluate(async (seed) => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    await harness.resetDb();
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'past-exam' },
+      scenarioId: seed.id,
+      baseRevision: null,
+      changes: { scenario: { ...seed, examDate: '2026-01-01' } },
+    });
+  }, scenario);
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  const panel = page.getByTestId('final-stretch');
+  await expect(panel.getByTestId('final-stretch-past-exam')).toBeVisible();
+  await expect(panel.getByTestId('final-stretch-past-exam')).toContainText(
+    'não comprova realização',
+  );
+  const stored = await page.evaluate(() =>
+    (window as unknown as HarnessWindow).__v2E2E.planningLoad('local-default', 'scenario-rf'),
+  );
+  expect(stored?.scenario.status).toBe('ACTIVE');
+});
+
 test('closing a final stretch requires an explicit preview and confirmation', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
