@@ -9,9 +9,9 @@
 | HEAD documental | commit final que contém este arquivo; registrado em `BUNDLE.txt` |
 | `origin/v2` | `02b950cd842decde598820f89da3fa2aaa8274a8` |
 | `main` / `origin/main` | `9046cfa2283cd293b38df9d52fabfcd5de9ac67c` |
-| Divergência vs. `origin/v2` | 193 à frente, 0 atrás |
-| Divergência vs. `main` | 476 à frente, 0 atrás |
-| Commits desde `e2164e3f` | 8 antes do commit documental; 9 com ele |
+| Divergência vs. `origin/v2` | 195 à frente, 0 atrás |
+| Divergência vs. `main` | 478 à frente, 0 atrás |
+| Commits desde `e2164e3f` | 9 antes do commit documental final; 10 com ele |
 | Worktrees | `main` e `_v2-candidate` |
 | Stash | nenhum |
 | Push/PR/merge | não executados |

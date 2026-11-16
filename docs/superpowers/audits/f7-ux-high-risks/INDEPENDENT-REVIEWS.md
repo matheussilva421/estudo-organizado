@@ -25,7 +25,7 @@ Veredito inicial: **REQUEST_CHANGES**, sem P0.
 
 - **P1 corrigido:** o rollback não distinguia `e2164e3f` de `e4339dd0`/`ccf03457`. Agora há dois alvos explícitos, com os oito commits anteriores ao documental e o aviso de que reverter reintroduz Rules permissivas.
 - **P1 corrigido:** “60 testes em 9 arquivos” era falso; a contagem é **78 em 10**. O comando de reprodução agora inclui `f7-remote-schema` e `f7-v1-migration`.
-- **P2 corrigidos:** base de “193” rotulada como `origin/v2`; “476” como `main`; “8 commits desde e2164e3f” separado; escopo do delta de UX esclarecido; teste de idempotência renomeado (é sequencial, não corrida real); garantia de outbox sob quota deixada como não provada; `PASS_VERIFIED` trocado por `PASS_LOCAL_VERIFIED`; R-09 aponta o arquivo E2E; logs têm caminho; o bundle anterior tem hash verificado e o final será registrado em BUNDLE.txt.
+- **P2 corrigidos:** base de “193” rotulada como `origin/v2`; “476” como `main`; “8 commits desde e2164e3f” separado; escopo do delta de UX esclarecido; teste de idempotência renomeado (é sequencial, não corrida real); garantia de outbox sob quota deixada como não provada; `PASS_VERIFIED` trocado por `PASS_LOCAL_VERIFIED`; R-09 aponta o arquivo E2E; logs têm caminho; o bundle anterior tem hash verificado; o bundle final foi verificado em clone e seu hash fica em BUNDLE.txt.
 
 ## Verificação do autor
 

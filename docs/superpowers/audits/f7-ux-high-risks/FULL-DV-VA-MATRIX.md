@@ -65,7 +65,7 @@ Fórmulas, dados, commits, outbox, relógio e restore não foram alterados. AC-0
 | UX-21 / R-04 | PASS_LOCAL_VERIFIED | prioridade abre o ponto fraco e o detalhe F5; F4 abre a sessão; aviso sem amostra |
 | UX-22–UX-29 | PASS_LOCAL | Insights, Settings, jornadas, offline |
 | UX-30 | PASS_LOCAL / A11Y_MANUAL_NOT_RUN | typecheck, lint, build, 881 unitários, 248/253 E2E, 17/17 emulador |
-| UX-31 | PENDING_BUNDLE | bundle, hashes, revisões e ZIP final; será verificado no fechamento |
+| UX-31 | PASS_LOCAL | bundle verificado, hashes, duas rodadas de revisão e ZIP final |
 
 ## F0 — 46 capacidades (detalhe)
 

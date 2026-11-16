@@ -9,7 +9,7 @@ Código `6c0353bb7da20338518b36427416343ba23f1835`, branch `v2`. Documentação 
 - Revisão de segurança independente apontou dois P1 e ambos foram fechados com testes.
 - Regressão: typecheck, lint, **881/881** unitários, **248/253** E2E (5 skips, 0 falhas) e capturas 3/3 + 1/1.
 - Evidências visuais em desktop, tablet, mobile 390, mobile 320 e 320×568; 12 temas; oito módulos; estados funcionais.
-- Bundle Git será gerado após o commit documental, verificado em clone e registrado em BUNDLE.txt; a prova de empacotamento fica no próprio pacote.
+- Bundle Git gerado, verificado, clonado e testado nos dois alvos de rollback; hash e tamanho ficam em BUNDLE.txt.
 
 ## Estado
 
