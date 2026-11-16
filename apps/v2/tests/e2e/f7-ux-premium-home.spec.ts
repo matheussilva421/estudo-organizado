@@ -191,6 +191,12 @@ test('manual widget order persists, undoes and is not overridden by suggestion',
 
   await order.nth(1).getByRole('button', { name: 'Mover para cima' }).click();
   await expect(order.nth(0)).toHaveAttribute('data-widget', secondBefore ?? '');
+  if (process.env.F7_UXH_STATE_DIR) {
+    await page.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/home-manual-layout.png',
+      fullPage: false,
+    });
+  }
   await page.reload();
   await page.getByText('Explorar painel e widgets').click();
   await page.getByText('Personalizar widgets e fontes').click();
