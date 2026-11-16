@@ -1,20 +1,33 @@
-# Ambiente de emuladores
+# Ambiente do Firebase Emulator — executado
 
-| Ferramenta | Estado |
+| Ferramenta | Versão/origem |
 |---|---|
-| Node/npm | disponíveis |
-| Firebase CLI | ausente |
-| Java | ausente (nem `java`, nem JDK/JRE instalado) |
-| Chromium Playwright | disponível (1248) |
+| Java | Temurin 21.0.13+9 LTS, portátil em `C:\Projetos\_tools\jdk-21\jdk-21.0.13+9` |
+| Download JDK | `api.adoptium.net` (oficial), 205.421.281 bytes, SHA-256 `A4DBAA05FCA4BD89D84584E58C459BD732EFEBB1722AF80AB13C6516832004F9` |
+| Node / npm | 26.13.0 / 12.2.2 |
+| firebase-tools | 15.34.2, instalação local em `node_modules` |
+| Firestore Emulator JAR | `cloud-firestore-emulator-v1.22.0.jar` |
+| Projeto | `demo-estudo-v2` |
+| Hosts/portas | Firestore 127.0.0.1:8180; Auth 127.0.0.1:9199; Hub 127.0.0.1:4400; reservados 4500 e 9150 |
 
-**Decisão:** `NOT_RUN_ENVIRONMENT`. O Firestore Emulator exige Java e Firebase CLI; não havia runtime local. Instalar um JDK portátil e `firebase-tools` exigiria download externo e não era necessário para as provas determinísticas dos quatro riscos.
+Config usada: `apps/v2/firebase/firebase.json`, com `host: 127.0.0.1` explícito para Auth e Firestore. Rules: `apps/v2/firebase/firestore.rules`.
 
-## Procedimento humano
+## Comando executado
 
-1. Instalar Temurin 21 portátil (zip oficial) em pasta local e definir `JAVA_HOME` apenas na sessão.
-2. Usar `npx firebase-tools emulators:start --only auth,firestore --project demo-estudo-organizado --config firebase.json`.
-3. Confirmar `projectId` começando com `demo-`, hosts `127.0.0.1` e variáveis sem backend real.
-4. Rodar `npx vitest run --config vitest.firebase.config.ts` e registrar `PASS_EMULATOR`.
-5. Encerrar o processo e remover apenas dados descartáveis.
+```powershell
+$env:JAVA_HOME='C:\Projetos\_tools\jdk-21\jdk-21.0.13+9'
+$env:PATH="$env:JAVA_HOME\bin;$env:PATH"
+$env:CI='1'
+cd C:\Projetos\estudo-organizado\_v2-candidate\apps\v2
+npx --no-install firebase emulators:exec --only firestore,auth --project demo-estudo-v2 --config firebase/firebase.json "npm run test:firebase"
+```
 
-Emulador não comprova quotas, billing, limites reais ou concorrência distribuída.
+## Resultado
+
+- Emuladores iniciaram, projetor demo detectado, Rules carregadas, script executou 17/17 testes em 5,57 s, exit 0 e shutdown limpo.
+- A inspeção durante a execução registrou conexões loopback em 8180, 9199 e 4400 e o processo Java: `java ... cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8180 ... --project_id demo-estudo-v2 --rules ...firestore.rules --single_project_mode true`.
+- Logs: `fbt-emulator-final6.log`, `fbt-emulator-final3.log`, `emulator-listeners.txt`, `firestore-debug-final.log`.
+
+## Limites
+
+Auth Emulator subiu, mas os testes `authenticatedContext` do rules-unit-testing não equivalem a login real fim a fim. Emulador não comprova quotas, billing, limites produtivos nem concorrência distribuída. Nenhum projeto real, credencial ou `firebase login/use/deploy` foi usado.

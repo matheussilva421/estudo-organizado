@@ -3,16 +3,34 @@
 | Item | Valor |
 |---|---|
 | Branch | `v2` |
-| HEAD de código | `e4339dd0b761a815617d89c33c30a22028bd4202` |
-| HEAD documental | commit que contém este arquivo |
+| HEAD de código | `6c0353bb7da20338518b36427416343ba23f1835` |
+| HEAD documental | hash em BUNDLE.txt |
 | `origin/v2` | `02b950cd842decde598820f89da3fa2aaa8274a8` |
 | `main` / `origin/main` | `9046cfa2283cd293b38df9d52fabfcd5de9ac67c` |
-| Divergência | 189 à frente no código, 0 atrás |
+| Divergência vs. `origin/v2` | 193 à frente, 0 atrás |
+| Divergência vs. `main` | 476 à frente, 0 atrás |
 | Push/PR/merge | não executados |
 
-## Rollback
+## Rollback A — somente o endurecimento desta rodada
 
-1. Em clone descartável: `git revert --no-commit e4339dd0 e0856dc2 92148784 2f43fe60 bdebbcd0 8824e183 17ccda36 4e7c9575 819c3c66 610a9673 1d77a93a 7f37428f 3cf1ad56` (mais novo primeiro).
-2. Revisar o diff; o commit documental desta rodada é revertido separadamente.
-3. Não usar reset/clean/force.
-4. Bundle final, SHA-256, verify, clone e fsck em `BUNDLE.txt`.
+Em clone descartável:
+
+```powershell
+git revert --no-commit $(git log -1 --format=%H -- docs/superpowers/audits/f7-ux-high-risks) 6c0353bb
+git diff --stat
+```
+
+Resultado: árvore de `ccf03457`. As Rules mantêm schemaVersion == 1, mas perdem monotonicidade de revisão e o binding completo entity/change/head/receipt. Use este alvo apenas para isolar o endurecimento.
+
+## Rollback B — toda a execução desde `e2164e3f`
+
+Em clone descartável:
+
+```powershell
+git revert --no-commit $(git log -1 --format=%H -- docs/superpowers/audits/f7-ux-high-risks) 6c0353bb ccf03457 ee04aabc e4339dd0 e0856dc2 92148784 2f43fe60
+git diff --stat
+```
+
+Resultado: árvore de `e2164e3f`. Reintroduz as Rules permissivas (1..100), o host padrão do emulador e remove os avisos de Home/Reta Final. Não usar reset/clean/force.
+
+O rollback será marcado como testado somente após execução no clone do bundle; a prova fica em `BUNDLE.txt`.
