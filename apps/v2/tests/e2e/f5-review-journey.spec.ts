@@ -29,6 +29,10 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
       id: 'assunto-1', profileId, editalDisciplineId: 'disc-1', parentId: null,
       parentKey: '', title: 'Controle de constitucionalidade', orderKey: '000010', localRevision: 1,
     });
+    transaction.objectStore('assuntos').put({
+      id: 'assunto-2', profileId, editalDisciplineId: 'disc-1', parentId: null,
+      parentKey: '', title: 'Assunto secundário', orderKey: '000020', localRevision: 1,
+    });
     transaction.objectStore('sessions').put({
       id: 'session-f5', profileId, state: 'COMPLETED', origin: 'TIMER',
       localRevision: 1, schemaVersion: 1, referenceZone: 'America/Fortaleza',
@@ -59,10 +63,19 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   await topics.getByLabel('Assunto').selectOption('assunto-1');
   await topics.getByRole('button', { name: 'Criar tópico de revisão' }).click();
   await expect(topics).toContainText('Controle de constitucionalidade');
+  await topics.getByLabel('Assunto').selectOption('assunto-2');
+  await topics.getByRole('button', { name: 'Criar tópico de revisão' }).click();
+  await expect(topics).toContainText('Assunto secundário');
 
   const suggestions = page.locator('[data-testid="review-suggestions"]');
   await expect(suggestions).toContainText('Controle de constitucionalidade');
-  await suggestions.getByRole('button', { name: 'Confirmar revisão' }).click();
+  const suggestionButton = suggestions
+    .locator('li')
+    .filter({ hasText: 'Controle de constitucionalidade' })
+    .first()
+    .getByRole('button', { name: 'Confirmar revisão' });
+  await expect(suggestionButton).toBeEnabled();
+  await suggestionButton.click();
 
   const agenda = page.locator('[data-testid="review-agenda"]');
   await expect(agenda).toContainText('Pendente');
@@ -73,7 +86,11 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   const weak = page.locator('[data-testid="review-weak-points"]');
   await expect(weak).toContainText('Controle de constitucionalidade');
   await expect(weak).toContainText('7/10');
-  const evidence = weak.locator('details').first();
+  const evidencedPoint = weak
+    .locator('[data-topic-key]')
+    .filter({ hasText: 'Controle de constitucionalidade' })
+    .first();
+  const evidence = evidencedPoint.locator('details').first();
   await evidence.locator('summary').first().click();
   await expect(evidence).toContainText('Amostra: 10 questão(ões), 7 acerto(s)');
   const evidenceLink = evidence.getByRole('link', { name: /Sessão F4/ });
@@ -117,10 +134,24 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   const priorities = page.locator('[data-testid="review-priorities"]');
   await priorities.getByRole('button', { name: 'Recalcular prioridade' }).click();
   await expect(priorities).toContainText('Controle de constitucionalidade');
-  await priorities.getByRole('button', { name: 'Ver evidência' }).first().click();
-  const focusedPoint = page.locator('[data-topic-key]').first();
+  await expect(priorities).toContainText('Assunto secundário');
+  await priorities
+    .getByRole('button', { name: 'Ver evidência de Assunto secundário' })
+    .click();
+  await expect(
+    page.locator('p.inline-notice[role="alert"]').filter({ hasText: 'não tem amostra individual' }).first(),
+  ).toBeVisible();
+  await priorities
+    .getByRole('button', { name: 'Ver evidência de Controle de constitucionalidade' })
+    .click();
+  const focusedPoint = evidencedPoint;
   await expect(focusedPoint).toBeFocused();
   await expect(focusedPoint.locator('details').first()).toHaveAttribute('open', '');
+  if (process.env.F7_UXH_STATE_DIR) {
+    await page.getByTestId('review-weak-points').screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/review-priority-evidence.png',
+    });
+  }
 
   await evidenceLink.click();
   await expect(page).toHaveURL(/#\/sessions/);

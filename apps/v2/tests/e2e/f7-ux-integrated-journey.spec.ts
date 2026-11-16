@@ -92,6 +92,11 @@ test('F2 to F6 journey keeps content ids and separates manual, review and plan f
   await draftB.locator('[data-action="activate-scenario"]').click();
   const activation = page.getByTestId('activation-preview-journey-b');
   await expect(activation).toBeVisible();
+  if (process.env.F7_UXH_STATE_DIR) {
+    await activation.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/planning-activation-preview.png',
+    });
+  }
   await expect(activeA).toHaveAttribute('data-status', 'ACTIVE');
   await page.locator('[data-action="cancel-activate"]').click();
   await expect(activation).toHaveCount(0);
@@ -121,6 +126,11 @@ test('F2 to F6 journey keeps content ids and separates manual, review and plan f
   await page.getByLabel('Duração padrão (min)').fill('35');
   await page.getByTestId('review-policy-preview').click();
   await expect(page.getByTestId('review-policy-base-preview')).toContainText('35');
+  if (process.env.F7_UXH_STATE_DIR) {
+    await page.getByTestId('review-policy-base-preview').screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/review-policy-preview.png',
+    });
+  }
   await expect(page.getByRole('button', { name: 'Aplicar política' })).toBeEnabled();
   await page.reload();
   await expect(page.getByLabel('Duração padrão (min)')).toHaveValue('20');

@@ -44,6 +44,11 @@ test('F5 portability preview discriminates compatible, invalid and foreign profi
   });
   await expect(portability).toContainText('Prévia:');
   await expect(portability.getByRole('button', { name: 'Aplicar importação' })).toBeVisible();
+  if (process.env.F7_UXH_STATE_DIR) {
+    await portability.screenshot({
+      path: process.env.F7_UXH_STATE_DIR + '/review-import-preview.png',
+    });
+  }
 
   await input.setInputFiles({
     name: 'invalido.json',

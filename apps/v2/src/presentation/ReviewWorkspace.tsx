@@ -1711,6 +1711,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                 <div className="session-actions">
                   <button
                     type="button"
+                    aria-label={`Ver evidência de ${row.label}`}
                     onClick={() => focusPriorityEvidence(row.canonicalTopicKey)}
                   >
                     Ver evidência
