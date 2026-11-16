@@ -55,6 +55,26 @@ test('F2 to F6 journey keeps content ids and separates manual, review and plan f
         ],
       },
     });
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'journey-b' },
+      scenarioId: 'journey-b',
+      baseRevision: null,
+      changes: {
+        scenario: {
+          id: 'journey-b',
+          profileId: 'local-default',
+          editalId: 'f7ux-edital',
+          kind: 'CYCLE',
+          name: 'Ciclo B',
+          status: 'DRAFT',
+          localRevision: 1,
+          schemaVersion: 1,
+          priorityProfileId: 'priority-default',
+          priorityProfileRevision: 1,
+          referenceZone: 'America/Fortaleza',
+        },
+      },
+    });
   }, today);
 
   await page.reload();
@@ -64,6 +84,19 @@ test('F2 to F6 journey keeps content ids and separates manual, review and plan f
   const capacity = page.getByTestId('planning-capacity-comparison');
   await expect(capacity).toContainText('Ciclo integrado');
   await expect(capacity).toContainText('60 min');
+
+  const activeA = page.locator('[data-testid="scenario-journey-scenario"]');
+  const draftB = page.locator('[data-testid="scenario-journey-b"]');
+  await expect(activeA).toHaveAttribute('data-status', 'ACTIVE');
+  await expect(draftB).toHaveAttribute('data-status', 'DRAFT');
+  await draftB.locator('[data-action="activate-scenario"]').click();
+  const activation = page.getByTestId('activation-preview-journey-b');
+  await expect(activation).toBeVisible();
+  await expect(activeA).toHaveAttribute('data-status', 'ACTIVE');
+  await page.locator('[data-action="cancel-activate"]').click();
+  await expect(activation).toHaveCount(0);
+  await expect(activeA).toHaveAttribute('data-status', 'ACTIVE');
+  await expect(draftB).toHaveAttribute('data-status', 'DRAFT');
 
   await page.goto('/#/sessions');
   const manual = page.getByTestId('session-manual');
@@ -83,6 +116,15 @@ test('F2 to F6 journey keeps content ids and separates manual, review and plan f
   await page.getByTestId('review-start-review-seed-0').click();
   await page.getByRole('button', { name: 'Concluir' }).click();
   await expect(page.getByTestId('review-agenda')).toContainText('Cumprida');
+
+  // R-09: a policy preview does not rewrite the policy, commitments or history.
+  await page.getByLabel('Duração padrão (min)').fill('35');
+  await page.getByTestId('review-policy-preview').click();
+  await expect(page.getByTestId('review-policy-base-preview')).toContainText('35');
+  await expect(page.getByRole('button', { name: 'Aplicar política' })).toBeEnabled();
+  await page.reload();
+  await expect(page.getByLabel('Duração padrão (min)')).toHaveValue('20');
+  await expect(page.getByTestId('review-history-panel')).toContainText('política v1');
 
   // R-09: the review execution did not rewrite the planned block or the session
   // duration that originated it.

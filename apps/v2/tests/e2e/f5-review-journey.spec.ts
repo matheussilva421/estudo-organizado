@@ -117,6 +117,10 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   const priorities = page.locator('[data-testid="review-priorities"]');
   await priorities.getByRole('button', { name: 'Recalcular prioridade' }).click();
   await expect(priorities).toContainText('Controle de constitucionalidade');
+  await priorities.getByRole('button', { name: 'Ver evidência' }).first().click();
+  const focusedPoint = page.locator('[data-topic-key]').first();
+  await expect(focusedPoint).toBeFocused();
+  await expect(focusedPoint.locator('details').first()).toHaveAttribute('open', '');
 
   await evidenceLink.click();
   await expect(page).toHaveURL(/#\/sessions/);

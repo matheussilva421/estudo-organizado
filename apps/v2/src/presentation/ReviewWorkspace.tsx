@@ -373,6 +373,28 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   const priorityByTopic = new Map(
     (priority?.rows ?? []).map((row) => [row.canonicalTopicKey, row]),
   );
+
+  function focusPriorityEvidence(topicKey: string): void {
+    const point = weakPoints.find((item) => item.canonicalTopicKey === topicKey);
+    if (!point || point.evidence.length === 0) {
+      onNotice(
+        'Esta prioridade não tem amostra individual vinculada neste perfil. A fila e o histórico continuam disponíveis; nada foi inferido.',
+      );
+      return;
+    }
+    const target = [...document.querySelectorAll<HTMLElement>('[data-topic-key]')].find(
+      (element) => element.getAttribute('data-topic-key') === topicKey,
+    );
+    if (!target) {
+      onNotice('A amostra existe, mas não está na lista atual de pontos fracos.');
+      return;
+    }
+    const details = target.querySelector('details');
+    if (details) details.open = true;
+    target.scrollIntoView({ block: 'center', behavior: 'auto' });
+    target.focus();
+  }
+
   const queueFiltered = commitments.filter((commitment) => {
     const open =
       commitment.status !== 'FULFILLED' && commitment.status !== 'CANCELLED';
@@ -1518,7 +1540,12 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         ) : (
           <ul>
             {weakPoints.map((item) => (
-              <li key={item.canonicalTopicKey} data-status={item.status}>
+              <li
+                key={item.canonicalTopicKey}
+                data-status={item.status}
+                data-topic-key={item.canonicalTopicKey}
+                tabIndex={-1}
+              >
                 {item.label} · {weakStatusLabel(item.status)} · {item.correctAnswers}/{item.questions}{' '}
                 acertos · retenção esqueci {item.retention.forgot}, parcial {item.retention.partial},{' '}
                 boa {item.retention.good} · tendência {trendLabel(item.trend)}
@@ -1681,6 +1708,14 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
                     </li>
                   ))}
                 </ul>
+                <div className="session-actions">
+                  <button
+                    type="button"
+                    onClick={() => focusPriorityEvidence(row.canonicalTopicKey)}
+                  >
+                    Ver evidência
+                  </button>
+                </div>
               </li>
             ))}
           </ol>
