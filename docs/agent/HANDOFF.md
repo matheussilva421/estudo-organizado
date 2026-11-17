@@ -6,11 +6,12 @@
 
 ## 2026-11-17 — G-EXT + G-STAGING
 
-- HEAD local: c2230bee (auth por redirect com marcador escopado/TTL); commits anteriores b0031697, 654692c0 e 4d23a55c.
+- HEAD local: 164ed36d (teste offline real); commits anteriores b0031697, 654692c0, 4d23a55c, c2230bee e 09042741.
 - Staging: https://estudo-organizado-v2-f7-test.matheussilva421.workers.dev
 - Firebase isolado: eo-v2-f7-test-20261117 (Spark, Firestore Standard, southamerica-east1).
 - Backup Worker: https://estudo-organizado-v2-f7-backup.matheussilva421.workers.dev (KV d859d36f26054256b1770d7668786bc4).
 - Auth: Google habilitado; fluxo popup e redirect implementados. Revisão independente encontrou P2 de escopo/TTL e popup; corrigidos. Suíte unitária 892/892; typecheck, lint e build PASS. Emulator NOT_RUN_ENVIRONMENT: Java ausente no PATH.
+- Staging: read-back HTTP PASS; E2E real 3/3 PASS (shell, reload, offline); Firestore real nega GET/PATCH anônimos com 403.
 - Bloqueio atual: o Chrome/Edge com prevenção estrita de rastreamento bloqueia o armazenamento de terceiros usado pelo Firebase; popup fecha sem opener e o redirect não encontra o evento. Necessário liberar armazenamento de terceiros/prevenção de rastreamento apenas para a origem de staging antes de repetir o login A/B.
 - Incidente V1: um `npx wrangler deploy` sem `--config` usou `wrangler.jsonc` da V1 e publicou a versão 44ec8568 no Worker `estudo-organizado` (produção) em 2026-11-17T21:14Z. O conteúdo local `src` e `wrangler.jsonc` não tem diff contra 9046cfa, e index.html/manifest.json/sw.js/js/components.js públicos batem byte a byte com o main local. Versão anterior: 25c8e9c1 (2026-10-27). Rollback rejeitado pelo auto-review por alterar produção sem autorização explícita; aguardar decisão do proprietário.
 - Próximo: liberar a configuração de rastreamento no navegador, concluir login A e B, capturar UIDs, configurar ALLOWED_UIDS no Worker de backup e executar S01–S25.
