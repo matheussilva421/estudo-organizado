@@ -1,96 +1,82 @@
 # UX-H — checklist de avaliação humana
 
-Use http://127.0.0.1:18433 (ver UX-H-START.md). Marque cada caso com PASS_HUMAN, FAIL_HUMAN, ACCEPTED_WITH_RESERVATION ou NOT_RUN e registre observação/evidência/data.
+**Atualizado em 17/11/2026.** Use a URL e o commit registrados no pacote de closeout (a porta pode ser 18431, 18433 ou 18610; registre a escolhida). A matriz de decisão vigente é `docs/superpowers/audits/f7-local-closeout-20261117/MATRIZ-UX-DV-VA.md`.
 
-## A. Shell e Home (D01–D36)
+Marque cada fluxo com `PASS_HUMAN`, `FAIL_HUMAN`, `ACCEPTED_WITH_RESERVATION` ou `NOT_RUN` e registre observação, evidência e data. Nenhum `PASS_LOCAL` equivale a aceite humano.
 
-- [ ] Sidebar/rail/navbar móvel e destinos Início · Plano · Estudar · Revisões · Mais.
-- [ ] Em 320 px, a próxima ação aparece antes dos controles de personalização.
-- [ ] Widgets, filtros, edição de layout, rotas e rascunho preservado.
-- [ ] Oito temas, foco por teclado visível e texto a 200% sem overflow.
-- [ ] Links inline pequenos: decidir se os quatro <24 px exigem correção (P2).
+## A. Home, shell e navegação
 
-## B. Conteúdo (F2)
+- [ ] Início, Conteúdo, Planejamento, Sessões, Revisões, Atenção, Análises, Configurações e Busca em desktop/tablet/mobile.
+- [ ] Onboarding, Daily, Active, Final Stretch e Performance.
+- [ ] Mover widget, desfazer, recarregar e simular falha de escrita do layout.
+- [ ] 12 temas, foco visível, redução de movimento e texto em 200% a 320 px.
+- [ ] Command Center, histórico do navegador e deep links por IDs.
+- [ ] A-01: quatro links inline abaixo de 24 px; aceitar exceção ou pedir ajuste.
 
-- [ ] Criar/editar disciplina, edital, vínculo e assunto.
-- [ ] Arquivar conteúdo e confirmar que alocações novas são recusadas.
-- [ ] Preservar IDs e retorno contextual após editar.
+## B. Conteúdo
 
-## C. Planejamento (UX-16/17)
+- [ ] Criar/editar disciplina, edital, vínculo, assunto e aula.
+- [ ] Inspetor, seleção, foco de retorno e árvore grande.
+- [ ] Arquivar conteúdo e confirmar recusa de alocação nova.
+- [ ] Confirmar IDs preservados após edição e reload.
 
-- [ ] Editar disponibilidade com dois turnos no mesmo dia; salvar e recarregar.
-- [ ] Criar exceção em feriado e conferir capacidade zero naquele dia.
-- [ ] Definir meta semanal e meta por disciplina; conferir progresso.
-- [ ] Testar mês civil de 28/29/30/31 dias e virada de ano.
-- [ ] Ver lista, não alocados, conflitos e capacidade compartilhada.
-- [ ] Prévia de distribuição; ativar cenário somente após confirmação.
-- [ ] Reta Final: prévia de adiar/suspender/transicionar. Avaliar P-05 (encerramento direto).
-- [ ] Trocar de cenário com prévia aberta; confirmar que nada vaza.
-- [ ] Avaliar P-01 (diagnóstico de capacidade) e P-06 (comparação de revisões).
+## C. Planejamento
 
-## D. Sessões (UX-18/19)
+- [ ] Disponibilidade com dois turnos, exceção e capacidade zero.
+- [ ] Meta semanal e por disciplina.
+- [ ] Meses de 28/29/30/31 dias e virada de ano.
+- [ ] Semana, Mês, Lista e Dia; blocos sem data/horário.
+- [ ] Prévia de redistribuição, ativação, Reta Final e histórico de checkpoints.
+- [ ] C-02: simular CAS conflitante de transição e verificar o rascunho preservado.
 
-- [ ] Cronômetro, pausa, retomada e Pomodoro.
-- [ ] Simular lacuna/fechar aba e conferir que tempo incerto não é creditado.
-- [ ] Registrar manual e comparar com verificado/incerto no inspetor.
-- [ ] Filtrar histórico por período, origem, estado e assunto; exportar respeitando filtro.
-- [ ] Alocação com disciplina arquivada/assunto removido deve ser recusada.
+## D. Sessões
+
+- [ ] Iniciar, pausar, retomar, concluir e Pomodoro.
+- [ ] Fechar aba/recuperar e confirmar que tempo incerto não é creditado.
+- [ ] Sessão manual, histórico, filtros e inspeção de alocações.
 - [ ] Duas abas: autoridade, conflito e retomada.
-- [ ] Avaliar mensagem de conflito entre abas e E-07 (hábitos).
+- [ ] Hábito vigente versus vínculo histórico (E-07).
 
-## E. Revisões (UX-20/21)
+## E. Revisões
 
-- [ ] Abrir ≠ iniciar ≠ concluir ≠ avaliar; iniciar cria startedAt e permanece pendente.
-- [ ] Retomar é idempotente; filtro Em andamento funciona.
-- [ ] Política base exige prévia; cancelar/alterar campos invalida; STALE_POLICY em duas abas.
-- [ ] Encaixe é prévia, recusa sobreposição e não grava antes de aplicar.
-- [ ] Histórico, versões, motivos de importação e links por ID.
-- [ ] Avaliar R-04 (amostra por evidência) e R-09 (aceite distribuído).
+- [ ] Abrir ≠ iniciar ≠ concluir ≠ avaliar; `startedAt` durável.
+- [ ] Retomar idempotente e filtro “Em andamento”.
+- [ ] Política base com prévia, cancelamento e STALE_POLICY.
+- [ ] Encaixe com prévia, sem sobreposição e sem gravar antes de aplicar.
+- [ ] Evidência prioridade → ponto fraco → detalhe F5 → sessão F4.
+- [ ] Sheet de filtros em 320/390, teclado, Escape e 200%.
+- [ ] C-01: duas abas iniciando a mesma revisão; avaliar a mensagem de conflito.
 
-## F. Integração total
+## F. Análises
 
-- [ ] Conteúdo → Planejamento → Sessão → Revisão → Home → Análises.
-- [ ] Vínculo de sessão não marca bloco como cumprido.
-- [ ] KPIs, filtros e snapshots mantêm proveniência e não inventam zero.
-- [ ] Nenhuma renderização altera fatos.
+- [ ] KPIs de foco, planejado, questões e aproveitamento; ausência não vira zero.
+- [ ] Gráfico e tabela usam a mesma série.
+- [ ] Períodos 7/30 dias e comparação anterior.
+- [ ] Explorar recorte por edital e por disciplina.
+- [ ] Metodologia, amostra baixa, período vazio e exportação CSV/JSON.
+- [ ] Arquivar snapshot, reabrir somente leitura e recarregar.
 
-## G. Configurações e proteção
+## G. Configurações, sync e backup
 
-- [ ] Perfil, preferências, backup F7 e recovery com dados sintéticos.
-- [ ] Exportação e restauração mostram cobertura e conflitos.
-- [ ] Avisos de sync remoto não homologado e consentimento.
-- [ ] Nenhuma ação perigosa apaga dados sem confirmação.
+- [ ] Galeria dos 12 temas e persistência após reload.
+- [ ] Consentimento de vínculo, estados discretos de sync e ausência de falso “Sincronizado”.
+- [ ] Backup local, prévia SAFE, restauração e read-back.
+- [ ] Quota, armazenamento, atualização bloqueada por outra aba e recuperação.
+- [ ] Nenhuma ação destrutiva sem confirmação; V1 nunca é tocada pela origem V2.
 
-## H. Acessibilidade e desempenho
+## H. Acessibilidade e ambiente
 
-- [ ] Teclado, foco após modal/pager e alvos de toque.
-- [ ] Texto 200% e contraste nos temas usados.
-- [ ] NVDA/Narrator e hardware modesto: marcar NOT_RUN se não executados.
+- [ ] Teclado, ordem de foco, foco após modal/pager, Escape e retorno.
+- [ ] Contraste, alvos de toque e texto em 200% nos layouts principais.
+- [ ] NVDA/Narrator, toque físico, zoom nativo e hardware modesto; se ausentes, `NOT_RUN_ENVIRONMENT`.
+- [ ] Registrar versões de navegador, viewport, tema, commit, fixture e data por captura.
 
-## P2 — decisão humana obrigatória
+## Decisões abertas
 
-| ID | Requisito/D | Efeito | Status técnico | Evidência | Decisão HUMANA | Ação autorizada | Condição de aceite |
-|---|---|---|---|---|---|---|---|
-| P-01 | D44–D46/D49 | diagnóstico de capacidade e metas comparativas resumidos | PARTIAL | UX16-UX21-TRACEABILITY; PlanningAvailabilityPanel | | | |
-| P-05 | D48–D49 | encerrar Reta Final ainda é direto, sem prévia | PARTIAL | FinalStretch.tsx; f3-final-stretch-ui | | | |
-| P-06 | D49 | comparação lado a lado de revisões/checkpoints resumida | PARTIAL | PlanningHistory; UX16 traceability | | | |
-| R-04 | D57 | fatores explicados, mas amostra por evidência não navegável | PARTIAL | ReviewWorkspace prioridade | | | |
-| P-09/R-09 | D44–D59 | aceite único distribuído em testes em vez de jornada formal | PARTIAL | f7-ux-integrated-journey; matrizes | | | |
-| C-01 | D55–D56 | conflito ao iniciar em duas abas mostra mensagem genérica | P2 | ReviewWorkspace.startReview | | | |
-| C-02 | D45–D48 | transição com CAS de blocos conflitante deixa cenário em rascunho sem retomada automática | P2 | confirmTransition | | | |
-| A-01 | D28/D71 | quatro links inline da Home abaixo de 24 px | P2 | HOME-320-AUDIT.md | | | |
-| E-07 | D54 | consistência de hábitos/metas resumida | PARTIAL | SessionWorkspace hábitos | | | |
+| ID | P2 | Decisão |
+|---|---|---|
+| A-01 | quatro links inline abaixo de 24 px | aceitar exceção inline ou ajustar |
+| C-01 | conflito ao iniciar revisão em duas abas mostra mensagem genérica | melhorar mensagem ou aceitar |
+| C-02 | conflito de transição deixa rascunho sem retomada automática | aceitar rascunho preservado ou implementar retomada |
 
-## Registro por caso
-
-| Caso | Resultado humano | Observação | Evidência | Data |
-|---|---|---|---|---|
-| A | | | | |
-| B | | | | |
-| C | | | | |
-| D | | | | |
-| E | | | | |
-| F | | | | |
-| G | | | | |
-| H | | | | |
-
+**Resultado final:** não emitir `PASS_HUMAN_UX` sem a inspeção efetiva do proprietário.

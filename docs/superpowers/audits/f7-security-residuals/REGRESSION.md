@@ -10,7 +10,7 @@ HEAD de código `48de3ac01ab46d40a9d8776e6ebf2151b935afb1`.
 | `npm run test:unit` | 883/883 em 129 arquivos |
 | `npx playwright test --project=chromium` | 253 testes: 248 PASS, 5 SKIP, 0 FAIL |
 | Foco HIGH/sync (13 arquivos) | 141/141 |
-| Firebase Emulator | 34/34 em cinco ciclos finais |
+| Firebase Emulator | 37/37 em 17/11/2026 (R1–R5, head vazio negado, 17 tipos); cinco ciclos anteriores de 34/34 preservados |
 
 ## E2E crítico
 

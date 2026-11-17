@@ -426,3 +426,9 @@ Estado: **FIREBASE_EMULATOR_LOCAL_VERIFIED / F0_HIGH_LOCAL_EVIDENCED / F7_EXTERN
 Rodada local R1–R4 concluída. R1: entidade só é criada/atualizada com operation, change e head causais no mesmo batch; stale head é negado. R2: concorrência do mesmo operationId reconcilia por receipt, com no máximo duas tentativas, sem ACK falso. R3: allowlist fechada de 17 entityTypes nas Rules e no validador. R4: documento pai da biblioteca é somente leitura; subcoleções continuam independentes.
 
 Código 48de3ac0. Firebase 34/34 em cinco ciclos finais; 883/883 unitários; 248/253 E2E (5 skips, 0 falhas); typecheck/lint/build PASS. Status: **F7_SECURITY_RESIDUALS_LOCAL_VERIFIED / F7_EXTERNAL_PENDING / UX_HUMAN_PENDING / REMOTE_PUSH_NOT_AUTHORIZED / MAIN_UNCHANGED**. Evidências em docs/superpowers/audits/f7-security-residuals/ e no ZIP de 17/11/2026. Nenhum push, deploy, staging, F8, serviço real ou alteração em main.
+
+## F7 Local Closeout — 17/11/2026
+
+O loop local repetiu typecheck/lint/build, 883/883 unitários, 256 E2E (251 PASS, 5 SKIP) e endureceu as Rules contra entidade legada sem head e contra um head vazio de sequência 0. Foram adicionados E2E de backup e restauração, o Emulator passou a **37/37** e o drill-down de Análises passou a ter prova E2E e captura populada. O pacote canônico dessa rodada fica em `docs/superpowers/audits/f7-local-closeout-20261117/`.
+
+Status: **F7_LOCAL_CLOSED_WITH_EVIDENCE / UX_HUMAN_PENDING / G_EXT_PENDING / G_STAGING_PENDING / F7_NOT_ACCEPTED / F8_NOT_STARTED / REMOTE_PUSH_NOT_AUTHORIZED / MAIN_UNCHANGED**. Nenhum push, deploy, staging, Firebase/Cloudflare real ou operação F8.

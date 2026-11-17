@@ -1,6 +1,6 @@
 # Matriz de aceite — remediação UX-H
 
-**Código:** `17ccda36` (rodada de evidências de 16/11/2026; a tabela mantém os IDs da remediação de 13/11). **Baseline reprovado:** `a4b56e5e` / `48548168`. **Aceite:** `UX_H_RE_REVIEW_PENDING`.
+**Código:** `48de3ac0` (reconciliado em 17/11/2026; a tabela mantém os IDs da remediação de 13/11). **Baseline reprovado:** `a4b56e5e` / `48548168`. **Aceite:** `UX_HUMAN_PENDING`.
 
 ## D01–D71
 
@@ -67,7 +67,7 @@ Fórmulas, dados, commits, outbox, relógio e restore não foram alterados. AC-0
 | UX-30 | PASS_LOCAL / A11Y_MANUAL_NOT_RUN | typecheck, lint, build, 880 unitários, 241 E2E |
 | UX-31 | PASS_LOCAL | bundle, hashes, revisões e ZIP |
 
-+## F0 — 46 capacidades (detalhe)
+## F0 — 46 capacidades (detalhe)
 
 Prova por grupo de suíte; nenhuma capacidade foi reimplementada nesta rodada. `PASS_LOCAL` cobre contratos e testes locais; serviços externos ficam `NOT_RUN`.
 

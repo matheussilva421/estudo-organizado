@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { resetF7Ux, seedAcademicData } from './f7-ux-helpers';
+import { resetF7Ux, seedAcademicData, seedAnalyticsSessions } from './f7-ux-helpers';
 
 const THEMES = [
   'grafite',
@@ -31,6 +31,9 @@ test('f7 ux sanitized visual evidence', async ({ page }) => {
   await mkdir(resolve(out!, 'modules'), { recursive: true });
   await resetF7Ux(page);
   await seedAcademicData(page);
+  await seedAnalyticsSessions(page);
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
 
   const moduleShots = [
     ['home', '/#/home', 'f6-home'],
@@ -104,6 +107,23 @@ test('f7 ux sanitized visual evidence', async ({ page }) => {
   await page.getByTestId('command-center-open').click();
   await expect(page.getByTestId('command-center')).toBeVisible();
   await page.screenshot({ path: resolve(out!, 'modules', 'command-center-mobile.png') });
+  await page.keyboard.press('Escape');
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/#/analytics');
+  await page.getByRole('button', { name: 'Explorar indicadores' }).click();
+  await page.getByRole('combobox', { name: 'Recorte analítico' }).selectOption('edital:f7ux-edital');
+  await expect(page.getByTestId('analytics-drill-result')).toContainText('Edital: TRT 2026');
+  await expect(page.getByTestId('analytics-drill-result')).toContainText('75% do tempo da mesma dimensão');
+  await page.screenshot({
+    path: resolve(out!, 'modules', 'analytics-drill-edital-desktop.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/#/reviews');
+  await page.getByRole('button', { name: 'Filtrar fila' }).click();
+  await expect(page.getByRole('dialog', { name: 'Filtros da fila de revisão' })).toBeVisible();
+  await page.screenshot({ path: resolve(out!, 'modules', 'review-sheet-mobile.png') });
   await page.keyboard.press('Escape');
 
   const manifest = {

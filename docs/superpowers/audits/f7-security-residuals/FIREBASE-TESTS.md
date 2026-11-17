@@ -23,8 +23,8 @@ npx --no-install firebase emulators:exec --only firestore,auth --project demo-es
 |---|---:|
 | `f7-firestore-rules.test.ts` | 15 |
 | `f7-remote-transaction.test.ts` | 6 |
-| `f7-security-residuals.test.ts` | 13 |
-| **Total** | **34 PASS, 0 FAIL, 0 SKIP** |
+| `f7-security-residuals.test.ts` | 16 |
+| **Total** | **37 PASS, 0 FAIL, 0 SKIP** |
 
 Cinco ciclos finais: `firebase-final3-stability-1..5.log`, todos 34/34, exit 0. O GREEN anterior está em `firebase-green-6.log`.
 

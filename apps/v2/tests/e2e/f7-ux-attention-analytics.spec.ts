@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { resetF7Ux } from './f7-ux-helpers';
+import type { V2E2EHarness } from '../../src/platform/e2e-harness';
+import { resetF7Ux, seedAcademicData, seedAnalyticsSessions } from './f7-ux-helpers';
+
+type HarnessWindow = Window & { __v2E2E: V2E2EHarness };
 
 test('f7 ux attention badge matches deduplicated causal queue', async ({ page }) => {
   await resetF7Ux(page, '/#/attention');
@@ -79,6 +82,43 @@ test('changing the period reconciles the actual focus value in chart and table',
   await period.selectOption('30');
   await expect(chart.locator('.bar-value')).toHaveText('30 minutes');
   await expect(row.getByRole('cell').first()).toHaveText('30 minutes');
+});
+
+test('analytics drill reconciles edital and discipline against the visible period', async ({ page }) => {
+  await resetF7Ux(page, '/#/analytics');
+  await seedAcademicData(page);
+  await seedAnalyticsSessions(page);
+  await expect.poll(() =>
+    page.evaluate(() => (window as unknown as HarnessWindow).__v2E2E.countStore('sessions')),
+  ).toBe(2);
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await page.goto('/#/analytics');
+  await page.getByRole('button', { name: 'Explorar indicadores' }).click();
+
+  const drill = page.getByRole('combobox', { name: 'Recorte analítico' });
+  await expect(drill).toContainText('Edital: TRT 2026');
+  await expect(drill).toContainText('Edital: TJRO 2026');
+  await drill.selectOption('edital:f7ux-edital');
+  const result = page.getByTestId('analytics-drill-result');
+  await expect(result).toContainText('Edital: TRT 2026');
+  await expect(result).toContainText('30 min');
+  await expect(result).toContainText('75% do tempo da mesma dimensão');
+
+  await drill.selectOption('edital:f7ux-edital-2');
+  await expect(result).toContainText('Edital: TJRO 2026');
+  await expect(result).toContainText('10 min');
+  await expect(result).toContainText('25% do tempo da mesma dimensão');
+
+  await drill.selectOption('disciplina:f7ux-link');
+  await expect(result).toContainText('Disciplina: Direito Constitucional');
+  await expect(result).toContainText('30 min');
+  await expect(result).toContainText('75% do tempo da mesma dimensão');
+
+  await drill.selectOption('disciplina:f7ux-link-2');
+  await expect(result).toContainText('Disciplina: Direito Administrativo');
+  await expect(result).toContainText('10 min');
+  await expect(result).toContainText('25% do tempo da mesma dimensão');
 });
 
 test('f7 ux archives an immutable report and reopens it read-only', async ({ page }) => {

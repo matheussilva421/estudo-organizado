@@ -191,6 +191,29 @@ describe('F7 security residuals', () => {
     await assertFails(batch.commit());
   });
 
+  it('r1_denies_legacy_entity_without_head_reactivating_the_chain', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), entityPath), entity());
+    });
+    const db = testEnv.authenticatedContext(uid).firestore();
+    const batch = writeBatch(db);
+    batch.set(doc(db, entityPath), entity({ revision: 2 }));
+    batch.set(doc(db, operationPath), operation({ revision: 2 }));
+    batch.set(doc(db, changePath), change({ revision: 2 }));
+    batch.set(doc(db, headPath), head());
+
+    // A legacy entity without a head must be re-baselined, not silently
+    // continue from a newly-created sequence 1.
+    await assertFails(batch.commit());
+  });
+
+  it('r1_denies_empty_head_that_could_seed_a_legacy_chain', async () => {
+    const db = testEnv.authenticatedContext(uid).firestore();
+    await assertFails(setDoc(doc(db, headPath), head({ changeSequence: 0 })));
+    const snapshot = await assertSucceeds(getDoc(doc(db, headPath)));
+    expect(snapshot.exists()).toBe(false);
+  });
+
   it('r1_denies_orphan_change_without_entity_write', async () => {
     const db = testEnv.authenticatedContext(uid).firestore();
     await assertSucceeds(initialBatch(db).commit());
@@ -236,8 +259,34 @@ describe('F7 security residuals', () => {
     await assertSucceeds(batch.commit());
   });
 
+  it('r3_all_known_entity_types_are_accepted_in_sequence', async () => {
+    const db = testEnv.authenticatedContext(uid).firestore();
+    const base = 'users/' + uid + '/libraries/' + library;
+    for (const [index, entityType] of KNOWN_REMOTE_ENTITY_TYPES.entries()) {
+      const sequence = index + 1;
+      const entityId = 'entity-' + sequence;
+      const operationId = 'op-' + sequence;
+      const batch = writeBatch(db);
+      batch.set(
+        doc(db, base + '/entities/' + entityId),
+        entity({ entityId, entityType }),
+      );
+      batch.set(
+        doc(db, base + '/operations/' + operationId),
+        operation({ operationId, entityId, changeSequence: sequence }),
+      );
+      batch.set(
+        doc(db, base + '/changes/' + sequence),
+        change({ sequence, entityId, operationId }),
+      );
+      batch.set(doc(db, base + '/meta/head'), head({ changeSequence: sequence }));
+      await assertSucceeds(batch.commit());
+    }
+  });
+
   it('r3_rules_allowlist_matches_known_entity_types', () => {
     const rules = readFileSync(resolve('firebase/firestore.rules'), 'utf8');
+    expect(KNOWN_REMOTE_ENTITY_TYPES).toHaveLength(17);
     for (const entityType of KNOWN_REMOTE_ENTITY_TYPES) {
       expect(rules).toContain("'" + entityType + "'");
     }

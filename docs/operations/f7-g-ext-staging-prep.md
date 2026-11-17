@@ -1,6 +1,6 @@
 # F7 — preparação executável de G-EXT e G-STAGING
 
-**Estado:** preparado, **não executado**.  
+**Estado:** preparado para os gates, **não executado**; em 17/11/2026 o local fechou 37/37 no Emulator, 883 unitários e 251/256 E2E (5 skips, 0 falhas).
 **Pré-requisito:** autorização humana separada para G-EXT e G-STAGING.  
 **Regra:** este documento não autoriza acesso a Firebase/Cloudflare reais, publicação de URL, uso de dados pessoais, billing ou merge `v2`→`main`.
 
@@ -149,7 +149,7 @@ npm run build
 npm run test:e2e
 $env:JAVA_HOME='<jdk-21>'
 $env:Path="$env:JAVA_HOME\bin;$env:Path"
-npx firebase emulators:exec --config firebase/firebase.json --project demo-estudo-v2 --only firestore "npm run test:firebase"
+npx firebase emulators:exec --config firebase/firebase.json --project demo-estudo-v2 --only firestore,auth "npm run test:firebase"
 ```
 
 Não usar projeto real, URL real ou credenciais neste passo.
@@ -158,6 +158,6 @@ Não usar projeto real, URL real ou credenciais neste passo.
 
 **Prontos para o piloto isolado:** projeto Spark separado e API key pública no contrato; Auth nomeado por projeto; Rules com tombstone, `changeId`, `getAfter`, igualdade change/entity/recibo e head monotônico; sync local de F2–F6; restore/backup com checksum/manifesto; bloqueio persistente de recovery e de operações posteriores a conflito; Worker imutável, delete da última cópia protegido, list paginado no contrato real do KV e JWKS padrão; listagem/download/descriptografia de versão remota com prévia de restore; PWA com precache/versionamento/presença de abas; retenção de sete versões com hidratação remota; orçamento local de sync.
 
-**Pendentes de prova real ou de insumo:** Firebase/Cloudflare/Auth/Firestore/KV reais; concorrência multi-cliente em serviço real; medição de cotas; URL independente e HTTPS; dispositivos físicos; migração V1 com exportação/fixtures autorizadas; rebaseline com `historyFloor` completo; contagem remota real no consentimento; impedir writes diretos de entity/change/head fora do recibo exige operationId determinístico por entidade/revisão ou mudança de contrato; T26/T27 e aceite humano.
+**Pendentes de prova real ou de insumo:** Firebase/Cloudflare/Auth/Firestore/KV reais; concorrência multi-cliente em serviço real; medição de cotas; URL independente e HTTPS; dispositivos físicos; migração V1 com exportação/fixtures autorizadas; rebaseline com `historyFloor` completo; contagem remota real no consentimento; T26/T27 e aceite humano.
 
 **Regra:** os itens “prontos” acima são `TESTED_LOCAL`, não `PASS_REAL_ISOLATED`. O piloto só pode marcá-los após G-EXT/G-STAGING e evidência do provedor.

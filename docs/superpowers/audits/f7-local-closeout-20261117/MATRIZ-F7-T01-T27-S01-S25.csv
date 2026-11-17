@@ -1,0 +1,53 @@
+ID,Requisito,Status,Ambiente,Evidencia,Bloqueio
+T01,Fronteira de configuracao V1/V2,PASS_LOCAL,Teste local,tests/unit/f7-environment.test.ts,
+T02,Porta de autenticacao Google testavel,PASS_LOCAL,Teste local,tests/unit/f7-auth.test.ts,Google real BLOCKED_GATE
+T03,Vinculo de perfil e resposta tardia,PASS_LOCAL,Teste local,f7-google-link + f2-delivery-identity,
+T04,Emulator Suite e Rules isoladas,PASS_EMULATOR,Firebase Emulator 37/37,tests/firebase/*,Rules publicadas BLOCKED_GATE
+T05,Modelo remoto pequeno e cursor,PASS_LOCAL,Teste local,f7-remote-schema,
+T06,CAS deduplicacao e tombstone,PASS_EMULATOR,Firebase Emulator,firebase-remote + remote-transaction,Concorrencia real BLOCKED_GATE
+T07,ACK local com prova remota,PASS_LOCAL,Teste local,f7-sync-ack,
+T08,Flush entre abas e retomada,PASS_LOCAL,E2E local,two-tabs + real-outbox,
+T09,Pull incremental e isolamento UID,PASS_LOCAL,Teste local,f7-change-feed,Firestore real BLOCKED_GATE
+T10,Conflitos conservadores,PASS_LOCAL,Teste local,f7-sync-conflicts,
+T11,Rebaseline e protecao contra cliente antigo,PASS_LOCAL,Teste local,f7-rebaseline + f7-recovery,
+T12,Gatilhos automaticos eficientes,PASS_LOCAL,Teste local,f7-sync-scheduler,
+T13,Orcamento Spark local,PASS_LOCAL,Teste local,f7-sync-budget,Medicao real BLOCKED_GATE
+T14,Snapshot integral F2-F6,PASS_LOCAL,Teste local,f7-backup-coverage,
+T15,Criptografia e recuperacao de chave,PASS_LOCAL,Teste local,f7-backup-crypto,
+T16,Worker Free e identidade,PASS_LOCAL,Teste local,f7-kv-auth,Worker real BLOCKED_GATE
+T17,Adaptador KV Free,PASS_LOCAL,Teste local,f7-kv-storage,KV real BLOCKED_GATE
+T18,Backup diario e retencao,PASS_LOCAL,Teste local,f7-backup-schedule,Retencao remota BLOCKED_GATE
+T19,Preview e restauracao isolada,PASS_LOCAL,E2E local + unit,f7-restore.spec.ts + f7-restore,
+T20,Migracao V1 sintetica,PASS_LOCAL,Teste local,f7-v1-migration + fixtures,Acervo real BLOCKED_MAPPING
+T21,Backup corrupto e limite KV,PASS_LOCAL,E2E local + unit,f7-backup.spec.ts + f7-backup-boundaries,KV real BLOCKED_GATE
+T22,Integracao Auth sync backup e UX,PASS_LOCAL,Teste local + E2E,f7-sync-view + settings-flow,
+T23,PWA offline e update seguro,PASS_LOCAL,Unit + E2E regressivo,f7-sw-update + f4-update + pwa-offline,Staging publicado BLOCKED_GATE
+T24,Armazenamento quota e recuperacao,PASS_LOCAL,Unit + E2E,f7-storage-health + storage-recovery,Clear Data real BLOCKED_GATE
+T25,Hardening seguranca acessibilidade e regressao,PARTIAL,Automacao local,security-inputs + a11y suites,NVDA/Narrator/toque/hardware NOT_RUN_ENVIRONMENT
+T26,Homologacao real isolada,BLOCKED_GATE,Sem execucao externa,f7-g-ext-staging-prep,G-EXT
+T27,URL V2 independente e aceite,PARTIAL,Local apenas,staging-readiness + staging-isolation,G-STAGING e G-F7
+S01,PC para celular e tablet,BLOCKED_GATE,Sem dispositivos,fake/emulator local,G-EXT + dispositivos
+S02,Criacoes offline independentes,PARTIAL,Local conservador,f7-sync-conflicts,Dois dispositivos reais
+S03,Mesmo bloco editado offline,PARTIAL,Local conservador,f7-sync-conflicts,Dois dispositivos reais
+S04,Exclusao remota e cliente antigo,PARTIAL,Local conservador,f7-rebaseline + f7-restore,Cliente antigo remoto
+S05,Timeout apos commit,PARTIAL,Local conservador,f7-sync-coordinator + firebase-remote,Timeout Firestore real
+S06,Duas abas com a mesma outbox,PASS_LOCAL,E2E local,two-tabs + real-outbox,
+S07,Troca de conta UID,PARTIAL,Simulacao local,f7-auth + google-link + Rules,Google Auth real
+S08,Payload acima de 1 MiB,PASS_LOCAL,Teste local,f7-remote-schema,Limite Firestore real
+S09,Reconexoes repetidas e quota,BLOCKED_GATE,Sem servico real,estimativas locais,G-EXT + quota real
+S10,Quota Auth fechamento e offline,PARTIAL,Local,f7-sync-budget + ack + coordinator,Servicos reais
+S11,Backup antigo e exclusao recente,PARTIAL,Local,f7-restore + rebaseline,Backup remoto real
+S12,Schemas V1 e issue 107 sintetica,PASS_LOCAL,Fixtures,f7-v1-migration,Acervo real BLOCKED_MAPPING
+S13,Service Worker com sessao ou formulario,PASS_LOCAL,Unit + E2E,f7-sw-update + f4-update + pwa-offline,PWA externo BLOCKED_GATE
+S14,Clear Data do perfil V2,PARTIAL,Isolamento local,storage-recovery + origins,Origem publicada BLOCKED_GATE
+S15,Rules hostis e UID invalido,PASS_EMULATOR,Firebase Emulator 37/37,Rules + security residuals,Rules publicadas BLOCKED_GATE
+S16,Backup export e restore portatil,PASS_LOCAL,E2E + unit,f7-backup + f7-restore,
+S17,Cobertura V1/V2 sem PASS ficticio,PASS_LOCAL,Revisao documental,matrizes F0/F7,
+S18,IndexedDB removido,PASS_LOCAL,E2E,storage-recovery,
+S19,KV Free com Worker e Auth,BLOCKED_GATE,Sem servico real,fake local,G-EXT
+S20,Backup diario e sete versoes,PASS_LOCAL,Teste local,f7-backup-schedule,KV real BLOCKED_GATE
+S21,Senha chave ou arquivo invalido,PASS_LOCAL,Teste local,f7-backup-crypto,
+S22,URL V2 isolada,BLOCKED_GATE,Sem URL,staging-isolation local,G-STAGING
+S23,Backup maior que 25 MiB,PASS_LOCAL,Teste local,f7-backup-boundaries,Limite KV real
+S24,Todos os tipos academicos F2-F6,PASS_LOCAL,Composicao de testes,f7-delivery-types + backup-coverage + restore,Jornada real BLOCKED_GATE
+S25,Experiencia em aparelhos disponiveis,PARTIAL,Chromium desktop/tablet/mobile,UX captures,Aparelhos fisicos e UX-H

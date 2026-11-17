@@ -1,6 +1,8 @@
 # Matriz de aceite — remediação UX-H
 
-**Código:** `6c0353bb7da20338518b36427416343ba23f1835` (rodada de emulador de 16/11/2026; IDs preservados da remediação de 13/11). **Baseline reprovado:** `a4b56e5e` / `48548168`. **Aceite:** `UX_HUMAN_PENDING`.
+**Código:** `48de3ac01ab46d40a9d8776e6ebf2151b935afb1` (HEAD de código em 17/11/2026; este arquivo preserva IDs históricos). **Baseline reprovado:** `a4b56e5e` / `48548168`. **Aceite:** `UX_HUMAN_PENDING`.
+
+**Reconciliação 17/11/2026:** a matriz canônica desta rodada é `docs/superpowers/audits/f7-local-closeout-20261117/MATRIZ-UX-DV-VA.md`; esta cópia mantém a visão integral e foi corrigida nos pontos DV-13/VA-13, VA-06, DV-17/VA-17 e contagens.
 
 ## D01–D71
 
@@ -19,33 +21,33 @@
 |---|---|---|
 | DV-01–DV-03 | PASS | catálogo, galeria, glow/densidade |
 | DV-04 | PASS_LOCAL_VERIFIED (fixture) | cenário PERFORMANCE com cenário ativo + sessão concluída; f7-ux-premium-home |
-| DV-05 | PARTIAL_JUSTIFIED | sugestão com consentimento; layout fixado com teste dedicado |
-| DV-06 | PARTIAL_JUSTIFIED | Studios recompostos; não há mock 1:1 para eles |
+| DV-05 | PARTIAL | layout manual, undo e falha de escrita testados; controle explícito de fixar/desligar adaptação sem prova dedicada |
+| DV-06 | PARTIAL | Home Bento e grids Knowledge/Reviews/Insights provados estruturalmente; diferenciação visual exige UX-H; mock 1:1 não é requisito |
 | DV-07 | PASS | onboarding e estados vazios reais |
-| DV-08 | PARTIAL_JUSTIFIED | hierarquia corrigida; sistema universal de três camadas não existe |
+| DV-08 | PARTIAL | painéis contextuais e conflito persistente amostrados; hierarquia exige julgamento humano; framework universal não é requisito |
 | DV-09–DV-11 | PASS | superfícies, Foco, calendário |
 | DV-12 | PASS_LOCAL | fila/execução/histórico em duas colunas |
-| DV-13 | PASS_LOCAL_VERIFIED (leitura) | F4 abre a sessão; F5 mostra execução com tópico, avaliação, cobertura, duração e compromisso |
+| DV-13 | PASS_LOCAL | Insights com visão geral e drill por edital/disciplina; `f7-ux-attention-analytics.spec.ts` e captura `analytics-drill-edital-desktop.png` |
 | DV-14 | PASS_LOCAL_VERIFIED (escopo local) | biblioteca, árvore e inspetor; fixture de 120 assuntos e 320 px testados |
 | DV-15–DV-16 | PASS | Command Center, Busca, Settings |
-| DV-17 | PARTIAL_JUSTIFIED | sheet da fila existe; sistema geral de sheets não |
-| DV-18 | PARTIAL_JUSTIFIED | feedback contextual; avisos persistentes |
+| DV-17 | PASS_LOCAL (escopo implementado) | sheet da fila em 320/390, foco, Escape e 200%; sistema universal não é requisito |
+| DV-18 | PASS_LOCAL (amostrado) | alertas inline, conflito persistente e conflito resolvido; movimento/proeminência exige UX-H |
 
 ## VA-01–VA-20
 
 | VA | Estado | Prova |
 |---|---|---|
 | VA-01–VA-05 | PASS | temas, persistência, onboarding |
-| VA-06 | PARTIAL_JUSTIFIED | fixture acadêmica coberta; benchmark formal de renderização/hardware não executado |
+| VA-06 | PASS_LOCAL | cinco contextos da Home com fixture; benchmark/hardware pertence a VA-20 |
 | VA-07 | PASS_LOCAL_VERIFIED | consentimento de ordem em PERFORMANCE e FINAL_STRETCH; nada muda antes de aplicar |
 | VA-08 | PASS_LOCAL | Studios com hierarquia própria |
 | VA-09 | PASS_LOCAL | ações em camadas e duas colunas |
 | VA-10–VA-11 | PASS | sessão/Foco, Planning |
 | VA-12 | PASS_LOCAL | fila antes da política |
-| VA-13 | PASS_LOCAL_VERIFIED (leitura) | F4 contextual e detalhe F5 sob demanda, sem nova tela de edição |
+| VA-13 | PASS_LOCAL | KPI, gráfico, tabela, período, metodologia e drill reconciliados na mesma fonte |
 | VA-14 | PASS_LOCAL_VERIFIED (escopo local) | Knowledge com inspetor contextual, seleção e retorno de foco |
 | VA-15–VA-16 | PASS | rotas/IDs, Settings seguro |
-| VA-17 | PARTIAL_JUSTIFIED | sheets parciais |
+| VA-17 | PASS_LOCAL (escopo implementado) | sheet da fila provado; telas completas para operações complexas |
 | VA-18–VA-19 | PASS_LOCAL | feedback, conflito em Foco |
 | VA-20 | PASS_AUTOMATED / MANUAL_NOT_RUN | 12 temas; NVDA/hardware pendentes |
 
@@ -64,7 +66,7 @@ Fórmulas, dados, commits, outbox, relógio e restore não foram alterados. AC-0
 | UX-19 / E-07 | PASS_LOCAL_VERIFIED (limite) | `states/session-habit-context.png`; vínculo antigo = não demonstrado |
 | UX-21 / R-04 | PASS_LOCAL_VERIFIED | prioridade abre o ponto fraco e o detalhe F5; F4 abre a sessão; aviso sem amostra |
 | UX-22–UX-29 | PASS_LOCAL | Insights, Settings, jornadas, offline |
-| UX-30 | PASS_LOCAL / A11Y_MANUAL_NOT_RUN | typecheck, lint, build, 881 unitários, 248/253 E2E, 17/17 emulador |
+| UX-30 | PASS_LOCAL / A11Y_MANUAL_NOT_RUN | typecheck, lint, build, 883 unitários, 248/253 E2E (5 skips), 36/36 emulador; NVDA/toque/hardware pendentes |
 | UX-31 | PASS_LOCAL | bundle verificado, hashes, duas rodadas de revisão e ZIP final |
 
 ## F0 — 46 capacidades (detalhe)

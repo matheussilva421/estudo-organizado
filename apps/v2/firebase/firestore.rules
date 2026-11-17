@@ -122,7 +122,7 @@ service cloud.firestore {
         allow read: if owns(uid) && validLibrary(remoteLibraryId);
         allow write: if false;
 
-        function entityHasCausalAudit(entityId, data) {
+        function entityHasCausalAudit(entityId, data, requireExistingHead) {
           let headExists = exists(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head);
           let headAfterExists = existsAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head);
           let sequence = headAfterExists
@@ -138,6 +138,8 @@ service cloud.firestore {
           let operationAfterExists = operationId != ''
             && existsAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(operationId));
           return headAfterExists
+            && (!requireExistingHead || headExists)
+            && (!requireExistingHead || sequence >= 2)
             && (
               (headExists && sequence == get(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.changeSequence + 1)
               || (!headExists && sequence == 1)
@@ -164,7 +166,7 @@ service cloud.firestore {
             && entityId == request.resource.data.entityId
             && validEnvelope(request.resource.data)
             && request.resource.data.revision == 1
-            && entityHasCausalAudit(entityId, request.resource.data);
+            && entityHasCausalAudit(entityId, request.resource.data, false);
           allow update: if owns(uid)
             && validLibrary(remoteLibraryId)
             && entityId == request.resource.data.entityId
@@ -172,7 +174,7 @@ service cloud.firestore {
             && request.resource.data.revision == resource.data.revision + 1
             && request.resource.data.epoch == resource.data.epoch
             && request.resource.data.entityType == resource.data.entityType
-            && entityHasCausalAudit(entityId, request.resource.data);
+            && entityHasCausalAudit(entityId, request.resource.data, true);
           allow delete: if false;
         }
 
@@ -228,10 +230,7 @@ service cloud.firestore {
             && validHead(request.resource.data)
             && (
               request.method == 'create'
-                ? (
-                  request.resource.data.changeSequence == 0
-                  || request.resource.data.changeSequence == 1
-                )
+                ? request.resource.data.changeSequence == 1
                 : request.resource.data.changeSequence == resource.data.changeSequence + 1
             )
             && (
@@ -239,11 +238,8 @@ service cloud.firestore {
               || request.resource.data.epoch >= resource.data.epoch
             )
             && (
-              request.resource.data.changeSequence == 0
-              || (
-                existsAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence)))
-                && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.epoch == request.resource.data.epoch
-              )
+              existsAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence)))
+              && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(request.resource.data.changeSequence))).data.epoch == request.resource.data.epoch
             );
         }
       }

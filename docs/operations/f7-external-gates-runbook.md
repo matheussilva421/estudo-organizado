@@ -1,7 +1,8 @@
 # F7 — Runbook dos gates externos (G-EXT e G-STAGING)
 
-**Estado atual:** `F7_LOCAL_CODE_COMPLETE` / `F7_BLOCKED_G-EXT_G-STAGING`  
-**Código local:** `df957f6`; documentação: `188b03a` (este runbook integra o commit documental seguinte)  
+**Estado atual:** `F7_LOCAL_CLOSED_WITH_EVIDENCE` / `UX_HUMAN_PENDING` / `F7_BLOCKED_G-EXT_G-STAGING`
+
+**Código local:** `48de3ac0`; documentação de referência: `b257afe5` (o relatório desta rodada é o commit documental seguinte).
 **V1/main:** `9046cfa`, intocada.  
 **Regra:** este runbook não autoriza nada por si só. G-EXT e G-STAGING exigem consentimento expresso e separado.
 
@@ -38,7 +39,7 @@ npm run test:e2e
 # Rules no emulador (JRE 21+; use o caminho local do seu JRE)
 $env:JAVA_HOME='<caminho-do-jdk-21>'
 $env:PATH=($env:JAVA_HOME + '\bin;' + $env:PATH)
-npx firebase emulators:exec --config firebase/firebase.json --project demo-estudo-v2 --only firestore "npm run test:firebase"
+npx firebase emulators:exec --config firebase/firebase.json --project demo-estudo-v2 --only firestore,auth "npm run test:firebase"
 ```
 
 ### Evidência mínima
