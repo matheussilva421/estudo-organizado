@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GoogleAuthError, type GoogleIdentity } from '../../src/application/google-auth-types';
 import {
+  consumeRedirectPending,
   createFirebaseGoogleAuthPort,
+  GOOGLE_REDIRECT_PENDING_KEY,
+  GOOGLE_REDIRECT_PENDING_MAX_AGE_MS,
   type FirebaseModules,
   type GoogleAuthBackend,
 } from '../../src/platform/firebase/auth';
@@ -96,6 +99,7 @@ describe('F7 Google auth port', () => {
     }));
     const onAuthStateChanged = vi.fn(() => () => undefined);
     const setPersistence = vi.fn(async () => undefined);
+    const getRedirectResult = vi.fn(async () => null);
     const signInWithPopup = vi.fn();
     const signOut = vi.fn();
     const GoogleAuthProvider = class {};
@@ -106,6 +110,7 @@ describe('F7 Google auth port', () => {
         onAuthStateChanged,
         setPersistence,
         browserLocalPersistence: {},
+        getRedirectResult,
         connectAuthEmulator,
         signInWithPopup,
         signOut,
@@ -115,6 +120,7 @@ describe('F7 Google auth port', () => {
 
     const port = createFirebaseGoogleAuthPort(config, { load: async () => modules });
     await expect(port.current()).resolves.toBeNull();
+    expect(getRedirectResult).not.toHaveBeenCalled();
     expect(connectAuthEmulator).toHaveBeenCalledWith(
       expect.anything(),
       'http://127.0.0.1:9099',
@@ -171,6 +177,7 @@ describe('F7 Google auth port', () => {
   });
 
   it('f7_redirect_mode_starts_a_redirect_instead_of_a_popup', async () => {
+    sessionStorage.clear();
     const signInWithPopup = vi.fn();
     const signInWithRedirect = vi.fn(async () => undefined);
     const modules = {
@@ -206,5 +213,63 @@ describe('F7 Google auth port', () => {
     await expect(port.signIn()).rejects.toMatchObject({ code: 'AUTH_FAILED' });
     expect(signInWithRedirect).toHaveBeenCalledTimes(1);
     expect(signInWithPopup).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(GOOGLE_REDIRECT_PENDING_KEY)).toBeNull();
+  });
+
+  it('f7_redirect_failure_clears_the_pending_marker', async () => {
+    sessionStorage.clear();
+    const signInWithRedirect = vi.fn(async () => {
+      throw new Error('redirect failed');
+    });
+    const modules = {
+      app: {
+        getApps: () => [],
+        getApp: () => ({}),
+        initializeApp: () => ({}),
+      },
+      auth: {
+        getAuth: () => ({ currentUser: null }),
+        onAuthStateChanged: () => () => undefined,
+        setPersistence: async () => undefined,
+        browserLocalPersistence: {},
+        getRedirectResult: async () => null,
+        signInWithPopup: vi.fn(),
+        signInWithRedirect,
+        signOut: async () => undefined,
+        GoogleAuthProvider: class {},
+      },
+    } as unknown as FirebaseModules;
+
+    const port = createFirebaseGoogleAuthPort(
+      {
+        projectId: 'demo-redirect',
+        authDomain: 'demo-redirect.firebaseapp.com',
+        appId: '1:1:web:demo',
+        apiKey: 'demo-api-key',
+        authMode: 'redirect',
+      },
+      { load: async () => modules },
+    );
+
+    await expect(port.signIn()).rejects.toMatchObject({ code: 'AUTH_FAILED' });
+    expect(signInWithRedirect).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem(GOOGLE_REDIRECT_PENDING_KEY)).toBeNull();
+  });
+
+  it('f7_redirect_marker_is_project_scoped_and_expires', () => {
+    sessionStorage.clear();
+    const marker = (projectId: string, createdAt: number) =>
+      JSON.stringify({ version: 1, projectId, createdAt });
+
+    sessionStorage.setItem(GOOGLE_REDIRECT_PENDING_KEY, marker('project-a', 1_000));
+    expect(consumeRedirectPending('project-b', 2_000)).toBe(false);
+    expect(sessionStorage.getItem(GOOGLE_REDIRECT_PENDING_KEY)).toBeNull();
+
+    sessionStorage.setItem(GOOGLE_REDIRECT_PENDING_KEY, marker('project-a', 1_000));
+    expect(consumeRedirectPending('project-a', 1_000 + GOOGLE_REDIRECT_PENDING_MAX_AGE_MS + 1)).toBe(false);
+
+    sessionStorage.setItem(GOOGLE_REDIRECT_PENDING_KEY, marker('project-a', 1_000));
+    expect(consumeRedirectPending('project-a', 2_000)).toBe(true);
+    expect(consumeRedirectPending('project-a', 2_000)).toBe(false);
   });
 });

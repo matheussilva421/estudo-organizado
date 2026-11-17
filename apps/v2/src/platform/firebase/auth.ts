@@ -30,6 +30,53 @@ export type GoogleAuthOptions = {
 
 /** Session marker used to resume the consent preview after a redirect. */
 export const GOOGLE_REDIRECT_PENDING_KEY = 'eo-v2-google-link-pending';
+export const GOOGLE_REDIRECT_PENDING_MAX_AGE_MS = 30 * 60 * 1000;
+
+type RedirectPending = {
+  version: 1;
+  projectId: string;
+  createdAt: number;
+};
+
+function setRedirectPending(projectId: string, now = Date.now()): void {
+  try {
+    const pending: RedirectPending = { version: 1, projectId, createdAt: now };
+    globalThis.sessionStorage?.setItem(GOOGLE_REDIRECT_PENDING_KEY, JSON.stringify(pending));
+  } catch {
+    // Session storage may be unavailable; the redirect still works.
+  }
+}
+
+function clearRedirectPending(): void {
+  try {
+    globalThis.sessionStorage?.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
+  } catch {
+    // Nothing to clear when storage is unavailable.
+  }
+}
+
+/** Consumes and validates a redirect marker for the expected project. */
+export function consumeRedirectPending(projectId: string, now = Date.now()): boolean {
+  let raw: string | null;
+  try {
+    raw = globalThis.sessionStorage?.getItem(GOOGLE_REDIRECT_PENDING_KEY) ?? null;
+    if (raw) globalThis.sessionStorage?.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
+  } catch {
+    return false;
+  }
+  if (!raw) return false;
+  try {
+    const pending = JSON.parse(raw) as Partial<RedirectPending>;
+    const age = now - (typeof pending.createdAt === 'number' ? pending.createdAt : NaN);
+    return pending.version === 1
+      && pending.projectId === projectId
+      && Number.isFinite(age)
+      && age >= 0
+      && age <= GOOGLE_REDIRECT_PENDING_MAX_AGE_MS;
+  } catch {
+    return false;
+  }
+}
 
 const defaultLoad: FirebaseLoader = async () => {
   const [app, auth] = await Promise.all([import('firebase/app'), import('firebase/auth')]);
@@ -80,7 +127,7 @@ async function createFirebaseBackend(
 
   // Completes a pending redirect before the auth listener is registered. The
   // call is a no-op when there is no redirect event in this browser session.
-  if (typeof authModule.getRedirectResult === 'function') {
+  if (config.authMode === 'redirect' && typeof authModule.getRedirectResult === 'function') {
     await authModule.getRedirectResult(auth).catch(() => undefined);
   }
 
@@ -102,12 +149,14 @@ async function createFirebaseBackend(
             notify(listeners, identity);
             return existingIdentity;
           }
+          setRedirectPending(config.projectId);
           try {
-            globalThis.sessionStorage?.setItem(GOOGLE_REDIRECT_PENDING_KEY, '1');
-          } catch {
-            // Session storage may be unavailable; the redirect still works.
+            await authModule.signInWithRedirect(auth, provider);
+          } catch (error) {
+            clearRedirectPending();
+            throw new GoogleAuthError('AUTH_FAILED', 'Google sign-in redirect failed', { cause: error });
           }
-          await authModule.signInWithRedirect(auth, provider);
+          clearRedirectPending();
           throw new GoogleAuthError('AUTH_FAILED', 'Google sign-in redirect did not navigate');
         }
         const result = await authModule.signInWithPopup(auth, provider);
@@ -125,6 +174,7 @@ async function createFirebaseBackend(
       }
     },
     async signOut() {
+      clearRedirectPending();
       await authModule.signOut(auth);
       identity = null;
       notify(listeners, null);
