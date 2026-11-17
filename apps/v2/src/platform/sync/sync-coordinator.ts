@@ -12,6 +12,9 @@ import type { PullResult } from './change-feed';
 import { canDeliver, type DeliveryBinding } from './delivery-policy';
 import {
   assessSyncBudgetDetailed,
+  REMOTE_PULL_READ_BUDGET,
+  REMOTE_READS_PER_OPERATION,
+  REMOTE_WRITES_PER_OPERATION,
   type SyncUsage,
   type SyncUsageLimits,
 } from './budget';
@@ -225,6 +228,10 @@ export class SyncCoordinator {
     let prePull: PullResult | null = null;
     if (this.pull) {
       prePull = await this.pull(profileId).catch(() => 'FAILED' as const);
+      if (this.budget) {
+        this.budget.usage.reads += REMOTE_PULL_READ_BUDGET;
+        await this.persistBudget?.(this.budget.usage);
+      }
       if (this.stopped.has(profileId)) {
         return health(true, false, 0, 'STOPPED');
       }
@@ -263,9 +270,9 @@ export class SyncCoordinator {
     }
     if (this.budget) {
       const assessment = assessSyncBudgetDetailed(this.budget.usage, this.budget.limits, {
-        reads: operations.length * 3,
-        writes: operations.filter((operation) => operation.kind === 'upsert').length,
-        deletes: operations.filter((operation) => operation.kind === 'delete').length,
+        reads: operations.length * REMOTE_READS_PER_OPERATION,
+        writes: operations.length * REMOTE_WRITES_PER_OPERATION,
+        deletes: 0,
       });
       if (assessment.kind === 'PAUSE') {
         return health(true, false, operations.length, 'PAUSED_QUOTA');
@@ -346,11 +353,8 @@ export class SyncCoordinator {
       result.pending.length + result.blocked.length + openConflicts + ackFailures;
     const remoteCommitted = confirmed > 0;
     if (this.budget) {
-      this.budget.usage.reads += operations.length * 3;
-      this.budget.usage.writes += confirmed;
-      this.budget.usage.deletes += operations.filter(
-        (operation) => operation.kind === 'delete' && result.confirmedIds.includes(operation.operationId),
-      ).length;
+      this.budget.usage.reads += operations.length * REMOTE_READS_PER_OPERATION;
+      this.budget.usage.writes += confirmed * REMOTE_WRITES_PER_OPERATION;
       this.budget.usage.bytesOut += operations.reduce(
         (total, operation) =>
           total + new TextEncoder().encode(JSON.stringify(operation.payload)).length,

@@ -3,7 +3,13 @@ import type { SyncHealth } from '../application/sync-types';
 import { assessSyncHealth } from '../application/sync-policy';
 import { GoogleLinkService, type LinkReview } from '../application/google-link-service';
 import type { BackupHealth } from '../presentation/components/BackupControls';
-import { resolveV2RemoteConfig, V2_APP_NAME, type V2RemoteConfig } from './firebase/config';
+import {
+  resolveV2RemoteConfig,
+  V1_FIREBASE_PROJECT_ID,
+  V1_HOSTS,
+  V2_APP_NAME,
+  type V2RemoteConfig,
+} from './firebase/config';
 import { createFirebaseGoogleAuthPort } from './firebase/auth';
 import { LocalProfileRepository } from './local-profile-repository';
 import {
@@ -52,6 +58,7 @@ import {
 
 const REMOTE_LIBRARY = 'library-main';
 const RECOVERY_SECRET_KEY = 'estudo-organizado:v2:recovery-secret';
+const RECOVERY_SECRET_UID_KEY = 'estudo-organizado:v2:recovery-secret-uid';
 const SYNC_LIMITS: SyncUsageLimits = {
   reads: 50_000,
   writes: 20_000,
@@ -59,6 +66,21 @@ const SYNC_LIMITS: SyncUsageLimits = {
   bytesOut: 10 * 1024 * 1024 * 1024,
   periodMs: 24 * 60 * 60_000,
 };
+
+export function resolveIsolatedBackupEndpoint(value: string | undefined): string {
+  const candidate = String(value ?? '').trim();
+  if (!candidate) return '';
+  const lower = candidate.toLowerCase();
+  if (lower.includes(V1_FIREBASE_PROJECT_ID)) return '';
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== 'https:') return '';
+    if ((V1_HOSTS as readonly string[]).includes(url.hostname.toLowerCase())) return '';
+    return url.href.replace(/\/$/, '');
+  } catch {
+    return '';
+  }
+}
 
 export type F7GoogleStatus = 'LOCAL_ONLY' | 'LINKING' | 'READY' | 'PAUSED_AUTH';
 
@@ -160,6 +182,7 @@ export class F7Runtime {
   private backupScheduler: PersonalBackupScheduler | null = null;
   private backupRemote: BackupRemotePort | null = null;
   private recoverySecret: string | null = null;
+  private recoverySecretOwner: string | null = null;
   private unsubAuth: (() => void) | null = null;
   private lastHealth: SyncHealth | null = null;
   private previewSeq = 0;
@@ -178,8 +201,10 @@ export class F7Runtime {
     this.authFactory = options.auth ? () => options.auth! : () => createFirebaseGoogleAuthPort(this.config);
     try {
       this.recoverySecret = globalThis.sessionStorage?.getItem(RECOVERY_SECRET_KEY) ?? null;
+      this.recoverySecretOwner = globalThis.sessionStorage?.getItem(RECOVERY_SECRET_UID_KEY) ?? null;
     } catch {
       this.recoverySecret = null;
+      this.recoverySecretOwner = null;
     }
   }
 
@@ -198,6 +223,8 @@ export class F7Runtime {
     this.auth = this.authFactory();
     this.linkService = new GoogleLinkService({ profiles: this.profiles, now: this.now });
     this.unsubAuth = this.auth.subscribe((identity) => {
+      const previousUid = this.identity?.uid ?? null;
+      if (previousUid && identity?.uid !== previousUid) this.clearRecoverySecret();
       this.identity = identity;
       void this.refresh();
     });
@@ -224,6 +251,9 @@ export class F7Runtime {
       const pending = pendingRows.length + openConflicts.length;
       const identity = await this.currentIdentity();
       this.identity = identity;
+      if (identity && this.recoverySecret && this.recoverySecretOwner !== identity.uid) {
+        this.clearRecoverySecret();
+      }
       const identityMismatch = Boolean(profile.uid && identity && identity.uid !== profile.uid);
       const identityMissing = Boolean(profile.uid && !identity);
       if (identityMismatch || identityMissing) {
@@ -397,6 +427,7 @@ export class F7Runtime {
     this.backupScheduler = null;
     this.backupRemote = null;
     this.lastHealth = null;
+    this.clearRecoverySecret();
     await this.refresh();
   }
 
@@ -424,17 +455,36 @@ export class F7Runtime {
   setRecoverySecret(secret: string): void {
     const normalized = secret.trim();
     this.recoverySecret = normalized || null;
+    this.recoverySecretOwner = this.recoverySecret ? this.identity?.uid ?? null : null;
     try {
       if (this.recoverySecret) {
         globalThis.sessionStorage?.setItem(RECOVERY_SECRET_KEY, this.recoverySecret);
+        if (this.recoverySecretOwner) {
+          globalThis.sessionStorage?.setItem(RECOVERY_SECRET_UID_KEY, this.recoverySecretOwner);
+        } else {
+          globalThis.sessionStorage?.removeItem(RECOVERY_SECRET_UID_KEY);
+        }
       } else {
         globalThis.sessionStorage?.removeItem(RECOVERY_SECRET_KEY);
+        globalThis.sessionStorage?.removeItem(RECOVERY_SECRET_UID_KEY);
       }
     } catch {
       // The secret stays in memory when session storage is unavailable.
     }
     this.state = { ...this.state, recoverySecretConfigured: this.recoverySecret !== null };
     this.emit();
+  }
+
+  private clearRecoverySecret(): void {
+    this.recoverySecret = null;
+    this.recoverySecretOwner = null;
+    try {
+      globalThis.sessionStorage?.removeItem(RECOVERY_SECRET_KEY);
+      globalThis.sessionStorage?.removeItem(RECOVERY_SECRET_UID_KEY);
+    } catch {
+      // The in-memory secret is already cleared.
+    }
+    this.state = { ...this.state, recoverySecretConfigured: false };
   }
 
   async exportBackup(): Promise<unknown> {
@@ -760,7 +810,7 @@ export class F7Runtime {
       },
     });
 
-    const endpoint = (this.env.VITE_V2_BACKUP_ENDPOINT ?? '').trim();
+    const endpoint = resolveIsolatedBackupEndpoint(this.env.VITE_V2_BACKUP_ENDPOINT);
     if (endpoint) {
       const remote = createKvBackupPort(endpoint, () => this.auth?.getIdToken() ?? Promise.resolve(null), {
         expectedUid: uid,

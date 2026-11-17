@@ -18,9 +18,9 @@ function dateLabel(value: string): string {
 }
 
 /**
- * Lists the encrypted versions already confirmed in the remote destination and
- * starts a local restore preview. Nothing is downloaded or decrypted until the
- * user clicks a version.
+ * Lists encrypted versions known to the remote destination. Listing a key does
+ * not prove its contents; that proof comes from download, decryption and
+ * read-back after the user selects a version.
  */
 export function CloudBackupPanel({
   versions,
@@ -35,13 +35,13 @@ export function CloudBackupPanel({
       {!available ? (
         <p className="muted">Destino de backup não configurado neste ambiente.</p>
       ) : versions.length === 0 ? (
-        <p className="muted">Nenhuma versão remota verificada neste dispositivo.</p>
+        <p className="muted">Nenhuma versão remota listada neste dispositivo.</p>
       ) : (
         <ul className="warning-list">
           {versions.map((version) => (
             <li key={version.id}>
-              <strong>{dateLabel(version.createdAt)}</strong> —{' '}
-              {Math.max(0, Math.round(version.size / 1024))} KB
+              <strong>{dateLabel(version.createdAt)}</strong>
+              {version.size > 0 ? ` — ${Math.max(0, Math.round(version.size / 1024))} KB` : ''}
               <div className="button-row">
                 <button
                   type="button"

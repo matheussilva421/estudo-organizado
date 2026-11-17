@@ -31,6 +31,15 @@ export type BudgetAssessment = {
 /** Pause before the nominal ceiling; the remaining 10% is emergency margin. */
 export const SYNC_BUDGET_SAFETY_RATIO = 0.9;
 
+/** One Firestore apply batch writes entity, operation, change and head. */
+export const REMOTE_WRITES_PER_OPERATION = 4;
+
+/** Three documents per attempt, with room for one reconciliation retry. */
+export const REMOTE_READS_PER_OPERATION = 6;
+
+/** Conservative ceiling for one bounded pull cycle (up to ten pages of 50). */
+export const REMOTE_PULL_READ_BUDGET = 2_501;
+
 function finiteNonNegative(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }

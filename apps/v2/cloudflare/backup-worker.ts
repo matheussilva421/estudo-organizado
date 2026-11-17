@@ -28,6 +28,8 @@ export type BackupWorkerBindings = {
   BACKUPS: KVNamespaceLike;
   FIREBASE_PROJECT_ID: string;
   ALLOWED_ORIGIN: string;
+  /** Comma-separated synthetic test UIDs allowed during a public pilot. */
+  ALLOWED_UIDS?: string;
   JWKS?: JwksPort;
 };
 
@@ -119,6 +121,13 @@ export async function handleBackupRequest(
   }
   const uid = await identity(request, bindings);
   if (!uid) return json(401, { error: 'AUTH' }, bindings.ALLOWED_ORIGIN);
+  const allowedUids = String(bindings.ALLOWED_UIDS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (allowedUids.length > 0 && !allowedUids.includes(uid)) {
+    return json(401, { error: 'AUTH' }, bindings.ALLOWED_ORIGIN);
+  }
 
   const url = new URL(request.url);
   const prefix = `backups/${uid}/`;

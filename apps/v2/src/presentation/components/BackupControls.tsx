@@ -31,7 +31,7 @@ export function BackupControls({
       <h4>{statusLabel(health.status)}</h4>
       <p className="muted" role="status">
         {health.versions > 0
-          ? `${health.versions} versão(ões) verificada(s) no destino remoto.`
+          ? `${health.versions} versão(ões) listada(s) no destino remoto; restaure para verificar o conteúdo.`
           : 'A exportação local funciona offline; a nuvem é opcional.'}
       </p>
       <p className="muted">

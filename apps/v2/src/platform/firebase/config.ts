@@ -17,7 +17,7 @@ export const V2_APP_NAME = 'estudo-organizado-v2';
  * Real Firebase projects require an explicit G-EXT decision. Keeping this list
  * empty means a production-looking .env alone can never enable remote access.
  */
-const APPROVED_REAL_PROJECT_IDS: readonly string[] = [];
+const APPROVED_REAL_PROJECT_IDS: readonly string[] = ['eo-v2-f7-test-20261117'];
 
 export type V2RemoteConfig = {
   projectId: string;

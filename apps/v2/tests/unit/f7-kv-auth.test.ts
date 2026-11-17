@@ -6,7 +6,11 @@ import {
   type BackupWorkerBindings,
   type KVNamespaceLike,
 } from '../../cloudflare/backup-worker';
-import { verifyFirebaseIdToken, type JwksPort } from '../../cloudflare/token-verifier';
+import {
+  createGoogleJwksPort,
+  verifyFirebaseIdToken,
+  type JwksPort,
+} from '../../cloudflare/token-verifier';
 
 const projectId = 'demo-estudo-v2';
 const issuer = `https://securetoken.google.com/${projectId}`;
@@ -105,6 +109,32 @@ describe('F7 backup worker auth', () => {
     await expect(verifyFirebaseIdToken(await jwt('uid-a', { aud: 'other' }, privateKey), { projectId, issuer }, jwks)).resolves.toBeNull();
     await expect(verifyFirebaseIdToken(await jwt('uid-a', { exp: 1 }, privateKey), { projectId, issuer }, jwks)).resolves.toBeNull();
     await expect(verifyFirebaseIdToken(await jwt('uid-a'), { projectId, issuer }, jwks)).resolves.toBeNull();
+    await expect(
+      verifyFirebaseIdToken(
+        await jwt('uid-a', { user_id: 'uid-b' }, privateKey),
+        { projectId, issuer },
+        jwks,
+      ),
+    ).resolves.toBeNull();
+  });
+
+  it('f7_jwks_refreshes_once_for_a_rotated_kid', async () => {
+    let clock = 0;
+    let calls = 0;
+    const fetchImpl = vi.fn(async () => {
+      calls += 1;
+      return new Response(JSON.stringify({
+        keys: [{ kid: calls === 1 ? 'kid-1' : 'kid-2', kty: 'RSA', n: 'n', e: 'AQAB' }],
+      }));
+    });
+    const port = createGoogleJwksPort(fetchImpl, () => clock);
+    await expect(port.getKey('kid-1')).resolves.toMatchObject({ kid: 'kid-1' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    await expect(port.getKey('kid-2')).resolves.toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    clock = 61_000;
+    await expect(port.getKey('kid-2')).resolves.toMatchObject({ kid: 'kid-2' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it('f7_worker_uid_cannot_read_other_uid', async () => {
@@ -125,6 +155,21 @@ describe('F7 backup worker auth', () => {
     expect(own.status).toBe(200);
     const other = await handleBackupRequest(request('GET', '/backups/v1', tokenB), bindings);
     expect(other.status).toBe(404);
+  });
+
+  it('f7_worker_rejects_authenticated_uid_outside_pilot_allowlist', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: new MemoryKV(),
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a',
+      JWKS: jwks,
+    };
+    const tokenA = await jwt('uid-a', {}, privateKey);
+    const tokenB = await jwt('uid-b', {}, privateKey);
+    expect((await handleBackupRequest(request('GET', '/backups', tokenA), bindings)).status).toBe(200);
+    expect((await handleBackupRequest(request('GET', '/backups', tokenB), bindings)).status).toBe(401);
   });
 
   it('f7_worker_rejects_unapproved_origin_and_method', async () => {

@@ -70,6 +70,7 @@ output/
 *.db
 .env
 .env.local
+wrangler.toml
 
 !src/js/firebase/firebase-config.js.example
 src/js/firebase/firebase-config.js

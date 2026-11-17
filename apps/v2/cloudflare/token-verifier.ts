@@ -6,27 +6,34 @@ export function createGoogleJwksPort(
   fetchImpl: (input: string) => Promise<Response> = (input) => fetch(input),
   now = () => Date.now(),
 ): JwksPort {
-  let cache: { keys: Map<string, JsonWebKey>; expiresAt: number } | null = null;
+  let cache: { keys: Map<string, JsonWebKey>; expiresAt: number; refreshedAt: number } | null = null;
+  const refresh = async (): Promise<void> => {
+    const response = await fetchImpl(
+      'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
+    );
+    if (!response.ok) throw new Error('JWKS_UNAVAILABLE');
+    const body = (await response.json()) as { keys?: unknown };
+    const keys = new Map<string, JsonWebKey>();
+    if (Array.isArray(body.keys)) {
+      for (const value of body.keys) {
+        if (!isRecord(value)) continue;
+        if (typeof value.kid !== 'string' || value.kty !== 'RSA') continue;
+        if (typeof value.n !== 'string' || typeof value.e !== 'string') continue;
+        keys.set(value.kid, value as JsonWebKey);
+      }
+    }
+    cache = { keys, expiresAt: now() + 60 * 60_000, refreshedAt: now() };
+  };
   return {
     async getKey(kid: string): Promise<JsonWebKey | null> {
-      if (!cache || now() >= cache.expiresAt) {
-        const response = await fetchImpl(
-          'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
-        );
-        if (!response.ok) throw new Error('JWKS_UNAVAILABLE');
-        const body = (await response.json()) as { keys?: unknown };
-        const keys = new Map<string, JsonWebKey>();
-        if (Array.isArray(body.keys)) {
-          for (const value of body.keys) {
-            if (!isRecord(value)) continue;
-            if (typeof value.kid !== 'string' || value.kty !== 'RSA') continue;
-            if (typeof value.n !== 'string' || typeof value.e !== 'string') continue;
-            keys.set(value.kid, value as JsonWebKey);
-          }
-        }
-        cache = { keys, expiresAt: now() + 60 * 60_000 };
-      }
-      return cache.keys.get(kid) ?? null;
+      if (!cache || now() >= cache.expiresAt) await refresh();
+      const cached = cache!.keys.get(kid);
+      if (cached) return cached;
+      // An unknown kid may indicate Google key rotation. Refresh at most once
+      // per minute, so arbitrary kid values cannot create an unbounded fetch.
+      if (now() - cache!.refreshedAt < 60_000) return null;
+      await refresh();
+      return cache!.keys.get(kid) ?? null;
     },
   };
 }
@@ -110,6 +117,13 @@ export async function verifyFirebaseIdToken(
   if (payload.aud !== expected.projectId) return null;
   if (typeof payload.exp !== 'number' || payload.exp <= nowSeconds) return null;
   if (typeof payload.iat !== 'number' || payload.iat > nowSeconds + 300) return null;
+  if (
+    typeof payload.sub === 'string' &&
+    typeof payload.user_id === 'string' &&
+    payload.sub !== payload.user_id
+  ) {
+    return null;
+  }
   const uid = typeof payload.user_id === 'string' ? payload.user_id : payload.sub;
   if (typeof uid !== 'string' || !uid.trim()) return null;
   return { uid };

@@ -12,7 +12,9 @@
     "lint": "eslint src tests",
     "test:unit": "vitest run",
     "test:firebase": "vitest run --config vitest.firebase.config.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:real": "playwright test --config=playwright.real.config.ts",
+    "verify:staging": "node scripts/verify-staging.mjs"
   },
   "dependencies": {
     "firebase": "^13.2.0",

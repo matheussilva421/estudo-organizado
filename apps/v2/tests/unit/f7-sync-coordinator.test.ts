@@ -6,6 +6,10 @@ import { FakeRemotePort } from '../../src/platform/sync/fake-remote';
 import type { LockPort } from '../../src/platform/sync/coordination';
 import { LocalProfileRepository } from '../../src/platform/local-profile-repository';
 import {
+  REMOTE_READS_PER_OPERATION,
+  REMOTE_WRITES_PER_OPERATION,
+} from '../../src/platform/sync/budget';
+import {
   deleteV2DatabaseForTests,
   clearRecoveryRequired,
   getConflicts,
@@ -302,6 +306,39 @@ describe('F7 sync coordinator', () => {
       mode: 'PAUSED_QUOTA',
     });
     expect(remote.appliedCount()).toBe(0);
+  });
+
+  it('f7_budget_counts_remote_documents_not_logical_operations', async () => {
+    await seed(operation());
+    const remote = new FakeRemotePort({ uid, profileId });
+    const usage = {
+      reads: 0,
+      writes: 0,
+      deletes: 0,
+      bytesOut: 0,
+      windowStart: new Date(0).toISOString(),
+    };
+    const subject = new SyncCoordinator({
+      remote,
+      locks: new MemoryLocks(),
+      now: () => Date.now(),
+      budget: {
+        usage,
+        limits: {
+          reads: 50_000,
+          writes: 20_000,
+          deletes: 20_000,
+          bytesOut: 10 * 1024 * 1024 * 1024,
+          periodMs: 24 * 60 * 60_000,
+        },
+      },
+    });
+    await expect(subject.requestFlush(profileId, 'MANUAL')).resolves.toMatchObject({
+      remoteCommitted: true,
+    });
+    expect(usage.writes).toBe(REMOTE_WRITES_PER_OPERATION);
+    expect(usage.reads).toBe(REMOTE_READS_PER_OPERATION);
+    expect(usage.deletes).toBe(0);
   });
 
   it('f7_planning_operation_is_delivered_after_consent', async () => {

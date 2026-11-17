@@ -7,7 +7,7 @@ import {
   STORES,
   transactionDone,
 } from '../../src/platform/indexeddb';
-import { F7Runtime } from '../../src/platform/f7-runtime';
+import { F7Runtime, resolveIsolatedBackupEndpoint } from '../../src/platform/f7-runtime';
 import { collectF7Backup } from '../../src/platform/backup/collect';
 import { encryptSnapshot } from '../../src/platform/backup/crypto';
 
@@ -23,6 +23,21 @@ const emulatorEnv = {
   VITE_V2_FIRESTORE_EMULATOR_PORT: '8080',
   VITE_V2_AUTH_EMULATOR_URL: 'http://127.0.0.1:9099',
 };
+
+describe('F7 runtime isolation', () => {
+  it('rejects V1 and non-HTTPS backup endpoints', () => {
+    expect(resolveIsolatedBackupEndpoint('https://eo-v2-f7-backup.test.workers.dev')).toBe(
+      'https://eo-v2-f7-backup.test.workers.dev',
+    );
+    expect(
+      resolveIsolatedBackupEndpoint('https://estudo-organizado.matheussilva421.workers.dev'),
+    ).toBe('');
+    expect(
+      resolveIsolatedBackupEndpoint('https://worker.example/app-de-estudos-14564'),
+    ).toBe('');
+    expect(resolveIsolatedBackupEndpoint('http://worker.example')).toBe('');
+  });
+});
 
 function fakeAuth(initial: GoogleIdentity | null, next = initial): GoogleAuthPort {
   let current = initial;
