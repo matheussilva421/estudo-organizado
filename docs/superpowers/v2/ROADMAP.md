@@ -420,3 +420,9 @@ Novo GOAL evolutivo após rejeição visual do Premium. Home reconstruída em 80
 Emulator Suite (Firestore/Auth) executado em loopback, projeto demo-estudo-v2, com 17/17 testes PASS: 15 de Rules e 2 de transação. Rules endurecidas com schema 1, revisão monotônica, epoch/entityType imutáveis e binding entity/change/head/receipt. Regressão no HEAD final: 881/881 unitários, 248/253 E2E (5 skips, 0 falhas), typecheck/lint/build PASS e capturas em desktop, tablet e celular.
 
 Estado: **FIREBASE_EMULATOR_LOCAL_VERIFIED / F0_HIGH_LOCAL_EVIDENCED / F7_EXTERNAL_PENDING / UX_HUMAN_PENDING / REMOTE_PUSH_NOT_AUTHORIZED / MAIN_UNCHANGED**. Código 6c0353bb; documentação no commit desta rodada. Evidências, matrizes, bundle e rollback em docs/superpowers/audits/f7-ux-high-risks/ e no ZIP de 16/11/2026. Gates mantidos: UX-H, G-EXT, G-STAGING, F4-T13, acessibilidade manual e F8. Nenhum push, deploy, staging, serviço real ou alteração em main.
+
+## F7 Security Residuals — 17/11/2026
+
+Rodada local R1–R4 concluída. R1: entidade só é criada/atualizada com operation, change e head causais no mesmo batch; stale head é negado. R2: concorrência do mesmo operationId reconcilia por receipt, com no máximo duas tentativas, sem ACK falso. R3: allowlist fechada de 17 entityTypes nas Rules e no validador. R4: documento pai da biblioteca é somente leitura; subcoleções continuam independentes.
+
+Código 48de3ac0. Firebase 34/34 em cinco ciclos finais; 883/883 unitários; 248/253 E2E (5 skips, 0 falhas); typecheck/lint/build PASS. Status: **F7_SECURITY_RESIDUALS_LOCAL_VERIFIED / F7_EXTERNAL_PENDING / UX_HUMAN_PENDING / REMOTE_PUSH_NOT_AUTHORIZED / MAIN_UNCHANGED**. Evidências em docs/superpowers/audits/f7-security-residuals/ e no ZIP de 17/11/2026. Nenhum push, deploy, staging, F8, serviço real ou alteração em main.
