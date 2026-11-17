@@ -34,11 +34,32 @@ export type RemoteValidation =
   | { ok: true }
   | { ok: false; reason: 'INVALID' | 'OVERSIZE' | 'TOMBSTONE_PAYLOAD' | 'PAYLOAD_REQUIRED' };
 
+/** Keep in sync with the entityType allowlist in firebase/firestore.rules. */
+export const KNOWN_REMOTE_ENTITY_TYPES = [
+  'subject',
+  'edital',
+  'edital-discipline',
+  'assunto',
+  'aula',
+  'lesson-topic-link',
+  'planning-scenario',
+  'plan-block',
+  'study-session',
+  'habit-occurrence',
+  'review-topic',
+  'review-policy',
+  'review-commitment',
+  'review-execution',
+  'review-board-evidence',
+  'review-match',
+  'review-priority',
+] as const;
+
 const ID_MAX = 200;
-const ENTITY_TYPE_MAX = 80;
 const SCHEMA_MAX = 100;
 const REVISION_MAX = 1_000_000_000;
 const EPOCH_MAX = 1_000_000_000;
+const KNOWN_ENTITY_TYPE_SET = new Set<string>(KNOWN_REMOTE_ENTITY_TYPES);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -62,7 +83,9 @@ export function validateRemoteEnvelope(entity: unknown): RemoteValidation {
     return { ok: false, reason: 'INVALID' };
   }
   if (!isId(entity.entityId)) return { ok: false, reason: 'INVALID' };
-  if (!isId(entity.entityType, ENTITY_TYPE_MAX)) return { ok: false, reason: 'INVALID' };
+  if (typeof entity.entityType !== 'string' || !KNOWN_ENTITY_TYPE_SET.has(entity.entityType)) {
+    return { ok: false, reason: 'INVALID' };
+  }
   if (
     !isIntegerInRange(entity.schemaVersion, 1, SCHEMA_MAX) ||
     entity.schemaVersion > DOMAIN_SCHEMA_VERSION

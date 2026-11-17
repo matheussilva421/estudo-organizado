@@ -46,6 +46,21 @@ function head(uid: string) {
   return { epoch: 1, changeSequence: 1, uid };
 }
 
+function causalBatch(
+  db: Parameters<typeof writeBatch>[0],
+  entityData: Record<string, unknown> = entity('uid-a'),
+  operationData: Record<string, unknown> = operation('uid-a'),
+  changeData: Record<string, unknown> = change('uid-a'),
+  headData: Record<string, unknown> = head('uid-a'),
+) {
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'users/uid-a/libraries/' + library + '/entities/edital-1'), entityData);
+  batch.set(doc(db, 'users/uid-a/libraries/' + library + '/operations/op-1'), operationData);
+  batch.set(doc(db, 'users/uid-a/libraries/' + library + '/changes/1'), changeData);
+  batch.set(doc(db, 'users/uid-a/libraries/' + library + '/meta/head'), headData);
+  return batch;
+}
+
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
     projectId,
@@ -80,56 +95,43 @@ describe('F7 Firestore rules', () => {
 
   it('f7_rules_deny_invalid_schema', async () => {
     const db = testEnv.authenticatedContext('uid-a').firestore();
+    await assertFails(causalBatch(db, { ...entity('uid-a'), schemaVersion: 0 }).commit());
+    await assertFails(causalBatch(db, { ...entity('uid-a'), revision: -1 }).commit());
     await assertFails(
-      setDoc(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), {
-        ...entity('uid-a'),
-        schemaVersion: 0,
-      }),
+      causalBatch(db, entity('uid-a'), {
+        ...operation('uid-a'),
+        payloadDigest: 'not-a-digest',
+      }).commit(),
     );
-    await assertFails(
-      setDoc(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), {
-        ...entity('uid-a'),
-        revision: -1,
-      }),
-    );
-    const badDigest = writeBatch(db);
-    badDigest.set(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), entity('uid-a'));
-    badDigest.set(doc(db, `users/uid-a/libraries/${library}/operations/op-1`), {
-      ...operation('uid-a'),
-      payloadDigest: 'not-a-digest',
-    });
-    badDigest.set(doc(db, `users/uid-a/libraries/${library}/changes/1`), change('uid-a'));
-    badDigest.set(doc(db, `users/uid-a/libraries/${library}/meta/head`), head('uid-a'));
-    await assertFails(badDigest.commit());
   });
 
   it('f7_rules_deny_a_tombstone_with_payload', async () => {
     const db = testEnv.authenticatedContext('uid-a').firestore();
-    const path = `users/uid-a/libraries/${library}/entities/edital-1`;
     await assertFails(
-      setDoc(doc(db, path), {
-        ...entity('uid-a'),
-        deleted: true,
-        payload: { id: 'edital-1', title: 'não deveria existir' },
-      }),
+      causalBatch(
+        db,
+        {
+          ...entity('uid-a'),
+          deleted: true,
+          payload: { id: 'edital-1', title: 'não deveria existir' },
+        },
+        operation('uid-a'),
+        { ...change('uid-a'), deleted: true },
+      ).commit(),
     );
     await assertSucceeds(
-      setDoc(doc(db, path), {
-        ...entity('uid-a'),
-        deleted: true,
-        payload: null,
-      }),
+      causalBatch(
+        db,
+        { ...entity('uid-a'), deleted: true, payload: null },
+        operation('uid-a'),
+        { ...change('uid-a'), deleted: true },
+      ).commit(),
     );
   });
 
   it('f7_rules_deny_future_schema_version', async () => {
     const db = testEnv.authenticatedContext('uid-a').firestore();
-    await assertFails(
-      setDoc(doc(db, `users/uid-a/libraries/${library}/entities/edital-1`), {
-        ...entity('uid-a'),
-        schemaVersion: 99,
-      }),
-    );
+    await assertFails(causalBatch(db, { ...entity('uid-a'), schemaVersion: 99 }).commit());
   });
 
   it('f7_rules_bind_change_id_to_sequence', async () => {

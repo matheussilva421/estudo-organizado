@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  KNOWN_REMOTE_ENTITY_TYPES,
   compareRemoteChanges,
   receiptMatches,
   validateRemoteChange,
@@ -7,6 +8,7 @@ import {
   validateRemoteReceipt,
   type RemoteChange,
 } from '../../src/platform/sync/remote-schema';
+import { STORE_BY_ENTITY_TYPE } from '../../src/platform/sync/entity-stores';
 
 const validEntity = {
   entityId: 'edital-1',
@@ -88,5 +90,21 @@ describe('F7 remote schema', () => {
       ok: false,
       reason: 'PAYLOAD_REQUIRED',
     });
+  });
+
+  it('f7_entity_type_allowlist_rejects_unknown', () => {
+    for (const entityType of KNOWN_REMOTE_ENTITY_TYPES) {
+      expect(validateRemoteEnvelope({ ...validEntity, entityType })).toEqual({ ok: true });
+    }
+    expect(validateRemoteEnvelope({ ...validEntity, entityType: 'future-type' })).toEqual({
+      ok: false,
+      reason: 'INVALID',
+    });
+  });
+
+  it('f7_entity_type_allowlist_matches_store_map', () => {
+    expect([...KNOWN_REMOTE_ENTITY_TYPES].sort()).toEqual(
+      Object.keys(STORE_BY_ENTITY_TYPE).sort(),
+    );
   });
 });

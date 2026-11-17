@@ -271,29 +271,45 @@ export class FirebaseRemotePort implements RemoteMutationPort, RemoteChangePort 
 
   async apply(operation: OutboxOperation): Promise<RemoteMutationResult> {
     this.assertScope(operation);
-    const plan = await this.store.runTransaction(async (transaction) => {
-      const receipt = await transaction.get(this.path('operations', operation.operationId));
-      const entity = await transaction.get(this.path('entities', operation.entityId));
-      const head = await transaction.get(this.path('meta', 'head'));
-      const next = await planRemoteMutation(operation, {
-        receipt: asReceipt(receipt),
-        entity: asEntity(entity),
-        head: asHead(head),
-      });
-      if (next.kind === 'APPLIED') {
-        transaction.set(this.path('entities', operation.entityId), { ...next.entity, uid: this.uid });
-        transaction.set(this.path('operations', operation.operationId), {
-          ...next.receipt,
-          uid: this.uid,
+    let plan: RemoteMutationPlan | null = null;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        plan = await this.store.runTransaction(async (transaction) => {
+          const receipt = await transaction.get(this.path('operations', operation.operationId));
+          const entity = await transaction.get(this.path('entities', operation.entityId));
+          const head = await transaction.get(this.path('meta', 'head'));
+          const next = await planRemoteMutation(operation, {
+            receipt: asReceipt(receipt),
+            entity: asEntity(entity),
+            head: asHead(head),
+          });
+          if (next.kind === 'APPLIED') {
+            transaction.set(this.path('entities', operation.entityId), { ...next.entity, uid: this.uid });
+            transaction.set(this.path('operations', operation.operationId), {
+              ...next.receipt,
+              uid: this.uid,
+            });
+            transaction.set(this.path('changes', String(next.change.sequence)), {
+              ...next.change,
+              uid: this.uid,
+            });
+            transaction.set(this.path('meta', 'head'), { ...next.head, uid: this.uid });
+          }
+          return next;
         });
-        transaction.set(this.path('changes', String(next.change.sequence)), {
-          ...next.change,
-          uid: this.uid,
-        });
-        transaction.set(this.path('meta', 'head'), { ...next.head, uid: this.uid });
+        break;
+      } catch (error) {
+        lastError = error;
+        const recovered = await this.recoverAppliedReceipt(operation).catch(() => null);
+        if (recovered !== null) {
+          return { kind: 'ALREADY_APPLIED', remoteRevision: recovered };
+        }
       }
-      return next;
-    });
+    }
+    if (!plan) {
+      throw lastError instanceof Error ? lastError : new RemoteOperationError('remote transaction failed');
+    }
 
     if (plan.kind === 'INVALID') throw new RemoteOperationError(plan.reason);
     if (plan.kind === 'CONFLICT') {
@@ -315,6 +331,19 @@ export class FirebaseRemotePort implements RemoteMutationPort, RemoteChangePort 
       return { kind: 'ALREADY_APPLIED', remoteRevision: plan.remoteRevision };
     }
     return { kind: 'APPLIED', remoteRevision: plan.remoteRevision };
+  }
+
+  /**
+   * A concurrent transaction can fail with PERMISSION_DENIED after another
+   * writer applied the same operation. Reconcile that ambiguous failure by
+   * reading the receipt; only an exact entity/digest match becomes success.
+   */
+  private async recoverAppliedReceipt(operation: OutboxOperation): Promise<number | null> {
+    const digest = await digestPayload(operation.payload).catch(() => null);
+    if (!digest) return null;
+    const state = await this.lookup(operation.operationId, operation.entityId, digest);
+    if (state !== 'APPLIED') return null;
+    return this.lookupRevision(operation.operationId);
   }
 
   async lookup(

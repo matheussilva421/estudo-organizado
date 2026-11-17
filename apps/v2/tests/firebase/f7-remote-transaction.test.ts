@@ -32,6 +32,15 @@ function operation(overrides: Partial<OutboxOperation> = {}): OutboxOperation {
   };
 }
 
+async function remoteFor(db: ReturnType<ReturnType<RulesTestEnvironment['authenticatedContext']>['firestore']>) {
+  return new FirebaseRemotePort({
+    uid,
+    remoteLibraryId: libraryId,
+    profileId,
+    store: await createFirestorePort(db as unknown as Parameters<typeof createFirestorePort>[0]),
+  });
+}
+
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
     projectId: 'demo-estudo-v2',
@@ -91,4 +100,115 @@ describe('F7 Firestore remote transaction', () => {
     expect(entity.data()?.deleted).toBe(true);
     expect(entity.data()?.payload).toBeNull();
   });
+  it('r2_same_operation_same_payload_concurrent_single_effect', async () => {
+    const dbA = testEnv.authenticatedContext(uid).firestore();
+    const dbB = testEnv.authenticatedContext(uid).firestore();
+    const remoteA = await remoteFor(dbA);
+    const remoteB = await remoteFor(dbB);
+
+    const results = await Promise.all([remoteA.apply(operation()), remoteB.apply(operation())]);
+    expect(results.map((result) => result.kind).sort()).toEqual(['ALREADY_APPLIED', 'APPLIED']);
+    expect(results.every((result) => result.remoteRevision === 1)).toBe(true);
+
+    const entity = await assertSucceeds(
+      getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/entities/edital-1')),
+    );
+    expect(entity.data()?.revision).toBe(1);
+    const receipt = await assertSucceeds(
+      getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/operations/op-1')),
+    );
+    expect(receipt.exists()).toBe(true);
+    const change = await assertSucceeds(
+      getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/changes/1')),
+    );
+    expect(change.exists()).toBe(true);
+    const head = await assertSucceeds(
+      getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/meta/head')),
+    );
+    expect(head.data()?.changeSequence).toBe(1);
+    await expect(remoteA.apply(operation())).resolves.toEqual({
+      kind: 'ALREADY_APPLIED',
+      remoteRevision: 1,
+    });
+  });
+
+  it('r2_same_operation_different_payload_concurrent_rejects_mismatch', async () => {
+    const dbA = testEnv.authenticatedContext(uid).firestore();
+    const dbB = testEnv.authenticatedContext(uid).firestore();
+    const remoteA = await remoteFor(dbA);
+    const remoteB = await remoteFor(dbB);
+    const divergent = operation({
+      payload: { id: 'edital-1', profileId, title: 'DIVERGENT', status: 'ACTIVE', localRevision: 2 },
+    });
+
+    const results = await Promise.allSettled([remoteA.apply(operation()), remoteB.apply(divergent)]);
+    const fulfilled = results.filter((result) => result.status === 'fulfilled');
+    const rejected = results.filter((result) => result.status === 'rejected');
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    const applied = fulfilled[0]!;
+    expect(applied.status).toBe('fulfilled');
+    if (applied.status === 'fulfilled') {
+      expect(applied.value.kind).toBe('APPLIED');
+    }
+
+    const entity = await assertSucceeds(
+      getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/entities/edital-1')),
+    );
+    expect(entity.data()?.revision).toBe(1);
+  });
+
+  it('r2_two_operation_ids_same_entity_concurrent_one_wins', async () => {
+    const dbA = testEnv.authenticatedContext(uid).firestore();
+    const dbB = testEnv.authenticatedContext(uid).firestore();
+    const remoteA = await remoteFor(dbA);
+    const remoteB = await remoteFor(dbB);
+    const opA = operation({
+      operationId: 'op-a',
+      payload: { id: 'edital-1', profileId, title: 'A', status: 'ACTIVE', localRevision: 2 },
+    });
+    const opB = operation({
+      operationId: 'op-b',
+      payload: { id: 'edital-1', profileId, title: 'B', status: 'ACTIVE', localRevision: 2 },
+    });
+
+    const results = await Promise.all([remoteA.apply(opA), remoteB.apply(opB)]);
+    expect(results.map((result) => result.kind).sort()).toEqual(['APPLIED', 'CONFLICT']);
+    const entity = await assertSucceeds(
+      getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/entities/edital-1')),
+    );
+    expect(entity.data()?.revision).toBe(1);
+    const head = await assertSucceeds(
+      getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/meta/head')),
+    );
+    expect(head.data()?.changeSequence).toBe(1);
+  });
+
+  it('r2_concurrent_after_tombstone_is_single_effect', async () => {
+    const dbA = testEnv.authenticatedContext(uid).firestore();
+    const dbB = testEnv.authenticatedContext(uid).firestore();
+    const remoteA = await remoteFor(dbA);
+    const remoteB = await remoteFor(dbB);
+    await remoteA.apply(operation());
+    await remoteA.apply(operation({ operationId: 'op-del', kind: 'delete', baseRevision: 1 }));
+
+    const opA = operation({
+      operationId: 'op-a',
+      baseRevision: 2,
+      payload: { id: 'edital-1', profileId, title: 'RESTORED', status: 'ACTIVE', localRevision: 3 },
+    });
+    const opB = operation({ operationId: 'op-b', baseRevision: 2, kind: 'delete' });
+    const results = await Promise.all([remoteA.apply(opA), remoteB.apply(opB)]);
+    expect(results.map((result) => result.kind).sort()).toEqual(['APPLIED', 'CONFLICT']);
+
+    const entity = await assertSucceeds(
+      getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/entities/edital-1')),
+    );
+    expect(entity.data()?.revision).toBe(3);
+    const head = await assertSucceeds(
+      getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/meta/head')),
+    );
+    expect(head.data()?.changeSequence).toBe(3);
+  });
+
 });

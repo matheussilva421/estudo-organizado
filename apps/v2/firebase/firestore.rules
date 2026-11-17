@@ -22,15 +22,33 @@ service cloud.firestore {
       return value is string && value.matches('^[A-Za-z0-9_-]{1,128}$');
     }
 
+    function validEntityType(value) {
+      return value == 'subject'
+        || value == 'edital'
+        || value == 'edital-discipline'
+        || value == 'assunto'
+        || value == 'aula'
+        || value == 'lesson-topic-link'
+        || value == 'planning-scenario'
+        || value == 'plan-block'
+        || value == 'study-session'
+        || value == 'habit-occurrence'
+        || value == 'review-topic'
+        || value == 'review-policy'
+        || value == 'review-commitment'
+        || value == 'review-execution'
+        || value == 'review-board-evidence'
+        || value == 'review-match'
+        || value == 'review-priority';
+    }
+
     function validEnvelope(data) {
       return data.keys().hasOnly([
           'entityId', 'entityType', 'schemaVersion', 'revision', 'deleted',
           'payload', 'epoch', 'uid'
         ])
         && validPathId(data.entityId)
-        && data.entityType is string
-        && data.entityType.size() > 0
-        && data.entityType.size() <= 80
+        && validEntityType(data.entityType)
         && data.schemaVersion is int
         && data.schemaVersion == 1
         && data.revision is int
@@ -101,7 +119,43 @@ service cloud.firestore {
 
     match /users/{uid} {
       match /libraries/{remoteLibraryId} {
-        allow read, write: if owns(uid) && validLibrary(remoteLibraryId);
+        allow read: if owns(uid) && validLibrary(remoteLibraryId);
+        allow write: if false;
+
+        function entityHasCausalAudit(entityId, data) {
+          let headExists = exists(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head);
+          let headAfterExists = existsAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head);
+          let sequence = headAfterExists
+            ? getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.changeSequence
+            : 0;
+          let changeExists = exists(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(sequence)));
+          let changeAfterExists = existsAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(sequence)));
+          let operationId = changeAfterExists
+            ? getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(sequence))).data.operationId
+            : '';
+          let operationExists = operationId != ''
+            && exists(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(operationId));
+          let operationAfterExists = operationId != ''
+            && existsAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(operationId));
+          return headAfterExists
+            && (
+              (headExists && sequence == get(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.changeSequence + 1)
+              || (!headExists && sequence == 1)
+            )
+            && changeAfterExists
+            && !changeExists
+            && operationAfterExists
+            && !operationExists
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(sequence))).data.entityId == entityId
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(sequence))).data.revision == data.revision
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(sequence))).data.deleted == data.deleted
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(sequence))).data.epoch == data.epoch
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/changes/$(string(sequence))).data.epoch == getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/meta/head).data.epoch
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(operationId)).data.entityId == entityId
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(operationId)).data.revision == data.revision
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(operationId)).data.changeSequence == sequence
+            && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(operationId)).data.operationId == operationId;
+        }
 
         match /entities/{entityId} {
           allow read: if owns(uid) && validLibrary(remoteLibraryId);
@@ -109,14 +163,16 @@ service cloud.firestore {
             && validLibrary(remoteLibraryId)
             && entityId == request.resource.data.entityId
             && validEnvelope(request.resource.data)
-            && request.resource.data.revision == 1;
+            && request.resource.data.revision == 1
+            && entityHasCausalAudit(entityId, request.resource.data);
           allow update: if owns(uid)
             && validLibrary(remoteLibraryId)
             && entityId == request.resource.data.entityId
             && validEnvelope(request.resource.data)
             && request.resource.data.revision == resource.data.revision + 1
             && request.resource.data.epoch == resource.data.epoch
-            && request.resource.data.entityType == resource.data.entityType;
+            && request.resource.data.entityType == resource.data.entityType
+            && entityHasCausalAudit(entityId, request.resource.data);
           allow delete: if false;
         }
 
