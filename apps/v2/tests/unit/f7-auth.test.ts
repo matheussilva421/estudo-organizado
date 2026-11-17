@@ -125,4 +125,86 @@ describe('F7 Google auth port', () => {
       `estudo-organizado-v2:${V2_EMULATOR_PROJECT_ID}`,
     );
   });
+
+  it('f7_redirect_mode_reuses_the_redirected_identity_without_popup', async () => {
+    const currentUser = { uid: 'uid-redirect', email: 'redirect@example.com' };
+    const getRedirectResult = vi.fn(async () => ({ user: currentUser }));
+    const signInWithPopup = vi.fn();
+    const signInWithRedirect = vi.fn();
+    const modules = {
+      app: {
+        getApps: () => [],
+        getApp: () => ({}),
+        initializeApp: () => ({}),
+      },
+      auth: {
+        getAuth: () => ({ currentUser }),
+        onAuthStateChanged: () => () => undefined,
+        setPersistence: async () => undefined,
+        browserLocalPersistence: {},
+        getRedirectResult,
+        signInWithPopup,
+        signInWithRedirect,
+        signOut: async () => undefined,
+        GoogleAuthProvider: class {},
+      },
+    } as unknown as FirebaseModules;
+
+    const port = createFirebaseGoogleAuthPort(
+      {
+        projectId: 'demo-redirect',
+        authDomain: 'demo-redirect.firebaseapp.com',
+        appId: '1:1:web:demo',
+        apiKey: 'demo-api-key',
+        authMode: 'redirect',
+      },
+      { load: async () => modules },
+    );
+
+    await expect(port.signIn()).resolves.toEqual({
+      uid: 'uid-redirect',
+      email: 'redirect@example.com',
+    });
+    expect(getRedirectResult).toHaveBeenCalledTimes(1);
+    expect(signInWithPopup).not.toHaveBeenCalled();
+    expect(signInWithRedirect).not.toHaveBeenCalled();
+  });
+
+  it('f7_redirect_mode_starts_a_redirect_instead_of_a_popup', async () => {
+    const signInWithPopup = vi.fn();
+    const signInWithRedirect = vi.fn(async () => undefined);
+    const modules = {
+      app: {
+        getApps: () => [],
+        getApp: () => ({}),
+        initializeApp: () => ({}),
+      },
+      auth: {
+        getAuth: () => ({ currentUser: null }),
+        onAuthStateChanged: () => () => undefined,
+        setPersistence: async () => undefined,
+        browserLocalPersistence: {},
+        getRedirectResult: async () => null,
+        signInWithPopup,
+        signInWithRedirect,
+        signOut: async () => undefined,
+        GoogleAuthProvider: class {},
+      },
+    } as unknown as FirebaseModules;
+
+    const port = createFirebaseGoogleAuthPort(
+      {
+        projectId: 'demo-redirect',
+        authDomain: 'demo-redirect.firebaseapp.com',
+        appId: '1:1:web:demo',
+        apiKey: 'demo-api-key',
+        authMode: 'redirect',
+      },
+      { load: async () => modules },
+    );
+
+    await expect(port.signIn()).rejects.toMatchObject({ code: 'AUTH_FAILED' });
+    expect(signInWithRedirect).toHaveBeenCalledTimes(1);
+    expect(signInWithPopup).not.toHaveBeenCalled();
+  });
 });

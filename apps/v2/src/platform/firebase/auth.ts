@@ -28,6 +28,9 @@ export type GoogleAuthOptions = {
   load?: FirebaseLoader;
 };
 
+/** Session marker used to resume the consent preview after a redirect. */
+export const GOOGLE_REDIRECT_PENDING_KEY = 'eo-v2-google-link-pending';
+
 const defaultLoad: FirebaseLoader = async () => {
   const [app, auth] = await Promise.all([import('firebase/app'), import('firebase/auth')]);
   return { app, auth };
@@ -75,6 +78,12 @@ async function createFirebaseBackend(
 
   await authModule.setPersistence(auth, authModule.browserLocalPersistence).catch(() => undefined);
 
+  // Completes a pending redirect before the auth listener is registered. The
+  // call is a no-op when there is no redirect event in this browser session.
+  if (typeof authModule.getRedirectResult === 'function') {
+    await authModule.getRedirectResult(auth).catch(() => undefined);
+  }
+
   const listeners = new Set<(identity: GoogleIdentity | null) => void>();
   let identity = mapUser(auth.currentUser);
   const unsubscribe = authModule.onAuthStateChanged(auth, (user) => {
@@ -86,6 +95,21 @@ async function createFirebaseBackend(
     async signIn() {
       try {
         const provider = new authModule.GoogleAuthProvider();
+        if (config.authMode === 'redirect') {
+          const existingIdentity = mapUser(auth.currentUser);
+          if (existingIdentity) {
+            identity = existingIdentity;
+            notify(listeners, identity);
+            return existingIdentity;
+          }
+          try {
+            globalThis.sessionStorage?.setItem(GOOGLE_REDIRECT_PENDING_KEY, '1');
+          } catch {
+            // Session storage may be unavailable; the redirect still works.
+          }
+          await authModule.signInWithRedirect(auth, provider);
+          throw new GoogleAuthError('AUTH_FAILED', 'Google sign-in redirect did not navigate');
+        }
         const result = await authModule.signInWithPopup(auth, provider);
         const next = mapUser(result.user);
         if (!next) throw new GoogleAuthError('AUTH_FAILED', 'Google did not return a valid identity');

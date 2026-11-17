@@ -10,7 +10,7 @@ import {
   V2_APP_NAME,
   type V2RemoteConfig,
 } from './firebase/config';
-import { createFirebaseGoogleAuthPort } from './firebase/auth';
+import { createFirebaseGoogleAuthPort, GOOGLE_REDIRECT_PENDING_KEY } from './firebase/auth';
 import { LocalProfileRepository } from './local-profile-repository';
 import {
   getConflicts,
@@ -229,6 +229,16 @@ export class F7Runtime {
       void this.refresh();
     });
     await this.refresh();
+    if (this.config?.authMode === 'redirect' && this.identity) {
+      let pending = false;
+      try {
+        pending = globalThis.sessionStorage?.getItem(GOOGLE_REDIRECT_PENDING_KEY) === '1';
+        if (pending) globalThis.sessionStorage?.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
+      } catch {
+        // Session storage can be unavailable in hardened browsers.
+      }
+      if (pending) void this.previewGoogleLink().catch(() => undefined);
+    }
     this.syncScheduler?.request(this.profileId, 'OPEN');
     if (this.backupScheduler) {
       void this.backupScheduler

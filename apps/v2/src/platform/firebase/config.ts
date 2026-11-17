@@ -13,6 +13,8 @@ export const V1_HOSTS = [
 export const V2_EMULATOR_PROJECT_ID = 'demo-estudo-v2';
 export const V2_APP_NAME = 'estudo-organizado-v2';
 
+export type V2AuthMode = 'popup' | 'redirect';
+
 /**
  * Real Firebase projects require an explicit G-EXT decision. Keeping this list
  * empty means a production-looking .env alone can never enable remote access.
@@ -24,6 +26,7 @@ export type V2RemoteConfig = {
   authDomain: string;
   appId: string;
   apiKey: string;
+  authMode?: V2AuthMode;
   firestoreEmulator?: { host: string; port: number };
   authEmulator?: { url: string };
 };
@@ -89,6 +92,9 @@ export function resolveV2RemoteConfig(
   const firestoreHost = read(env, 'VITE_V2_FIRESTORE_EMULATOR_HOST');
   const firestorePortRaw = read(env, 'VITE_V2_FIRESTORE_EMULATOR_PORT');
   const authEmulatorUrl = read(env, 'VITE_V2_AUTH_EMULATOR_URL');
+  const authModeRaw = read(env, 'VITE_V2_GOOGLE_AUTH_MODE').toLowerCase();
+  if (authModeRaw && authModeRaw !== 'popup' && authModeRaw !== 'redirect') return null;
+  const authMode = authModeRaw === 'redirect' ? 'redirect' as const : undefined;
   const emulatorParts = [firestoreHost, firestorePortRaw, authEmulatorUrl].filter(Boolean).length;
 
   if (emulatorParts > 0) {
@@ -110,6 +116,7 @@ export function resolveV2RemoteConfig(
       authDomain,
       appId,
       apiKey: read(env, 'VITE_V2_FIREBASE_API_KEY') || 'demo-api-key',
+      ...(authMode ? { authMode } : {}),
       firestoreEmulator: { host: firestoreHost, port },
       authEmulator: { url: authEmulatorUrl },
     };
@@ -121,5 +128,5 @@ export function resolveV2RemoteConfig(
   const apiKey = read(env, 'VITE_V2_FIREBASE_API_KEY');
   if (!apiKey) return null;
 
-  return { projectId, authDomain, appId, apiKey };
+  return { projectId, authDomain, appId, apiKey, ...(authMode ? { authMode } : {}) };
 }

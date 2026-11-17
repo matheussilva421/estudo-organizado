@@ -71,6 +71,22 @@ describe('F7 environment boundary', () => {
     ).toBeNull();
   });
 
+  it('f7_redirect_auth_mode_is_explicit_and_rejects_typos', () => {
+    expect(
+      resolveV2RemoteConfig({
+        ...emulatorEnv,
+        VITE_V2_GOOGLE_AUTH_MODE: 'redirect',
+      }),
+    ).toMatchObject({ authMode: 'redirect' });
+    expect(
+      resolveV2RemoteConfig({
+        ...emulatorEnv,
+        VITE_V2_GOOGLE_AUTH_MODE: 'redirct',
+      }),
+    ).toBeNull();
+    expect(resolveV2RemoteConfig(emulatorEnv)).not.toHaveProperty('authMode');
+  });
+
   it('f7_does_not_share_v1_origin_or_database', () => {
     expect(
       resolveV2RemoteConfig({
