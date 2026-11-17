@@ -34,3 +34,22 @@ test('real staging survives reload and does not expose a V1 host', async ({ page
   expect(new URL(page.url()).hostname).not.toBe('app-de-estudos-14564.firebaseapp.com');
   await expect(page.getByTestId('header-settings')).toBeVisible();
 });
+
+test('real staging serves the shell offline after service worker activation', async ({ page, context }) => {
+  await page.goto(stagingUrl!);
+  await expect(page.getByRole('heading', { name: 'Estudo Organizado V2' })).toBeVisible();
+  await page.waitForFunction(() => navigator.serviceWorker?.controller !== null, undefined, {
+    timeout: 20_000,
+  });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Estudo Organizado V2' })).toBeVisible();
+
+  await context.setOffline(true);
+  try {
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Estudo Organizado V2' })).toBeVisible();
+    await expect(page.locator('body')).toContainText('Dados locais ficam no IndexedDB isolado desta origem');
+  } finally {
+    await context.setOffline(false);
+  }
+});
