@@ -204,6 +204,16 @@ service cloud.firestore {
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.revision == request.resource.data.revision
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.deleted == request.resource.data.deleted
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.epoch == request.resource.data.epoch
+            && (
+              (
+                exists(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId))
+                && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.revision == get(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.revision + 1
+              )
+              || (
+                !exists(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId))
+                && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/entities/$(request.resource.data.entityId)).data.revision == 1
+              )
+            )
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(request.resource.data.operationId)).data.entityId == request.resource.data.entityId
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(request.resource.data.operationId)).data.revision == request.resource.data.revision
             && getAfter(/databases/$(database)/documents/users/$(uid)/libraries/$(remoteLibraryId)/operations/$(request.resource.data.operationId)).data.changeSequence == request.resource.data.sequence;

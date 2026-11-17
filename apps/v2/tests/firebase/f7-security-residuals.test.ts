@@ -191,6 +191,22 @@ describe('F7 security residuals', () => {
     await assertFails(batch.commit());
   });
 
+  it('r1_denies_orphan_change_without_entity_write', async () => {
+    const db = testEnv.authenticatedContext(uid).firestore();
+    await assertSucceeds(initialBatch(db).commit());
+    const batch = writeBatch(db);
+    batch.set(
+      doc(db, 'users/' + uid + '/libraries/' + library + '/operations/op-2'),
+      operation({ operationId: 'op-2', revision: 1, changeSequence: 2 }),
+    );
+    batch.set(
+      doc(db, 'users/' + uid + '/libraries/' + library + '/changes/2'),
+      change({ sequence: 2, revision: 1, operationId: 'op-2' }),
+    );
+    batch.set(doc(db, headPath), head({ changeSequence: 2 }));
+    await assertFails(batch.commit());
+  });
+
   it('r4_denies_parent_library_update_and_delete', async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), parentPath), { owner: uid, schemaVersion: 1 });
