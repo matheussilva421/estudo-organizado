@@ -53,3 +53,15 @@ test('real staging serves the shell offline after service worker activation', as
     await context.setOffline(false);
   }
 });
+
+test('real staging keeps the shell usable at mobile and tablet widths', async ({ page }) => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto(stagingUrl!);
+    await expect(page.getByRole('heading', { name: 'Estudo Organizado V2' })).toBeVisible();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  }
+});
