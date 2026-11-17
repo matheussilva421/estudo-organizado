@@ -8,7 +8,11 @@ import {
 } from '@firebase/rules-unit-testing';
 import { doc, getDoc } from 'firebase/firestore';
 import type { OutboxOperation } from '../../src/application/sync-types';
-import { createFirestorePort, FirebaseRemotePort } from '../../src/platform/sync/firebase-remote';
+import {
+  createFirestorePort,
+  FirebaseRemotePort,
+  RemoteOperationError,
+} from '../../src/platform/sync/firebase-remote';
 
 let testEnv: RulesTestEnvironment;
 const uid = 'uid-a';
@@ -151,11 +155,25 @@ describe('F7 Firestore remote transaction', () => {
     if (applied.status === 'fulfilled') {
       expect(applied.value.kind).toBe('APPLIED');
     }
+    const failed = rejected[0]!;
+    expect(failed.status).toBe('rejected');
+    if (failed.status === 'rejected') {
+      expect(failed.reason).toBeInstanceOf(RemoteOperationError);
+      expect(String(failed.reason.message)).toContain('different payload');
+    }
 
     const entity = await assertSucceeds(
       getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/entities/edital-1')),
     );
     expect(entity.data()?.revision).toBe(1);
+    const receipt = await assertSucceeds(
+      getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/operations/op-1')),
+    );
+    expect(receipt.exists()).toBe(true);
+    const secondChange = await assertSucceeds(
+      getDoc(doc(dbA, 'users/' + uid + '/libraries/' + libraryId + '/changes/2')),
+    );
+    expect(secondChange.exists()).toBe(false);
   });
 
   it('r2_two_operation_ids_same_entity_concurrent_one_wins', async () => {
