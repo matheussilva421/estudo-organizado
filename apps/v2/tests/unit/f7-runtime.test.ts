@@ -9,6 +9,7 @@ import {
 } from '../../src/platform/indexeddb';
 import { F7Runtime, resolveIsolatedBackupEndpoint } from '../../src/platform/f7-runtime';
 import { GOOGLE_AUTH_ERROR_KEY } from '../../src/platform/firebase/auth';
+import { LocalProfileRepository } from '../../src/platform/local-profile-repository';
 import { collectF7Backup } from '../../src/platform/backup/collect';
 import { encryptSnapshot } from '../../src/platform/backup/crypto';
 
@@ -213,6 +214,48 @@ describe('F7 runtime composition', () => {
     const review = await runtime.previewGoogleLink();
     expect(review.uid).toBe(identityA.uid);
     expect(runtime.getState().authError).toBeNull();
+    runtime.dispose();
+  });
+
+  it('f7_runtime_rejects_a_late_uid_callback_after_preview', async () => {
+    await seedProfile({
+      uid: null,
+      remoteLibraryId: null,
+      syncEnabled: false,
+      state: 'LOCAL_ONLY',
+    });
+    let current: GoogleIdentity | null = identityA;
+    const listeners = new Set<(identity: GoogleIdentity | null) => void>();
+    const auth: GoogleAuthPort = {
+      async signIn() {
+        return identityA;
+      },
+      async signOut() {
+        current = null;
+      },
+      async current() {
+        return current;
+      },
+      async getIdToken() {
+        return 'token';
+      },
+      subscribe(listener) {
+        listeners.add(listener);
+        listener(current);
+        return () => listeners.delete(listener);
+      },
+    };
+    const runtime = new F7Runtime(profileId, emulatorEnv, { auth });
+    await runtime.init();
+    const review = await runtime.previewGoogleLink();
+    expect(review.uid).toBe(identityA.uid);
+
+    current = identityB;
+    for (const listener of listeners) listener(identityB);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    await expect(runtime.confirmGoogleLink()).rejects.toThrow('mudou desde a prévia');
+    expect((await new LocalProfileRepository().getProfile(profileId)).uid).toBeNull();
     runtime.dispose();
   });
 
