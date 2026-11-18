@@ -72,6 +72,10 @@ if (!contentSecurityPolicy.includes("default-src 'self'")) failures.push('Root C
 if ((root.response.headers.get('x-content-type-options') ?? '').toLowerCase() !== 'nosniff') {
   failures.push('Root nosniff header is missing');
 }
+const crossOriginOpenerPolicy = root.response.headers.get('cross-origin-opener-policy') ?? '';
+if (crossOriginOpenerPolicy !== 'same-origin-allow-popups') {
+  failures.push('Root COOP header is missing or does not allow Firebase popups');
+}
 
 const manifestUrl = new URL('/manifest.webmanifest', base);
 const manifestResult = await fetchText(manifestUrl);
@@ -150,6 +154,7 @@ const evidence = {
   headers: {
     contentSecurityPolicy: contentSecurityPolicy || null,
     xContentTypeOptions: root.response.headers.get('x-content-type-options'),
+    crossOriginOpenerPolicy: crossOriginOpenerPolicy || null,
     referrerPolicy: root.response.headers.get('referrer-policy'),
     permissionsPolicy: root.response.headers.get('permissions-policy'),
   },
