@@ -125,7 +125,7 @@ export async function handleBackupRequest(
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
-  if (allowedUids.length > 0 && !allowedUids.includes(uid)) {
+  if (allowedUids.length === 0 || !allowedUids.includes(uid)) {
     return json(401, { error: 'AUTH' }, bindings.ALLOWED_ORIGIN);
   }
 

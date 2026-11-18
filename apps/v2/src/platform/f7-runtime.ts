@@ -370,30 +370,37 @@ export class F7Runtime {
     if (!this.auth || !this.linkService || !this.config) {
       throw new Error('A nuvem não está configurada neste ambiente.');
     }
+    this.state = { ...this.state, authError: null };
+    this.emit();
     const profile = await this.profiles.getProfile(this.profileId);
     const generation = this.previewSeq + 1;
     this.previewSeq = generation;
-    const identity = await this.auth.signIn();
-    if (generation !== this.previewSeq) {
-      throw new Error('A prévia de vínculo foi cancelada por outra sessão.');
-    }
-    if (profile.uid && identity.uid !== profile.uid) {
-      this.linkReview = null;
+    try {
+      const identity = await this.auth.signIn();
+      if (generation !== this.previewSeq) {
+        throw new Error('A prévia de vínculo foi cancelada por outra sessão.');
+      }
+      if (profile.uid && identity.uid !== profile.uid) {
+        this.linkReview = null;
+        await this.refresh();
+        throw new Error('A conta Google é diferente da conta já vinculada. Saia desta conta antes.');
+      }
+      this.identity = identity;
+      const review = await this.linkService.previewGoogleLink(this.profileId, identity, {
+        remoteLibraryId: profile.remoteLibraryId ?? REMOTE_LIBRARY,
+        remoteCount: 0,
+        conflictCount: 0,
+      });
+      if (generation !== this.previewSeq) {
+        throw new Error('A prévia de vínculo expirou; tente novamente.');
+      }
+      this.linkReview = review;
       await this.refresh();
-      throw new Error('A conta Google é diferente da conta já vinculada. Saia desta conta antes.');
+      return review;
+    } catch (error) {
+      await this.refresh();
+      throw error;
     }
-    this.identity = identity;
-    const review = await this.linkService.previewGoogleLink(this.profileId, identity, {
-      remoteLibraryId: profile.remoteLibraryId ?? REMOTE_LIBRARY,
-      remoteCount: 0,
-      conflictCount: 0,
-    });
-    if (generation !== this.previewSeq) {
-      throw new Error('A prévia de vínculo expirou; tente novamente.');
-    }
-    this.linkReview = review;
-    await this.refresh();
-    return review;
   }
 
   async confirmGoogleLink(): Promise<void> {

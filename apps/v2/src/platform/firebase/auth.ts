@@ -37,7 +37,7 @@ function safeErrorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
   return typeof code === 'string' && /^[A-Za-z0-9/_-]{1,80}$/.test(code)
     ? code
-    : 'AUTH_REDIRECT_FAILED';
+    : 'AUTH_UNKNOWN';
 }
 
 function recordGoogleAuthError(error: unknown): void {
@@ -175,6 +175,7 @@ async function createFirebaseBackend(
 
   return {
     async signIn() {
+      clearGoogleAuthError();
       try {
         const provider = new authModule.GoogleAuthProvider();
         if (config.authMode === 'redirect') {
@@ -205,8 +206,10 @@ async function createFirebaseBackend(
       } catch (error) {
         if (error instanceof GoogleAuthError) throw error;
         if (isPopupCancelled(error)) {
+          clearGoogleAuthError();
           throw new GoogleAuthError('AUTH_CANCELLED', 'Google sign-in was cancelled', { cause: error });
         }
+        recordGoogleAuthError(error);
         throw new GoogleAuthError('AUTH_FAILED', 'Google sign-in failed', { cause: error });
       }
     },

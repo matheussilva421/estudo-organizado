@@ -8,6 +8,7 @@ import {
   transactionDone,
 } from '../../src/platform/indexeddb';
 import { F7Runtime, resolveIsolatedBackupEndpoint } from '../../src/platform/f7-runtime';
+import { GOOGLE_AUTH_ERROR_KEY } from '../../src/platform/firebase/auth';
 import { collectF7Backup } from '../../src/platform/backup/collect';
 import { encryptSnapshot } from '../../src/platform/backup/crypto';
 
@@ -170,6 +171,48 @@ describe('F7 runtime composition', () => {
       remoteLibraryId: 'library-a',
     });
     expect(runtime.getState().linkReview?.uid).toBe(identityA.uid);
+    runtime.dispose();
+  });
+
+  it('f7_runtime_surfaces_and_clears_a_sanitized_auth_error', async () => {
+    await seedProfile({
+      uid: null,
+      remoteLibraryId: null,
+      syncEnabled: false,
+      state: 'LOCAL_ONLY',
+    });
+    let fail = true;
+    const auth: GoogleAuthPort = {
+      async signIn() {
+        if (fail) {
+          sessionStorage.setItem(GOOGLE_AUTH_ERROR_KEY, 'auth/popup-blocked');
+          throw new Error('popup blocked');
+        }
+        sessionStorage.removeItem(GOOGLE_AUTH_ERROR_KEY);
+        return identityA;
+      },
+      async signOut() {},
+      async current() {
+        return identityA;
+      },
+      async getIdToken() {
+        return 'token';
+      },
+      subscribe() {
+        return () => undefined;
+      },
+    };
+    const runtime = new F7Runtime(profileId, emulatorEnv, { auth });
+    await runtime.init();
+    expect(runtime.getState().authError).toBeNull();
+
+    await expect(runtime.previewGoogleLink()).rejects.toThrow('popup blocked');
+    expect(runtime.getState().authError).toBe('auth/popup-blocked');
+
+    fail = false;
+    const review = await runtime.previewGoogleLink();
+    expect(review.uid).toBe(identityA.uid);
+    expect(runtime.getState().authError).toBeNull();
     runtime.dispose();
   });
 

@@ -317,4 +317,108 @@ describe('F7 Google auth port', () => {
     clearGoogleAuthError();
     expect(readGoogleAuthError()).toBeNull();
   });
+
+  it('f7_popup_error_is_recorded_and_a_new_attempt_clears_it', async () => {
+    sessionStorage.clear();
+    const signInWithPopup = vi
+      .fn()
+      .mockRejectedValueOnce({ code: 'auth/popup-blocked' })
+      .mockResolvedValueOnce({ user: { uid: 'uid-popup', email: 'popup@example.com' } });
+    const getRedirectResult = vi.fn(async () => null);
+    const modules = {
+      app: { getApps: () => [], getApp: () => ({}), initializeApp: () => ({}) },
+      auth: {
+        getAuth: () => ({ currentUser: null }),
+        onAuthStateChanged: () => () => undefined,
+        setPersistence: async () => undefined,
+        browserLocalPersistence: {},
+        getRedirectResult,
+        signInWithPopup,
+        signInWithRedirect: vi.fn(),
+        signOut: async () => undefined,
+        GoogleAuthProvider: class {},
+      },
+    } as unknown as FirebaseModules;
+
+    const port = createFirebaseGoogleAuthPort(
+      {
+        projectId: 'demo-popup',
+        authDomain: 'demo-popup.firebaseapp.com',
+        appId: '1:1:web:demo',
+        apiKey: 'demo-api-key',
+      },
+      { load: async () => modules },
+    );
+
+    await expect(port.signIn()).rejects.toMatchObject({ code: 'AUTH_FAILED' });
+    expect(readGoogleAuthError()).toBe('auth/popup-blocked');
+    expect(getRedirectResult).not.toHaveBeenCalled();
+
+    await expect(port.signIn()).resolves.toEqual({ uid: 'uid-popup', email: 'popup@example.com' });
+    expect(readGoogleAuthError()).toBeNull();
+  });
+
+  it('f7_popup_cancel_does_not_record_an_error', async () => {
+    sessionStorage.clear();
+    const signInWithPopup = vi.fn(async () => {
+      throw { code: 'auth/popup-closed-by-user' };
+    });
+    const modules = {
+      app: { getApps: () => [], getApp: () => ({}), initializeApp: () => ({}) },
+      auth: {
+        getAuth: () => ({ currentUser: null }),
+        onAuthStateChanged: () => () => undefined,
+        setPersistence: async () => undefined,
+        browserLocalPersistence: {},
+        signInWithPopup,
+        signInWithRedirect: vi.fn(),
+        signOut: async () => undefined,
+        GoogleAuthProvider: class {},
+      },
+    } as unknown as FirebaseModules;
+    const port = createFirebaseGoogleAuthPort(
+      {
+        projectId: 'demo-popup',
+        authDomain: 'demo-popup.firebaseapp.com',
+        appId: '1:1:web:demo',
+        apiKey: 'demo-api-key',
+      },
+      { load: async () => modules },
+    );
+
+    await expect(port.signIn()).rejects.toMatchObject({ code: 'AUTH_CANCELLED' });
+    expect(readGoogleAuthError()).toBeNull();
+  });
+
+  it('f7_unknown_popup_error_uses_a_generic_code', async () => {
+    sessionStorage.clear();
+    const signInWithPopup = vi.fn(async () => {
+      throw { code: '<script>alert(1)</script>' };
+    });
+    const modules = {
+      app: { getApps: () => [], getApp: () => ({}), initializeApp: () => ({}) },
+      auth: {
+        getAuth: () => ({ currentUser: null }),
+        onAuthStateChanged: () => () => undefined,
+        setPersistence: async () => undefined,
+        browserLocalPersistence: {},
+        signInWithPopup,
+        signInWithRedirect: vi.fn(),
+        signOut: async () => undefined,
+        GoogleAuthProvider: class {},
+      },
+    } as unknown as FirebaseModules;
+    const port = createFirebaseGoogleAuthPort(
+      {
+        projectId: 'demo-popup',
+        authDomain: 'demo-popup.firebaseapp.com',
+        appId: '1:1:web:demo',
+        apiKey: 'demo-api-key',
+      },
+      { load: async () => modules },
+    );
+
+    await expect(port.signIn()).rejects.toMatchObject({ code: 'AUTH_FAILED' });
+    expect(readGoogleAuthError()).toBe('AUTH_UNKNOWN');
+  });
 });

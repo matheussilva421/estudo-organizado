@@ -96,9 +96,116 @@ function request(method: string, path: string, token?: string, body?: string, ex
 describe('F7 backup worker auth', () => {
   it('f7_worker_rejects_missing_token', async () => {
     const { jwks } = await keyPair();
-    const bindings: BackupWorkerBindings = { BACKUPS: new MemoryKV(), FIREBASE_PROJECT_ID: projectId, ALLOWED_ORIGIN: origin, JWKS: jwks };
+    const bindings: BackupWorkerBindings = { BACKUPS: new MemoryKV(), FIREBASE_PROJECT_ID: projectId, ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a', JWKS: jwks };
     const response = await handleBackupRequest(request('GET', '/backups'), bindings);
     expect(response.status).toBe(401);
+  });
+
+  it('f7_worker_denies_all_when_allowlist_is_missing', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const kv = new MemoryKV();
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: kv,
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      JWKS: jwks,
+    };
+    const token = await jwt('uid-a', {}, privateKey);
+    const encrypted = {
+      format: 'eo-v2-encrypted-v1',
+      iv: 'a',
+      ciphertext: 'b',
+      wrappedKey: 'c',
+      kdf: { name: 'PBKDF2' },
+    };
+    expect((await handleBackupRequest(request('GET', '/backups', token), bindings)).status).toBe(401);
+    expect(
+      (
+        await handleBackupRequest(
+          request('POST', '/backups', token, JSON.stringify({ id: 'v1', encrypted }), {
+            'Content-Type': 'application/json',
+          }),
+          bindings,
+        )
+      ).status,
+    ).toBe(401);
+    expect((await handleBackupRequest(request('DELETE', '/backups/v1', token), bindings)).status).toBe(401);
+    expect(kv.values.size).toBe(0);
+  });
+
+  it('f7_worker_denies_all_for_empty_or_separator_allowlist', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const token = await jwt('uid-a', {}, privateKey);
+    for (const value of ['', '   ', ' , , ', ',']) {
+      const bindings: BackupWorkerBindings = {
+        BACKUPS: new MemoryKV(),
+        FIREBASE_PROJECT_ID: projectId,
+        ALLOWED_ORIGIN: origin,
+        ALLOWED_UIDS: value,
+        JWKS: jwks,
+      };
+      expect((await handleBackupRequest(request('GET', '/backups', token), bindings)).status).toBe(401);
+    }
+  });
+
+  it('f7_worker_allowlist_is_exact_and_tolerates_duplicates', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: new MemoryKV(),
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: ' uid-a, uid-a, , ',
+      JWKS: jwks,
+    };
+    const tokenA = await jwt('uid-a', {}, privateKey);
+    const tokenB = await jwt('uid-b', {}, privateKey);
+    expect((await handleBackupRequest(request('GET', '/backups', tokenA), bindings)).status).toBe(200);
+    expect((await handleBackupRequest(request('GET', '/backups', tokenB), bindings)).status).toBe(401);
+  });
+
+  it('f7_worker_allowlist_isolates_a_and_b_both_ways', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const kv = new MemoryKV();
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: kv,
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a,uid-b',
+      JWKS: jwks,
+    };
+    const tokenA = await jwt('uid-a', {}, privateKey);
+    const tokenB = await jwt('uid-b', {}, privateKey);
+    const encrypted = {
+      format: 'eo-v2-encrypted-v1',
+      iv: 'a',
+      ciphertext: 'b',
+      wrappedKey: 'c',
+      kdf: { name: 'PBKDF2' },
+    };
+    const post = (token: string, id: string) =>
+      handleBackupRequest(
+        request('POST', '/backups', token, JSON.stringify({ id, encrypted }), {
+          'Content-Type': 'application/json',
+        }),
+        bindings,
+      );
+    expect((await post(tokenA, 'a-1')).status).toBe(201);
+    expect((await post(tokenB, 'b-1')).status).toBe(201);
+    expect((await handleBackupRequest(request('GET', '/backups/a-1', tokenB), bindings)).status).toBe(404);
+    expect((await handleBackupRequest(request('GET', '/backups/b-1', tokenA), bindings)).status).toBe(404);
+    const listA = (await (await handleBackupRequest(request('GET', '/backups', tokenA), bindings)).json()) as {
+      items: Array<{ id: string }>;
+    };
+    const listB = (await (await handleBackupRequest(request('GET', '/backups', tokenB), bindings)).json()) as {
+      items: Array<{ id: string }>;
+    };
+    expect(listA.items.map((item) => item.id)).toEqual(['a-1']);
+    expect(listB.items.map((item) => item.id)).toEqual(['b-1']);
+    expect((await handleBackupRequest(request('DELETE', '/backups/a-1', tokenB), bindings)).status).toBe(409);
+    expect((await handleBackupRequest(request('DELETE', '/backups/b-1', tokenA), bindings)).status).toBe(409);
+    expect(await kv.get('backups/uid-a/a-1')).not.toBeNull();
+    expect(await kv.get('backups/uid-b/b-1')).not.toBeNull();
   });
 
   it('f7_worker_rejects_wrong_issuer_audience_expiry_signature', async () => {
@@ -140,7 +247,8 @@ describe('F7 backup worker auth', () => {
   it('f7_worker_uid_cannot_read_other_uid', async () => {
     const { privateKey, jwks } = await keyPair();
     const kv = new MemoryKV();
-    const bindings: BackupWorkerBindings = { BACKUPS: kv, FIREBASE_PROJECT_ID: projectId, ALLOWED_ORIGIN: origin, JWKS: jwks };
+    const bindings: BackupWorkerBindings = { BACKUPS: kv, FIREBASE_PROJECT_ID: projectId, ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a,uid-b', JWKS: jwks };
     const tokenA = await jwt('uid-a', {}, privateKey);
     const tokenB = await jwt('uid-b', {}, privateKey);
     const created = await handleBackupRequest(
@@ -174,7 +282,8 @@ describe('F7 backup worker auth', () => {
 
   it('f7_worker_rejects_unapproved_origin_and_method', async () => {
     const { privateKey, jwks } = await keyPair();
-    const bindings: BackupWorkerBindings = { BACKUPS: new MemoryKV(), FIREBASE_PROJECT_ID: projectId, ALLOWED_ORIGIN: origin, JWKS: jwks };
+    const bindings: BackupWorkerBindings = { BACKUPS: new MemoryKV(), FIREBASE_PROJECT_ID: projectId, ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a', JWKS: jwks };
     const token = await jwt('uid-a', {}, privateKey);
     const badOrigin = new Request('https://worker.example/backups', { method: 'GET', headers: new Headers({ Origin: 'https://evil.example', Authorization: `Bearer ${token}` }) });
     expect((await handleBackupRequest(badOrigin, bindings)).status).toBe(403);
@@ -185,7 +294,8 @@ describe('F7 backup worker auth', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { privateKey, jwks } = await keyPair();
-    const bindings: BackupWorkerBindings = { BACKUPS: new MemoryKV(), FIREBASE_PROJECT_ID: projectId, ALLOWED_ORIGIN: origin, JWKS: jwks };
+    const bindings: BackupWorkerBindings = { BACKUPS: new MemoryKV(), FIREBASE_PROJECT_ID: projectId, ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a', JWKS: jwks };
     const token = await jwt('uid-a', {}, privateKey);
     await handleBackupRequest(request('GET', '/backups', token), bindings);
     expect(log).not.toHaveBeenCalled();
@@ -196,7 +306,8 @@ describe('F7 backup worker auth', () => {
 
   it('f7_worker_rejects_oversized_request', async () => {
     const { privateKey, jwks } = await keyPair();
-    const bindings: BackupWorkerBindings = { BACKUPS: new MemoryKV(), FIREBASE_PROJECT_ID: projectId, ALLOWED_ORIGIN: origin, JWKS: jwks };
+    const bindings: BackupWorkerBindings = { BACKUPS: new MemoryKV(), FIREBASE_PROJECT_ID: projectId, ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a', JWKS: jwks };
     const token = await jwt('uid-a', {}, privateKey);
     const response = await handleBackupRequest(
       request('POST', '/backups', token, '{}', { 'Content-Type': 'application/json', 'Content-Length': String(MAX_BACKUP_BYTES + 1) }),
@@ -211,6 +322,7 @@ describe('F7 backup worker auth', () => {
       BACKUPS: new MemoryKV(),
       FIREBASE_PROJECT_ID: projectId,
       ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a',
       JWKS: jwks,
     };
     const token = await jwt('uid-a', {}, privateKey);
@@ -247,6 +359,7 @@ describe('F7 backup worker auth', () => {
       BACKUPS: new MemoryKV(),
       FIREBASE_PROJECT_ID: projectId,
       ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a',
       JWKS: jwks,
     };
     const token = await jwt('uid-a', {}, privateKey);
@@ -280,6 +393,7 @@ describe('F7 backup worker auth', () => {
       BACKUPS: new MemoryKV(),
       FIREBASE_PROJECT_ID: projectId,
       ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a',
       JWKS: jwks,
     };
     const token = await jwt('uid-a', {}, privateKey);
@@ -321,6 +435,7 @@ describe('F7 backup worker auth', () => {
       BACKUPS: kv,
       FIREBASE_PROJECT_ID: projectId,
       ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a',
       JWKS: jwks,
     };
     const token = await jwt('uid-a', {}, privateKey);
@@ -358,6 +473,7 @@ describe('F7 backup worker auth', () => {
       BACKUPS: kv,
       FIREBASE_PROJECT_ID: projectId,
       ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a',
       JWKS: jwks,
     };
     const token = await jwt('uid-a', {}, privateKey);
