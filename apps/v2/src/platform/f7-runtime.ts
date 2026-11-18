@@ -382,7 +382,6 @@ export class F7Runtime {
       }
       if (profile.uid && identity.uid !== profile.uid) {
         this.linkReview = null;
-        await this.refresh();
         throw new Error('A conta Google é diferente da conta já vinculada. Saia desta conta antes.');
       }
       this.identity = identity;
@@ -410,6 +409,7 @@ export class F7Runtime {
     const identity = await this.currentIdentity();
     if (!identity || identity.uid !== this.linkReview.uid) {
       this.linkReview = null;
+      await this.refresh();
       throw new Error('A conta Google mudou desde a prévia; refaça o vínculo.');
     }
     await this.linkService.confirmGoogleLink(this.linkReview, true);

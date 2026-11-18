@@ -255,6 +255,7 @@ describe('F7 runtime composition', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     await expect(runtime.confirmGoogleLink()).rejects.toThrow('mudou desde a prévia');
+    expect(runtime.getState().linkReview).toBeNull();
     expect((await new LocalProfileRepository().getProfile(profileId)).uid).toBeNull();
     runtime.dispose();
   });

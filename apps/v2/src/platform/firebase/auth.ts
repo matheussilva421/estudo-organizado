@@ -191,14 +191,14 @@ async function createFirebaseBackend(
           } catch (error) {
             clearRedirectPending();
             recordGoogleAuthError(error);
-            throw new GoogleAuthError('AUTH_FAILED', 'Google sign-in redirect failed', { cause: error });
+          throw new GoogleAuthError('AUTH_FAILED', 'Falha no redirecionamento do login Google.', { cause: error });
           }
           clearRedirectPending();
-          throw new GoogleAuthError('AUTH_FAILED', 'Google sign-in redirect did not navigate');
+          throw new GoogleAuthError('AUTH_FAILED', 'O redirecionamento do login Google não iniciou.');
         }
         const result = await authModule.signInWithPopup(auth, provider);
         const next = mapUser(result.user);
-        if (!next) throw new GoogleAuthError('AUTH_FAILED', 'Google did not return a valid identity');
+        if (!next) throw new GoogleAuthError('AUTH_FAILED', 'O Google não retornou uma identidade válida.');
         clearGoogleAuthError();
         identity = next;
         notify(listeners, identity);
@@ -207,10 +207,10 @@ async function createFirebaseBackend(
         if (error instanceof GoogleAuthError) throw error;
         if (isPopupCancelled(error)) {
           clearGoogleAuthError();
-          throw new GoogleAuthError('AUTH_CANCELLED', 'Google sign-in was cancelled', { cause: error });
+          throw new GoogleAuthError('AUTH_CANCELLED', 'Login Google cancelado.', { cause: error });
         }
         recordGoogleAuthError(error);
-        throw new GoogleAuthError('AUTH_FAILED', 'Google sign-in failed', { cause: error });
+        throw new GoogleAuthError('AUTH_FAILED', 'Falha no login Google.', { cause: error });
       }
     },
     async signOut() {

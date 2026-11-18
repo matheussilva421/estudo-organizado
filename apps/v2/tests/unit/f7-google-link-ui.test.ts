@@ -13,6 +13,7 @@ describe('F7 GoogleLink diagnostics', () => {
     );
     expect(html).toContain('data-google-auth-error');
     expect(html).toContain('auth/popup-blocked');
+    expect(html).toContain('O navegador bloqueou o popup');
     expect(html).not.toContain('<script');
   });
 

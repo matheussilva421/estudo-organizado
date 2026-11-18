@@ -6,6 +6,8 @@ compatibility_date = "2026-11-09"
 [vars]
 FIREBASE_PROJECT_ID = "demo-estudo-v2"
 ALLOWED_ORIGIN = "https://v2.example.invalid"
+# Deny-all while this is absent/empty. Enable only after two test UIDs are verified.
+# ALLOWED_UIDS = "uid-test-a,uid-test-b"
 
 [[kv_namespaces]]
 binding = "BACKUPS"

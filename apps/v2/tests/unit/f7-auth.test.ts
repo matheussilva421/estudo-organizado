@@ -421,4 +421,35 @@ describe('F7 Google auth port', () => {
     await expect(port.signIn()).rejects.toMatchObject({ code: 'AUTH_FAILED' });
     expect(readGoogleAuthError()).toBe('AUTH_UNKNOWN');
   });
+
+  it('f7_logout_clears_redirect_marker_and_auth_error', async () => {
+    sessionStorage.setItem(GOOGLE_REDIRECT_PENDING_KEY, 'pending');
+    sessionStorage.setItem(GOOGLE_AUTH_ERROR_KEY, 'auth/popup-blocked');
+    const modules = {
+      app: { getApps: () => [], getApp: () => ({}), initializeApp: () => ({}) },
+      auth: {
+        getAuth: () => ({ currentUser: null }),
+        onAuthStateChanged: () => () => undefined,
+        setPersistence: async () => undefined,
+        browserLocalPersistence: {},
+        signInWithPopup: vi.fn(),
+        signInWithRedirect: vi.fn(),
+        signOut: async () => undefined,
+        GoogleAuthProvider: class {},
+      },
+    } as unknown as FirebaseModules;
+    const port = createFirebaseGoogleAuthPort(
+      {
+        projectId: 'demo-popup',
+        authDomain: 'demo-popup.firebaseapp.com',
+        appId: '1:1:web:demo',
+        apiKey: 'demo-api-key',
+      },
+      { load: async () => modules },
+    );
+
+    await port.signOut();
+    expect(sessionStorage.getItem(GOOGLE_REDIRECT_PENDING_KEY)).toBeNull();
+    expect(readGoogleAuthError()).toBeNull();
+  });
 });

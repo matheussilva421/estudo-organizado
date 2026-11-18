@@ -499,4 +499,92 @@ describe('F7 backup worker auth', () => {
     expect(await kv.get('backups/uid-a/v1')).toBeNull();
     expect(await kv.get('backups/uid-a/v2')).not.toBeNull();
   });
+
+  it('f7_worker_preflight_and_auth_errors_do_not_leak_the_allowlist', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: new MemoryKV(),
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a',
+      JWKS: jwks,
+    };
+    const preflight = await handleBackupRequest(request('OPTIONS', '/backups'), bindings);
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get('Access-Control-Allow-Origin')).toBe(origin);
+    expect(preflight.headers.get('Access-Control-Allow-Methods')).toContain('GET');
+
+    const tokenB = await jwt('uid-b', {}, privateKey);
+    const denied = await handleBackupRequest(request('GET', '/backups', tokenB), bindings);
+    expect(denied.status).toBe(401);
+    const deniedBody = await denied.text();
+    expect(JSON.parse(deniedBody)).toEqual({ error: 'AUTH' });
+    expect(deniedBody).not.toContain('uid-a');
+    expect(denied.headers.get('Access-Control-Allow-Origin')).toBe(origin);
+
+    const badOrigin = await handleBackupRequest(
+      new Request('https://worker.example/backups', {
+        method: 'GET',
+        headers: new Headers({ Origin: 'https://evil.example', Authorization: 'Bearer ' + tokenB }),
+      }),
+      bindings,
+    );
+    expect(badOrigin.status).toBe(403);
+    expect(badOrigin.headers.get('Access-Control-Allow-Origin')).toBe(origin);
+  });
+
+  it('f7_worker_rejects_an_invalid_backup_path_id', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: new MemoryKV(),
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a',
+      JWKS: jwks,
+    };
+    const token = await jwt('uid-a', {}, privateKey);
+    const response = await handleBackupRequest(request('GET', '/backups/bad.id', token), bindings);
+    expect(response.status).toBe(400);
+  });
+
+  it('f7_worker_cross_uid_delete_never_removes_the_other_namespace', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const kv = new MemoryKV();
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: kv,
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a,uid-b',
+      JWKS: jwks,
+    };
+    const tokenA = await jwt('uid-a', {}, privateKey);
+    const tokenB = await jwt('uid-b', {}, privateKey);
+    const encrypted = {
+      format: 'eo-v2-encrypted-v1',
+      iv: 'a',
+      ciphertext: 'b',
+      wrappedKey: 'c',
+      kdf: { name: 'PBKDF2' },
+    };
+    const post = (token: string, id: string) =>
+      handleBackupRequest(
+        request('POST', '/backups', token, JSON.stringify({ id, encrypted }), {
+          'Content-Type': 'application/json',
+        }),
+        bindings,
+      );
+    expect((await post(tokenA, 'a-1')).status).toBe(201);
+    expect((await post(tokenB, 'b-1')).status).toBe(201);
+    expect((await post(tokenB, 'b-2')).status).toBe(201);
+
+    expect((await handleBackupRequest(request('DELETE', '/backups/a-1', tokenB), bindings)).status).toBe(204);
+    expect(await kv.get('backups/uid-a/a-1')).not.toBeNull();
+    expect(await kv.get('backups/uid-b/b-1')).not.toBeNull();
+    expect(await kv.get('backups/uid-b/b-2')).not.toBeNull();
+
+    // A has only one own copy, so LAST_COPY blocks before any deletion attempt.
+    expect((await handleBackupRequest(request('DELETE', '/backups/b-1', tokenA), bindings)).status).toBe(409);
+    expect(await kv.get('backups/uid-b/b-1')).not.toBeNull();
+    expect(await kv.get('backups/uid-a/a-1')).not.toBeNull();
+  });
 });

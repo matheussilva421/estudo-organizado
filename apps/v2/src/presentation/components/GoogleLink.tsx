@@ -12,6 +12,19 @@ export type GoogleLinkProps = {
   onLogout?: () => void;
 };
 
+function authErrorMessage(code: string): string {
+  switch (code) {
+    case 'auth/popup-blocked':
+      return 'O navegador bloqueou o popup. Permita popups para este site e tente novamente.';
+    case 'auth/unauthorized-domain':
+      return 'A origem não está autorizada no Firebase. Use o domínio de staging.';
+    case 'auth/network-request-failed':
+      return 'Falha de rede ao falar com o Google. Verifique a conexão e tente novamente.';
+    default:
+      return 'Não foi possível concluir o login Google. Tente novamente.';
+  }
+}
+
 /**
  * Account linking is opt-in. Rendering this component never starts a request,
  * and every remote action requires an explicit handler.
@@ -47,8 +60,7 @@ export function GoogleLink({
       </p>
       {authError ? (
         <p className="inline-notice" role="alert" data-google-auth-error>
-          Não foi possível concluir o login Google ({authError}). Verifique o armazenamento de
-          terceiros e as permissões deste site, depois tente novamente.
+          {authErrorMessage(authError)} Código: <code>{authError}</code>.
         </p>
       ) : null}
       {email ? <p data-google-email>{email}</p> : null}
