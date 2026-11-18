@@ -1464,6 +1464,7 @@ export function App() {
               googleLink={
                 <GoogleLink
                   status={googleStatus}
+                  authError={f7?.authError ?? null}
                   email={googleEmail}
                   review={f7?.linkReview ?? null}
                   onPreview={

@@ -4,6 +4,7 @@ export type GoogleLinkStatus = 'LOCAL_ONLY' | 'LINKING' | 'READY' | 'PAUSED_AUTH
 
 export type GoogleLinkProps = {
   status: GoogleLinkStatus;
+  authError?: string | null;
   email?: string | null;
   review?: LinkReview | null;
   onPreview?: () => void;
@@ -17,6 +18,7 @@ export type GoogleLinkProps = {
  */
 export function GoogleLink({
   status,
+  authError,
   email,
   review,
   onPreview,
@@ -43,6 +45,12 @@ export function GoogleLink({
               ? 'As pendências locais foram preservadas. Entre novamente para retomar a sincronização.'
               : 'Sincronização e backup usam esta conta somente após a vinculação consentida.'}
       </p>
+      {authError ? (
+        <p className="inline-notice" role="alert" data-google-auth-error>
+          Não foi possível concluir o login Google ({authError}). Verifique o armazenamento de
+          terceiros e as permissões deste site, depois tente novamente.
+        </p>
+      ) : null}
       {email ? <p data-google-email>{email}</p> : null}
       {review ? (
         <dl className="link-review" data-link-review>

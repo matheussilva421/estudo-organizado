@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GoogleAuthError, type GoogleIdentity } from '../../src/application/google-auth-types';
 import {
+  clearGoogleAuthError,
   consumeRedirectPending,
   createFirebaseGoogleAuthPort,
+  GOOGLE_AUTH_ERROR_KEY,
   GOOGLE_REDIRECT_PENDING_KEY,
   GOOGLE_REDIRECT_PENDING_MAX_AGE_MS,
+  readGoogleAuthError,
   type FirebaseModules,
   type GoogleAuthBackend,
 } from '../../src/platform/firebase/auth';
@@ -271,5 +274,47 @@ describe('F7 Google auth port', () => {
     sessionStorage.setItem(GOOGLE_REDIRECT_PENDING_KEY, marker('project-a', 1_000));
     expect(consumeRedirectPending('project-a', 2_000)).toBe(true);
     expect(consumeRedirectPending('project-a', 2_000)).toBe(false);
+  });
+
+  it('f7_redirect_error_is_sanitized_for_the_ui', async () => {
+    sessionStorage.clear();
+    const getRedirectResult = vi.fn(async () => {
+      throw { code: 'auth/network-request-failed' };
+    });
+    const modules = {
+      app: {
+        getApps: () => [],
+        getApp: () => ({}),
+        initializeApp: () => ({}),
+      },
+      auth: {
+        getAuth: () => ({ currentUser: null }),
+        onAuthStateChanged: () => () => undefined,
+        setPersistence: async () => undefined,
+        browserLocalPersistence: {},
+        getRedirectResult,
+        signInWithPopup: vi.fn(),
+        signInWithRedirect: vi.fn(),
+        signOut: async () => undefined,
+        GoogleAuthProvider: class {},
+      },
+    } as unknown as FirebaseModules;
+
+    const port = createFirebaseGoogleAuthPort(
+      {
+        projectId: 'demo-redirect',
+        authDomain: 'demo-redirect.firebaseapp.com',
+        appId: '1:1:web:demo',
+        apiKey: 'demo-api-key',
+        authMode: 'redirect',
+      },
+      { load: async () => modules },
+    );
+
+    await expect(port.current()).resolves.toBeNull();
+    expect(readGoogleAuthError()).toBe('auth/network-request-failed');
+    expect(sessionStorage.getItem(GOOGLE_AUTH_ERROR_KEY)).toBe('auth/network-request-failed');
+    clearGoogleAuthError();
+    expect(readGoogleAuthError()).toBeNull();
   });
 });

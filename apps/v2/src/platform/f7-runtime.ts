@@ -10,7 +10,7 @@ import {
   V2_APP_NAME,
   type V2RemoteConfig,
 } from './firebase/config';
-import { consumeRedirectPending, createFirebaseGoogleAuthPort } from './firebase/auth';
+import { consumeRedirectPending, createFirebaseGoogleAuthPort, readGoogleAuthError } from './firebase/auth';
 import { LocalProfileRepository } from './local-profile-repository';
 import {
   getConflicts,
@@ -89,6 +89,7 @@ export type F7RuntimeState = {
   health: SyncHealth;
   backupHealth: BackupHealth;
   googleStatus: F7GoogleStatus;
+  authError: string | null;
   email: string | null;
   linkReview: LinkReview | null;
   conflicts: PersistedConflict[];
@@ -145,6 +146,7 @@ function initialState(): F7RuntimeState {
     health: initialHealth(),
     backupHealth: localBackupHealth(),
     googleStatus: 'LOCAL_ONLY',
+    authError: null,
     email: null,
     linkReview: null,
     conflicts: [],
@@ -306,11 +308,13 @@ export class F7Runtime {
           : profile.uid && profile.syncEnabled
             ? 'READY'
             : 'LOCAL_ONLY';
+      const authError = readGoogleAuthError();
       this.state = {
         ready: true,
         health,
         backupHealth,
         googleStatus,
+        authError,
         email: identityMismatch ? null : this.identity?.email ?? null,
         linkReview: this.linkReview,
         conflicts: openConflicts,

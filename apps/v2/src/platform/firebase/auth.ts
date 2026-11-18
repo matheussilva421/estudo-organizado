@@ -31,6 +31,39 @@ export type GoogleAuthOptions = {
 /** Session marker used to resume the consent preview after a redirect. */
 export const GOOGLE_REDIRECT_PENDING_KEY = 'eo-v2-google-link-pending';
 export const GOOGLE_REDIRECT_PENDING_MAX_AGE_MS = 30 * 60 * 1000;
+export const GOOGLE_AUTH_ERROR_KEY = 'eo-v2-google-auth-error';
+
+function safeErrorCode(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === 'string' && /^[A-Za-z0-9/_-]{1,80}$/.test(code)
+    ? code
+    : 'AUTH_REDIRECT_FAILED';
+}
+
+function recordGoogleAuthError(error: unknown): void {
+  try {
+    globalThis.sessionStorage?.setItem(GOOGLE_AUTH_ERROR_KEY, safeErrorCode(error));
+  } catch {
+    // Diagnostics must never break the auth lifecycle.
+  }
+}
+
+export function readGoogleAuthError(): string | null {
+  try {
+    const value = globalThis.sessionStorage?.getItem(GOOGLE_AUTH_ERROR_KEY) ?? null;
+    return value && /^[A-Za-z0-9/_-]{1,80}$/.test(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearGoogleAuthError(): void {
+  try {
+    globalThis.sessionStorage?.removeItem(GOOGLE_AUTH_ERROR_KEY);
+  } catch {
+    // Nothing to clear when storage is unavailable.
+  }
+}
 
 type RedirectPending = {
   version: 1;
@@ -128,7 +161,9 @@ async function createFirebaseBackend(
   // Completes a pending redirect before the auth listener is registered. The
   // call is a no-op when there is no redirect event in this browser session.
   if (config.authMode === 'redirect' && typeof authModule.getRedirectResult === 'function') {
-    await authModule.getRedirectResult(auth).catch(() => undefined);
+    await authModule.getRedirectResult(auth).catch((error) => {
+      recordGoogleAuthError(error);
+    });
   }
 
   const listeners = new Set<(identity: GoogleIdentity | null) => void>();
@@ -154,6 +189,7 @@ async function createFirebaseBackend(
             await authModule.signInWithRedirect(auth, provider);
           } catch (error) {
             clearRedirectPending();
+            recordGoogleAuthError(error);
             throw new GoogleAuthError('AUTH_FAILED', 'Google sign-in redirect failed', { cause: error });
           }
           clearRedirectPending();
@@ -162,6 +198,7 @@ async function createFirebaseBackend(
         const result = await authModule.signInWithPopup(auth, provider);
         const next = mapUser(result.user);
         if (!next) throw new GoogleAuthError('AUTH_FAILED', 'Google did not return a valid identity');
+        clearGoogleAuthError();
         identity = next;
         notify(listeners, identity);
         return next;
@@ -175,6 +212,7 @@ async function createFirebaseBackend(
     },
     async signOut() {
       clearRedirectPending();
+      clearGoogleAuthError();
       await authModule.signOut(auth);
       identity = null;
       notify(listeners, null);
