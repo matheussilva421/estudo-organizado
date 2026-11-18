@@ -65,3 +65,39 @@ test('real staging keeps the shell usable at mobile and tablet widths', async ({
     expect(overflow).toBeLessThanOrEqual(1);
   }
 });
+
+test('real staging preserves a draft and active session across reload and two tabs', async ({ context, page }) => {
+  await page.goto(stagingUrl + '/#/content');
+  await expect(page.getByRole('heading', { name: 'Estudo Organizado V2' })).toBeVisible();
+  await page.getByLabel('Nova disciplina').fill('Rascunho S13');
+
+  const sessions = await context.newPage();
+  await sessions.goto(stagingUrl + '/#/sessions');
+  await expect(sessions.getByRole('heading', { name: 'Estudo Organizado V2' })).toBeVisible();
+  await sessions.locator('[data-testid="session-start"]').click();
+  await expect(sessions.locator('[data-testid="session-pause"]')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByLabel('Nova disciplina')).toHaveValue('Rascunho S13');
+  await sessions.reload();
+  if (await sessions.locator('[data-testid="session-takeover"]').isVisible().catch(() => false)) {
+    await sessions.locator('[data-testid="session-takeover"]').click();
+    await expect(sessions.locator('[data-testid="session-resume"]')).toBeVisible();
+    await sessions.locator('[data-testid="session-resume"]').click();
+  }
+  await expect(sessions.locator('[data-testid="session-pause"]')).toBeVisible();
+
+  await context.setOffline(true);
+  await sessions.reload();
+  await expect(sessions.getByRole('heading', { name: 'Estudo Organizado V2' })).toBeVisible();
+  if (await sessions.locator('[data-testid="session-takeover"]').isVisible().catch(() => false)) {
+    await sessions.locator('[data-testid="session-takeover"]').click();
+    await expect(sessions.locator('[data-testid="session-resume"]')).toBeVisible();
+    await sessions.locator('[data-testid="session-resume"]').click();
+  }
+  await expect(sessions.locator('[data-testid="session-pause"]')).toBeVisible();
+  await context.setOffline(false);
+
+  await sessions.locator('[data-testid="session-complete"]').click().catch(() => undefined);
+  await sessions.close();
+});
