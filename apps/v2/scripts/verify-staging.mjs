@@ -38,6 +38,7 @@ async function fetchText(url) {
 
 const rawUrl = argument('--url') ?? process.env.F7_REAL_STAGING_URL;
 const projectId = argument('--project-id') ?? process.env.F7_REAL_PROJECT_ID;
+const authDomain = argument('--auth-domain') ?? process.env.F7_REAL_AUTH_DOMAIN;
 const workerEndpoint = argument('--worker-endpoint') ?? process.env.F7_REAL_BACKUP_ENDPOINT;
 const buildSha = argument('--build-sha') ?? process.env.F7_BUILD_SHA ?? '';
 const output = argument('--out');
@@ -69,6 +70,12 @@ if (!root.response.ok) failures.push(`Root HTTP ${root.response.status}`);
 if (!/<html[\s>]/i.test(root.body)) failures.push('Root is not HTML');
 const contentSecurityPolicy = root.response.headers.get('content-security-policy') ?? '';
 if (!contentSecurityPolicy.includes("default-src 'self'")) failures.push('Root CSP is missing or incomplete');
+if (!contentSecurityPolicy.includes("frame-src 'self'")) {
+  failures.push('Root CSP does not allow the same-origin Firebase auth iframe');
+}
+if (!contentSecurityPolicy.includes("frame-ancestors 'self'")) {
+  failures.push('Root CSP does not allow the same-origin Firebase auth iframe to be framed');
+}
 if ((root.response.headers.get('x-content-type-options') ?? '').toLowerCase() !== 'nosniff') {
   failures.push('Root nosniff header is missing');
 }
@@ -94,11 +101,26 @@ if (!swResult.response.ok) failures.push(`SW HTTP ${swResult.response.status}`);
 if (!swResult.body.includes('estudo-organizado-v2')) failures.push('SW cache prefix is missing');
 if (isV1(swResult.body)) failures.push('SW contains a V1 marker');
 
+const authHandlerUrl = new URL('/__/auth/handler', base);
+const authHandlerResult = await fetchText(authHandlerUrl);
+if (!authHandlerResult.response.ok) failures.push(`Auth handler HTTP ${authHandlerResult.response.status}`);
+if (!authHandlerResult.body.includes('fireauth.oauthhelper.widget.initialize')) {
+  failures.push('Firebase auth handler is not proxied on the staging origin');
+}
+
+const authIframeUrl = new URL('/__/auth/iframe', base);
+const authIframeResult = await fetchText(authIframeUrl);
+if (!authIframeResult.response.ok) failures.push(`Auth iframe HTTP ${authIframeResult.response.status}`);
+if (!authIframeResult.body.includes('fireauth.iframe.AuthRelay.initialize')) {
+  failures.push('Firebase auth iframe is not proxied on the staging origin');
+}
+
 const assetPaths = [...root.body.matchAll(/<script[^>]+src=["']([^"']+)["']/g)]
   .map((match) => match[1])
   .filter((value) => typeof value === 'string' && value.length > 0);
 const assets = [];
 let projectIdFound = false;
+let authDomainFound = false;
 let workerEndpointFound = false;
 let remoteEnabledFound = false;
 for (const assetPath of assetPaths) {
@@ -106,6 +128,7 @@ for (const assetPath of assetPaths) {
   const result = await fetchText(assetUrl);
   if (!result.response.ok) failures.push(`Asset HTTP ${result.response.status}: ${assetPath}`);
   if (projectId && result.body.includes(projectId)) projectIdFound = true;
+  if (authDomain && result.body.includes(authDomain)) authDomainFound = true;
   if (workerEndpoint && result.body.includes(workerEndpoint)) workerEndpointFound = true;
   if (/VITE_V2_REMOTE_ENABLED[`"']?\s*:\s*[`"']?true/.test(result.body)) remoteEnabledFound = true;
   assets.push({ path: assetPath, status: result.response.status, bytes: result.body.length, sha256: sha256(result.body) });
@@ -113,6 +136,7 @@ for (const assetPath of assetPaths) {
 if (assets.length === 0) failures.push('No module script assets found');
 if (!selfTest && !remoteEnabledFound) failures.push('Remote Firebase is not enabled in served assets');
 if (projectId && !projectIdFound) failures.push('Configured Firebase project ID was not found in served assets');
+if (authDomain && !authDomainFound) failures.push('Configured same-origin auth domain was not found in served assets');
 if (workerEndpoint && !workerEndpointFound) failures.push('Configured Worker endpoint was not found in served assets');
 
 let workerCors = 'NOT_CHECKED';
@@ -160,8 +184,14 @@ const evidence = {
   },
   manifest: { status: manifestResult.response.status, bytes: manifestResult.body.length, sha256: sha256(manifestResult.body) },
   serviceWorker: { status: swResult.response.status, bytes: swResult.body.length, sha256: sha256(swResult.body), cachePrefix: 'estudo-organizado-v2' },
+  authProxy: {
+    handler: { status: authHandlerResult.response.status, bytes: authHandlerResult.body.length, sha256: sha256(authHandlerResult.body) },
+    iframe: { status: authIframeResult.response.status, bytes: authIframeResult.body.length, sha256: sha256(authIframeResult.body) },
+  },
   projectId: projectId ?? null,
   projectIdFound,
+  authDomain: authDomain ?? null,
+  authDomainFound: authDomain ? authDomainFound : null,
   remoteEnabledFound,
   workerEndpoint: workerEndpoint ?? null,
   workerEndpointFound,

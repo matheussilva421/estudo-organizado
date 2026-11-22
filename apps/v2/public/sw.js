@@ -32,6 +32,9 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  // Firebase reserves /__/auth and /__/firebase for its own handler/iframe.
+  // Those navigations must reach the Worker proxy, never the app shell cache.
+  if (url.pathname.startsWith('/__/')) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(

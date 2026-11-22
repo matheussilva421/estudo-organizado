@@ -28,6 +28,8 @@ function swPrecache(): Plugin {
         const source = readFileSync(sw, 'utf8');
         const buildId = createHash('sha256')
           .update(files.sort().join('|'))
+          .update('\n')
+          .update(source)
           .digest('hex')
           .slice(0, 12);
         writeFileSync(

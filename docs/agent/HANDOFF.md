@@ -1,8 +1,18 @@
 # Convergência visual fiel aos mockups — checkpoint
 
-**Atualizado:** 2026-11-17
+**Atualizado:** 2026-11-22
 **Worktree:** C:/Projetos/estudo-organizado/_v2-candidate · **Branch:** v2
-**Estado:** F7_EXTERNAL_BLOCKED_WITH_EVIDENCE / UX_HUMAN_PENDING / REMOTE_PUSH_NOT_AUTHORIZED
+**Estado:** F7_AUTH_BLOCKED_HUMAN_ACTION_REQUIRED / AUTH_FLOW_FIXED / G_F7_NOT_ACCEPTED / F8_NOT_STARTED / REMOTE_PUSH_NOT_AUTHORIZED
+
+## 2026-11-21/22 — F7-R3 retomada: login Google same-origin
+
+- HEAD de código: 012f79c1 + o commit desta correção (registrar o hash após o commit).
+- Causa raiz confirmada: o popup chegava ao handler Firebase, mas o `authDomain` em `firebaseapp.com` dependia de storage de terceiros; o handler caía no shell/404 e o popup fechava sem usuário nem código visível.
+- Correção aplicada: Worker do site passou a proxiar `/__/*` com `run_worker_first = ["/__/*"]`; `authDomain` do build é o host do staging; o service worker ignora `/__/`; CSP usa `frame-src 'self'` e `frame-ancestors 'self'`; o buildId do SW inclui o conteúdo do próprio SW.
+- Configuração externa: o cliente OAuth `495694282160-q8rhaobj2b1tb6j94r2b3pihoqu0an3o` do projeto `eo-v2-f7-test-20261117` recebeu a origem JS e o redirect URI do staging. Somente o projeto V2 foi alterado; V1 intocado.
+- Evidência headless: `verify:staging` HTTP_CHECKS_PASS; handler/iframe same-origin 200; E2E real 6/6; popup chega a `accounts.google.com` com `redirect_uri` do staging; unit 914/914; typecheck/lint/build PASS.
+- Versão ativa do site: `58615698-45b4-4d47-a0f8-a52b65effc86` (100%); bundle `/assets/index-DS_DhpUl.js`, SHA-256 `63a41c4a745a67fa441377ef30e390553b9faeeb5bd29908678451e6cc7b1511`; backup `463a36df-94e2-4e17-8d64-6bb25e141df7`, deny-all.
+- Pendente: login humano A/B, captura privada dos dois UIDs, `ALLOWED_UIDS`, testes A↔B/backup/sync e UX-H. Nenhum aceite G-F7 foi presumido.
 
 ## 2026-11-17 — G-EXT + G-STAGING
 

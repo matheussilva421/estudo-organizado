@@ -101,3 +101,19 @@ test('real staging preserves a draft and active session across reload and two ta
   await sessions.locator('[data-testid="session-complete"]').click().catch(() => undefined);
   await sessions.close();
 });
+
+test('real staging starts Google sign-in on the same-origin Firebase handler', async ({ page }) => {
+  await page.goto(stagingUrl + '/#/settings');
+  await expect(page.getByRole('heading', { name: 'Estudo Organizado V2' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Entrar com Google' })).toBeVisible();
+
+  const popupPromise = page.waitForEvent('popup');
+  await page.getByRole('button', { name: 'Entrar com Google' }).click();
+  const popup = await popupPromise;
+  await popup.waitForURL(/accounts\.google\.com/, { timeout: 20_000 });
+
+  const popupUrl = new URL(popup.url());
+  expect(popupUrl.host).toBe('accounts.google.com');
+  expect(popupUrl.searchParams.get('redirect_uri')).toBe(stagingUrl + '/__/auth/handler');
+  await popup.close();
+});
