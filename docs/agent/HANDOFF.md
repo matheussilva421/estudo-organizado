@@ -69,3 +69,11 @@ Sem push, main/V1, deploy, staging, Firebase/Cloudflare reais, F8, reset/clean/f
 - M2/M3: duas identidades sintéticas A/B receberam ID tokens reais do Firebase Auth; teste real Firestore **5/5** (create, convergência, conflito, tombstone, negação cross-UID); Worker/KV real com AES-GCM, read-back, restore, última cópia e negação cross-UID **PASS**. A allowlist foi configurada com A/B e revertida para deny-all; Firestore e KV sintéticos foram inventariados, copiados e limpos.
 - OAuth Google interativo continua separado e não foi falsificado. Próximo: M4–M8 (jornada, UX-H, F8 pré-merge, regressão, staging final, ensaio de merge e ZIP).
 
+
+
+## 2026-11-22 — M4/M5
+
+- M4: suíte E2E local 250 PASS/11 SKIP/0 FAIL; staging real 6/6. Sem ADB, NVDA ou touch físico; Narrator presente mas sem captura automatizada. S25 PARTIAL_REAL e F4-T13 NOT_RUN_ENVIRONMENT.
+- M5: `auditLegacyV1DryRun` read-only com fixture sintética de 5 registros e 0 perdas estruturais; 5/5 testes. Nenhum export real, freeze, migração ou cutover executado; G5 pendente.
+- Evidências e matriz em `docs/superpowers/audits/v2-ready-for-main-20261122/`.
+
