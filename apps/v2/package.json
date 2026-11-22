@@ -9,7 +9,7 @@
     "build:e2e": "tsc --noEmit && vite build --mode e2e",
     "preview": "vite preview --host 127.0.0.1 --port 18431 --strictPort",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src tests",
+    "lint": "eslint src tests cloudflare/site-worker.ts cloudflare/backup-worker.ts",
     "test:unit": "vitest run",
     "test:firebase": "vitest run --config vitest.firebase.config.ts",
     "test:e2e": "playwright test",

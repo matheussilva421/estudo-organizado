@@ -59,3 +59,13 @@ Reconstruir a apresentação até parecer o produto dos quatro mockups, preserva
 ## Invariantes
 
 Sem push, main/V1, deploy, staging, Firebase/Cloudflare reais, F8, reset/clean/force. Preservar 133+ commits, refs recovery, bundles e o bundle anterior cfee89e7.
+
+
+## 2026-11-22 — READY FOR MAIN: M0–M3
+
+- M0: HEAD 7e43d06c; origin/main 74b2c75e (dois commits V1/docs), origin/v2 02b950cd; 220 commits à frente; bundle completo de 35 refs verificado e clone de recuperação criado.
+- M1: cinco E2E locais corrigidos com relógio determinístico e espera de prontidão; suíte local completa **250 PASS / 11 SKIP / 0 FAIL** (captura F4 excluída); unit **917/917**; typecheck/lint/build PASS.
+- Hardening: Worker do site com allowlist positiva do projeto V2; cache do SW content-addressed; verify-staging exige auth-domain e origem; exemplo de config versionado. O Worker de backup passou a exigir uma cópia de substituição lida diretamente para excluir, em vez de confiar em listagem KV eventualmente consistente.
+- M2/M3: duas identidades sintéticas A/B receberam ID tokens reais do Firebase Auth; teste real Firestore **5/5** (create, convergência, conflito, tombstone, negação cross-UID); Worker/KV real com AES-GCM, read-back, restore, última cópia e negação cross-UID **PASS**. A allowlist foi configurada com A/B e revertida para deny-all; Firestore e KV sintéticos foram inventariados, copiados e limpos.
+- OAuth Google interativo continua separado e não foi falsificado. Próximo: M4–M8 (jornada, UX-H, F8 pré-merge, regressão, staging final, ensaio de merge e ZIP).
+

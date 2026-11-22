@@ -3,6 +3,9 @@ import type { V2E2EHarness } from '../../src/platform/e2e-harness';
 
 type HarnessWindow = Window & { __v2E2E: V2E2EHarness };
 
+export const FIXED_CLOCK_CIVIL_DATE = '2026-11-20';
+export const FIXED_CLOCK_EXAM_DATE = '2026-11-30';
+
 export async function resetF7Ux(page: Page, route = '/#/home'): Promise<void> {
   await page.goto('/#/home');
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
@@ -13,6 +16,11 @@ export async function resetF7Ux(page: Page, route = '/#/home'): Promise<void> {
   await page.goto(route);
   await page.reload();
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+}
+
+/** Fix the browser clock at a civil midday so date-bound assertions are deterministic. */
+export async function installFixedClock(page: Page): Promise<void> {
+  await page.clock.install({ time: new Date(`${FIXED_CLOCK_CIVIL_DATE}T15:00:00-03:00`) });
 }
 
 export async function seedAcademicData(page: Page): Promise<void> {

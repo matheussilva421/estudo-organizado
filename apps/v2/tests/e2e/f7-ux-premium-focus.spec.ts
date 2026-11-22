@@ -9,6 +9,8 @@ test('local reconciliation exposes a persistent conflict during compact mobile f
   await page.goto('/#/sessions');
   await page.getByTestId('session-start').click();
   await page.getByTestId('session-focus-open').click();
+  const focus = page.getByTestId('session-focus');
+  await expect(focus).toContainText('RUNNING');
   const other = await context.newPage();
   await other.goto('/#/home');
   await expect(other.locator('[data-db-ready="true"]')).toBeVisible();
@@ -29,7 +31,6 @@ test('local reconciliation exposes a persistent conflict during compact mobile f
     const h = (window as unknown as { __v2E2E: V2E2EHarness }).__v2E2E;
     await h.execute({ type: 'create', profileId: 'local-default', operationId: 'after-conflict', subjectId: 'after-conflict', title: 'Outra disciplina' });
   });
-  const focus = page.getByTestId('session-focus');
   await expect(focus.getByRole('alert').filter({ hasText: 'Conflito exige decisão' })).toBeInViewport();
   await expect(focus.getByRole('link', { name: 'Ver conflito' })).toBeVisible();
   await expect(focus).toContainText('RUNNING');

@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import type { V2E2EHarness } from '../../src/platform/e2e-harness';
-import { resetF7Ux, seedAcademicData } from './f7-ux-helpers';
+import {
+  FIXED_CLOCK_EXAM_DATE,
+  installFixedClock,
+  resetF7Ux,
+  seedAcademicData,
+} from './f7-ux-helpers';
 
 type HarnessWindow = Window & { __v2E2E: V2E2EHarness };
 
@@ -18,9 +23,10 @@ test('empty home opens with onboarding and dismisses without creating facts', as
 });
 
 test('final stretch context uses the registered exam date', async ({ page }) => {
+  await installFixedClock(page);
   await resetF7Ux(page);
   await seedAcademicData(page);
-  const exam = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
+  const exam = FIXED_CLOCK_EXAM_DATE;
   await page.evaluate(async (examDate) => {
     const harness = (window as unknown as HarnessWindow).__v2E2E;
     await harness.planningCommit({

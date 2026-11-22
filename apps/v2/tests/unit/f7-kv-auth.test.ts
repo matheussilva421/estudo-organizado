@@ -202,7 +202,7 @@ describe('F7 backup worker auth', () => {
     };
     expect(listA.items.map((item) => item.id)).toEqual(['a-1']);
     expect(listB.items.map((item) => item.id)).toEqual(['b-1']);
-    expect((await handleBackupRequest(request('DELETE', '/backups/a-1', tokenB), bindings)).status).toBe(409);
+    expect((await handleBackupRequest(request('DELETE', '/backups/a-1?replacement=b-1', tokenB), bindings)).status).toBe(204);
     expect((await handleBackupRequest(request('DELETE', '/backups/b-1', tokenA), bindings)).status).toBe(409);
     expect(await kv.get('backups/uid-a/a-1')).not.toBeNull();
     expect(await kv.get('backups/uid-b/b-1')).not.toBeNull();
@@ -378,13 +378,10 @@ describe('F7 backup worker auth', () => {
         bindings,
       );
     expect((await post('v1')).status).toBe(201);
-    expect((await handleBackupRequest(request('DELETE', '/backups/v1', token), bindings)).status).toBe(
-      409,
-    );
+    expect((await handleBackupRequest(request('DELETE', '/backups/v1', token), bindings)).status).toBe(409);
     expect((await post('v2')).status).toBe(201);
-    expect((await handleBackupRequest(request('DELETE', '/backups/v1', token), bindings)).status).toBe(
-      204,
-    );
+    expect((await handleBackupRequest(request('DELETE', '/backups/v1?replacement=v2', token), bindings)).status).toBe(204);
+    expect((await handleBackupRequest(request('DELETE', '/backups/v2?replacement=v1', token), bindings)).status).toBe(409);
   });
 
   it('f7_worker_lists_backup_timestamps', async () => {
@@ -465,7 +462,7 @@ describe('F7 backup worker auth', () => {
     expect(kv.listCalls.every((call) => call.prefix === 'backups/uid-a/')).toBe(true);
   });
 
-  it('f7_worker_delete_considers_all_pages', async () => {
+  it('f7_worker_delete_requires_a_live_replacement', async () => {
     const { privateKey, jwks } = await keyPair();
     const kv = new MemoryKV();
     kv.pageSize = 1;
@@ -493,9 +490,10 @@ describe('F7 backup worker auth', () => {
       );
     expect((await post('v1')).status).toBe(201);
     expect((await post('v2')).status).toBe(201);
-    const deleted = await handleBackupRequest(request('DELETE', '/backups/v1', token), bindings);
+    expect((await handleBackupRequest(request('DELETE', '/backups/v1', token), bindings)).status).toBe(409);
+    const deleted = await handleBackupRequest(request('DELETE', '/backups/v1?replacement=v2', token), bindings);
     expect(deleted.status).toBe(204);
-    expect(kv.listCalls).toHaveLength(2);
+    expect((await handleBackupRequest(request('DELETE', '/backups/v2?replacement=v1', token), bindings)).status).toBe(409);
     expect(await kv.get('backups/uid-a/v1')).toBeNull();
     expect(await kv.get('backups/uid-a/v2')).not.toBeNull();
   });
@@ -577,13 +575,14 @@ describe('F7 backup worker auth', () => {
     expect((await post(tokenB, 'b-1')).status).toBe(201);
     expect((await post(tokenB, 'b-2')).status).toBe(201);
 
-    expect((await handleBackupRequest(request('DELETE', '/backups/a-1', tokenB), bindings)).status).toBe(204);
+    expect((await handleBackupRequest(request('DELETE', '/backups/a-1?replacement=b-1', tokenB), bindings)).status).toBe(204);
     expect(await kv.get('backups/uid-a/a-1')).not.toBeNull();
     expect(await kv.get('backups/uid-b/b-1')).not.toBeNull();
     expect(await kv.get('backups/uid-b/b-2')).not.toBeNull();
 
     // A has only one own copy, so LAST_COPY blocks before any deletion attempt.
     expect((await handleBackupRequest(request('DELETE', '/backups/b-1', tokenA), bindings)).status).toBe(409);
+    expect((await handleBackupRequest(request('DELETE', '/backups/b-1?replacement=a-1', tokenA), bindings)).status).toBe(204);
     expect(await kv.get('backups/uid-b/b-1')).not.toBeNull();
     expect(await kv.get('backups/uid-a/a-1')).not.toBeNull();
   });

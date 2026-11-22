@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { installFixedClock } from './f7-ux-helpers';
 
 test('f4 habit creation and explicit confirmation', async ({ page }) => {
+  await installFixedClock(page);
   await page.goto('/');
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
 

@@ -8,12 +8,14 @@ export type SiteWorkerEnv = {
 };
 
 const RESERVED_PREFIX = '/__/';
+const APPROVED_PROJECT_IDS = new Set(['eo-v2-f7-test-20261117']);
 
 type WorkerRequestInit = RequestInit & { duplex?: 'half' };
 
 function isolatedFirebaseHost(projectId: string | undefined): string | null {
   const normalized = projectId?.trim().toLowerCase() ?? '';
   if (!/^[a-z0-9][a-z0-9-]{2,61}$/.test(normalized)) return null;
+  if (!APPROVED_PROJECT_IDS.has(normalized)) return null;
   return `${normalized}.firebaseapp.com`;
 }
 

@@ -200,11 +200,15 @@ export async function handleBackupRequest(
       return json(200, JSON.parse(stored), bindings.ALLOWED_ORIGIN);
     }
     if (request.method === 'DELETE') {
-      const listed = await listBackupKeys(bindings.BACKUPS, prefix);
-      if (!listed.complete) return json(500, { error: 'LIST' }, bindings.ALLOWED_ORIGIN);
-      if (listed.keys.length <= 1) {
+      const replacementId = (url.searchParams.get('replacement') ?? '').trim();
+      if (!/^[A-Za-z0-9_-]{1,128}$/.test(replacementId) || replacementId === id) {
         return json(409, { error: 'LAST_COPY' }, bindings.ALLOWED_ORIGIN);
       }
+      // KV list is eventually consistent and must not be the only guard for
+      // deleting the last good copy. Require a specific replacement key and
+      // read it directly; a missing replacement fails closed.
+      const replacement = await bindings.BACKUPS.get(`${prefix}${replacementId}`);
+      if (!replacement) return json(409, { error: 'LAST_COPY' }, bindings.ALLOWED_ORIGIN);
       await bindings.BACKUPS.delete(key);
       return new Response(null, { status: 204, headers: corsHeaders(bindings.ALLOWED_ORIGIN) });
     }

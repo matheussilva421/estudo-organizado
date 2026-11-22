@@ -162,8 +162,11 @@ export class PersonalBackupScheduler {
 
     while (state.versions.length > this.policy.maxRemoteVersions) {
       const oldest = state.versions[0];
-      if (!oldest) break;
-      const deleted = await this.remote.deleteVerifiedOldVersion(oldest.id).catch(() => false);
+      const replacement = state.versions[state.versions.length - 1];
+      if (!oldest || !replacement || replacement.id === oldest.id) break;
+      const deleted = await this.remote
+        .deleteVerifiedOldVersion(oldest.id, replacement.id)
+        .catch(() => false);
       if (!deleted) break;
       state.versions.shift();
     }

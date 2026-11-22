@@ -45,8 +45,8 @@ class MemoryRemote implements BackupRemotePort {
   async list(): Promise<Array<{ id: string; createdAt: string; size: number }>> {
     return [];
   }
-  async deleteVerifiedOldVersion(id: string) {
-    this.deletes.push(id);
+  async deleteVerifiedOldVersion(id: string, replacementId: string) {
+    this.deletes.push(`${id}->${replacementId}`);
     return true;
   }
 }

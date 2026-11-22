@@ -45,8 +45,8 @@ const output = argument('--out');
 const allowHttp = hasArgument('--allow-http');
 const selfTest = hasArgument('--self-test');
 
-if (!rawUrl || (!selfTest && (!projectId || !workerEndpoint))) {
-  console.error('Usage: node scripts/verify-staging.mjs --url <https-url> --project-id <id> --worker-endpoint <url> [--build-sha <sha>] [--out <json>]');
+if (!rawUrl || (!selfTest && (!projectId || !authDomain || !workerEndpoint))) {
+  console.error('Usage: node scripts/verify-staging.mjs --url <https-url> --project-id <id> --auth-domain <host> --worker-endpoint <url> [--build-sha <sha>] [--out <json>]');
   process.exit(2);
 }
 
@@ -64,6 +64,9 @@ if (!secure) failures.push('URL is not HTTPS');
 if (isV1(base.href)) failures.push('URL belongs to V1');
 if (projectId && isV1(projectId)) failures.push('Firebase project belongs to V1');
 if (workerEndpoint && isV1(workerEndpoint)) failures.push('Worker endpoint belongs to V1');
+if (!selfTest && authDomain && authDomain !== base.host) {
+  failures.push('Configured auth domain must equal the staging host');
+}
 
 const root = await fetchText(base);
 if (!root.response.ok) failures.push(`Root HTTP ${root.response.status}`);
@@ -104,6 +107,9 @@ if (isV1(swResult.body)) failures.push('SW contains a V1 marker');
 const authHandlerUrl = new URL('/__/auth/handler', base);
 const authHandlerResult = await fetchText(authHandlerUrl);
 if (!authHandlerResult.response.ok) failures.push(`Auth handler HTTP ${authHandlerResult.response.status}`);
+if (new URL(authHandlerResult.response.url).origin !== base.origin) {
+  failures.push('Auth handler redirected away from the staging origin');
+}
 if (!authHandlerResult.body.includes('fireauth.oauthhelper.widget.initialize')) {
   failures.push('Firebase auth handler is not proxied on the staging origin');
 }
@@ -111,6 +117,9 @@ if (!authHandlerResult.body.includes('fireauth.oauthhelper.widget.initialize')) 
 const authIframeUrl = new URL('/__/auth/iframe', base);
 const authIframeResult = await fetchText(authIframeUrl);
 if (!authIframeResult.response.ok) failures.push(`Auth iframe HTTP ${authIframeResult.response.status}`);
+if (new URL(authIframeResult.response.url).origin !== base.origin) {
+  failures.push('Auth iframe redirected away from the staging origin');
+}
 if (!authIframeResult.body.includes('fireauth.iframe.AuthRelay.initialize')) {
   failures.push('Firebase auth iframe is not proxied on the staging origin');
 }

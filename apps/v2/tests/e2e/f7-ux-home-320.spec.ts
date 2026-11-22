@@ -158,6 +158,7 @@ test('home remains usable from 320px to desktop', async ({ page }) => {
 
   // Keyboard entry keeps a visible focus ring.
   await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
   await page.keyboard.press('Tab');
   const focus = await page.evaluate(() => {
     const element = document.activeElement;

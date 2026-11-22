@@ -22,6 +22,7 @@ class MemoryServer {
   failPost = 0;
   missNextRead = false;
   calls = 0;
+  lastDeleteUrl = '';
 
   fetch: KvFetch = async (input, init = {}) => {
     this.calls += 1;
@@ -49,6 +50,7 @@ class MemoryServer {
       return stored ? new Response(stored, { status: 200 }) : new Response('{}', { status: 404 });
     }
     if (method === 'DELETE') {
+      this.lastDeleteUrl = url.toString();
       const id = decodeURIComponent(url.pathname.split('/').pop() ?? '');
       this.docs.delete(id);
       return new Response(null, { status: 204 });
@@ -103,9 +105,20 @@ describe('F7 KV storage', () => {
     });
     await expect(kv.get('v1')).resolves.toBeNull();
     await expect(kv.list()).resolves.toEqual([]);
-    await expect(kv.deleteVerifiedOldVersion('v1')).resolves.toBe(false);
+    await expect(kv.deleteVerifiedOldVersion('v1', 'v2')).resolves.toBe(false);
     expect(server.calls).toBe(0);
     expect(server.docs.has('v1')).toBe(true);
+  });
+
+  it('f7_delete_requires_a_distinct_replacement_id', async () => {
+    const server = new MemoryServer();
+    server.docs.set('v1', JSON.stringify(encrypted));
+    server.docs.set('v2', JSON.stringify(encrypted));
+    const kv = port(server);
+    await expect(kv.deleteVerifiedOldVersion('v1', 'v1')).resolves.toBe(false);
+    await expect(kv.deleteVerifiedOldVersion('v1', 'bad.id')).resolves.toBe(false);
+    await expect(kv.deleteVerifiedOldVersion('v1', 'v2')).resolves.toBe(true);
+    expect(server.lastDeleteUrl).toContain('replacement=v2');
   });
 
   it('f7_remote_readback_required_before_success', async () => {

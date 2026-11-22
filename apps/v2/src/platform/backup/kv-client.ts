@@ -6,7 +6,7 @@ export type BackupRemotePort = {
   >;
   get(id: string): Promise<EncryptedBackup | null>;
   list(): Promise<Array<{ id: string; createdAt: string; size: number }>>;
-  deleteVerifiedOldVersion(id: string): Promise<boolean>;
+  deleteVerifiedOldVersion(id: string, replacementId: string): Promise<boolean>;
 };
 
 export type KvFetch = (input: string, init?: RequestInit) => Promise<Response>;
@@ -131,10 +131,10 @@ export function createKvBackupPort(
       }
     },
 
-    async deleteVerifiedOldVersion(id) {
-      if (!validId(id)) return false;
+    async deleteVerifiedOldVersion(id, replacementId) {
+      if (!validId(id) || !validId(replacementId) || id === replacementId) return false;
       const response = await request(
-        `/backups/${encodeURIComponent(id)}`,
+        `/backups/${encodeURIComponent(id)}?replacement=${encodeURIComponent(replacementId)}`,
         { method: 'DELETE' },
         options.expectedUid,
       );

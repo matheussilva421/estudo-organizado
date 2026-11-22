@@ -89,4 +89,36 @@ describe('site Worker Firebase auth proxy', () => {
     expect(proxy).not.toHaveBeenCalled();
     expect(env.ASSETS.fetch).not.toHaveBeenCalled();
   });
+
+  it('fails closed for the productive V1 project', async () => {
+    const env = environment();
+    env.FIREBASE_PROJECT_ID = 'app-de-estudos-14564';
+    const proxy = vi.fn(async () => new Response('should-not-run', { status: 500 }));
+    vi.stubGlobal('fetch', proxy);
+
+    const response = await siteWorker.fetch(
+      new Request('https://staging.example/__/auth/handler'),
+      env,
+    );
+
+    expect(response.status).toBe(500);
+    expect(proxy).not.toHaveBeenCalled();
+    expect(env.ASSETS.fetch).not.toHaveBeenCalled();
+  });
+
+  it('fails closed for any project outside the positive allowlist', async () => {
+    const env = environment();
+    env.FIREBASE_PROJECT_ID = 'another-project';
+    const proxy = vi.fn(async () => new Response('should-not-run', { status: 500 }));
+    vi.stubGlobal('fetch', proxy);
+
+    const response = await siteWorker.fetch(
+      new Request('https://staging.example/__/auth/handler'),
+      env,
+    );
+
+    expect(response.status).toBe(500);
+    expect(proxy).not.toHaveBeenCalled();
+    expect(env.ASSETS.fetch).not.toHaveBeenCalled();
+  });
 });

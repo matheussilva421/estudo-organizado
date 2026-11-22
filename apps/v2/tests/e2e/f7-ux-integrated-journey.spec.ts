@@ -1,13 +1,19 @@
 import { expect, test } from '@playwright/test';
 import type { V2E2EHarness } from '../../src/platform/e2e-harness';
-import { resetF7Ux, seedAcademicData } from './f7-ux-helpers';
+import {
+  FIXED_CLOCK_CIVIL_DATE,
+  installFixedClock,
+  resetF7Ux,
+  seedAcademicData,
+} from './f7-ux-helpers';
 
 type HarnessWindow = Window & { __v2E2E: V2E2EHarness };
 
 test('F2 to F6 journey keeps content ids and separates manual, review and plan facts', async ({ page }) => {
+  await installFixedClock(page);
   await resetF7Ux(page);
   await seedAcademicData(page);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = FIXED_CLOCK_CIVIL_DATE;
 
   await page.evaluate(async (civilDate) => {
     const harness = (window as unknown as HarnessWindow).__v2E2E;
