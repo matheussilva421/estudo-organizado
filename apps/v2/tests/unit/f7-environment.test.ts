@@ -71,7 +71,25 @@ describe('F7 environment boundary', () => {
     ).toBeNull();
   });
 
-  it('f7_redirect_auth_mode_is_explicit_and_rejects_typos', () => {
+  it('f7_hosted_auth_defaults_to_redirect_and_accepts_explicit_modes', () => {
+    const hostedEnv = {
+      VITE_V2_REMOTE_ENABLED: 'true',
+      VITE_V2_FIREBASE_PROJECT_ID: 'eo-v2-f7-test-20261117',
+      VITE_V2_FIREBASE_AUTH_DOMAIN: 'estudo-organizado-v2-f7-test.matheussilva421.workers.dev',
+      VITE_V2_FIREBASE_APP_ID: '1:123456789:web:demo',
+      VITE_V2_FIREBASE_API_KEY: 'public-demo-key',
+      VITE_V2_APPROVED_PROJECT_ID: 'eo-v2-f7-test-20261117',
+    };
+    expect(resolveV2RemoteConfig(hostedEnv)).toMatchObject({ authMode: 'redirect' });
+    expect(
+      resolveV2RemoteConfig({ ...hostedEnv, VITE_V2_GOOGLE_AUTH_MODE: 'popup' }),
+    ).toMatchObject({ authMode: 'popup' });
+    expect(
+      resolveV2RemoteConfig({ ...hostedEnv, VITE_V2_GOOGLE_AUTH_MODE: 'redirect' }),
+    ).toMatchObject({ authMode: 'redirect' });
+  });
+
+  it('f7_emulator_redirect_auth_mode_is_explicit_and_rejects_typos', () => {
     expect(
       resolveV2RemoteConfig({
         ...emulatorEnv,

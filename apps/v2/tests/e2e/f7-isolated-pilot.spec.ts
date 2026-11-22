@@ -107,15 +107,15 @@ test('real staging starts Google sign-in with the same-origin Firebase redirect'
   await expect(page.getByRole('heading', { name: 'Estudo Organizado V2' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Entrar com Google' })).toBeVisible();
 
-  const popupPromise = page.waitForEvent('popup');
-  await page.getByRole('button', { name: 'Entrar com Google' }).click();
-  const popup = await popupPromise;
-  await popup.waitForURL(/accounts\.google\.com/, { timeout: 20_000 });
+  await Promise.all([
+    page.waitForURL(/accounts\.google\.com/, { timeout: 30_000 }),
+    page.getByRole('button', { name: 'Entrar com Google' }).click(),
+  ]);
 
-  const popupUrl = new URL(popup.url());
-  expect(popupUrl.host).toBe('accounts.google.com');
-  expect(popupUrl.searchParams.get('redirect_uri')).toBe(
+  const redirectUrl = new URL(page.url());
+  expect(redirectUrl.host).toBe('accounts.google.com');
+  expect(redirectUrl.searchParams.get('redirect_uri')).toBe(
     new URL('/__/auth/handler', stagingUrl).href,
   );
-  await popup.close();
+  expect(redirectUrl.searchParams.get('response_type')).toBe('code');
 });
