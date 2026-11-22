@@ -3,19 +3,23 @@ import type { V2E2EHarness } from '../../src/platform/e2e-harness';
 
 type HarnessWindow = Window & { __v2E2E: V2E2EHarness };
 
+// Reload boot budget under the serial full-suite stress; a real boot failure
+// still fails the test, but a slow cold start no longer masquerades as a flake.
+const READY_TIMEOUT = 20_000;
+
 export const FIXED_CLOCK_CIVIL_DATE = '2026-11-20';
 export const FIXED_CLOCK_EXAM_DATE = '2026-11-30';
 
 export async function resetF7Ux(page: Page, route = '/#/home'): Promise<void> {
   await page.goto('/#/home');
-  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible({ timeout: READY_TIMEOUT });
   await page.evaluate(async () => {
     const harness = (window as unknown as HarnessWindow).__v2E2E;
     await harness.resetDb();
   });
   await page.goto(route);
   await page.reload();
-  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible({ timeout: READY_TIMEOUT });
 }
 
 /** Fix the browser clock at a civil midday so date-bound assertions are deterministic. */
@@ -65,7 +69,7 @@ export async function seedAcademicData(page: Page): Promise<void> {
     });
   });
   await page.reload();
-  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible({ timeout: READY_TIMEOUT });
 }
 
 export async function seedAnalyticsSessions(page: Page): Promise<void> {
