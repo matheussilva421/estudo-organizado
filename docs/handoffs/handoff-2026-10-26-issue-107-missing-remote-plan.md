@@ -333,3 +333,75 @@ Defeitos estruturais confirmados no mesmo caminho:
   O comentário de status não foi publicado: a revisão automática de aprovação
   rejeitou o payload por detalhes internos em repositório externo sem
   autorização específica.
+
+## Verificação de produção — 21/11/2026
+
+### Resultado
+
+**V1_SYNC_BLOCKED_WITH_EVIDENCE.** O código 9.78 está publicado e testado, mas
+a sessão real do incidente não está neste ambiente; não há snapshot/outbox de
+26/10 para reconciliar nem read-back de convergência a comprovar.
+
+### Publicação
+
+- `main` local e remota em `9046cfa2`; `src/sw.js` em 9.78 desde
+  `24b3d9aa` (27/10). Depois disso, somente documentação.
+- Diagnóstico no Chrome de produção: app/build 9.78, cache
+  `estudo-organizado-v9.78`, SW `activated`, `cacheVersionMatch: true`.
+- `firestore.rules` inalterado desde `1c2257d8` (9.69); nada foi publicado.
+- Deploy pelo Cloudflare Workers Builds; nenhum `wrangler deploy` manual.
+
+### Testes desta sessão
+
+- `npm test`: 179 arquivos, 2982 testes PASS.
+- Foco Firestore/Reta Final: 10 arquivos, 218 testes PASS.
+- E2E Chromium (`sync-devices` + `sync-e2e`): 9/9 PASS.
+- `npm run lint`: 0 erros (3075 warnings preexistentes).
+- `npm run bump:check`: ok.
+- Emulador Firestore/regras e T24 real: NOT_RUN (sem JVM/Firebase CLI e sem
+  conta de teste autorizada).
+
+### Sessão aberta e Firestore
+
+- Conta proprietária autenticada (UID mascarado `waWI…G5Qi2`), com 0 eventos,
+  0 editais, 0 revisões e `lastBackupAt` 04/11/2026.
+- `conflict=null`, `hasPendingWrites=false`, `pendingSnapshot=null`,
+  `lastPushAt=null`, `lastPullAt` 21/11/2026 23:56 UTC.
+- `users/<proprietário>/snapshots/main`: `version 1`, `schemaVersion 12`,
+  `payloadUpdatedAt` 04/11/2026 19:52:57.692Z, `baseRemoteUpdatedAt=null`,
+  payload acadêmico vazio, sem descritor Reta Final.
+- Há outro UID com dados no projeto, mas é de outra pessoa; não foi usado.
+- Plano Spark: sem PITR nem backups programados. Não existe ponto de
+  restauração do Firestore.
+
+### Backup privado
+
+- `backup-2026-10-30.json` fora do repositório, 2.923.597 bytes, SHA-256
+  `36316E766D28F61C9FB406AC62AD7AF1B25E60A706E23E6A295458069D1678C6`.
+- Busca somente leitura no Drive e nas pastas locais: nenhum backup integral
+  posterior a 30/10 e nada na lixeira. Só há dois JSONs de planejamento Reta
+  Final (02/11 e 10/11), sem eventos, notas, questões ou tempo.
+- Schema 12; 381 eventos, 4 editais, plano `reta_final` com 170 blocos;
+  exportado sem sessão (`uid` nulo).
+- `validateBackupPayload`: válido, 0 erros. Prévia sobre estado vazio: 598
+  inclusões, 0 remoções, não destrutiva. Nada foi aplicado.
+- Envelope real gerada pelo app (com descritor `retaFinalSync`): 1.040.262
+  bytes JSON (99,21% do limite JSON). A codificação Firestore estimada pela
+  estrutura é 902.275 bytes (86,05%; folga de 146.301). O guard em JSON é
+  conservador e o backup cabe no Firestore; a segmentação segue recomendada
+  para crescimento, mas não bloqueia a restauração desse backup.
+
+### Isolamento V2
+
+- `_v2-candidate`/`v2` começou em `012f79c1`; outro processo commitou
+  `7e43d06c` às 21:27. O reflog confirma que não foi esta sessão.
+- Somente leitura na V2; os três PNGs F4 e os scripts não rastreados seguem
+  preservados.
+
+### Próximo passo
+
+Obter o perfil/dispositivo original com IndexedDB/outbox do incidente ou
+autorização explícita para restaurar o backup de 30/10 como nova linha de base,
+com prévia em perfil isolado, exportação do estado atual, uma sincronização
+normal, read-back, reload e segunda sincronização idempotente. Não escrever em
+produção antes disso.
