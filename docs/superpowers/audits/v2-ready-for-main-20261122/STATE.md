@@ -60,6 +60,12 @@
 - <code>origin/v2</code> recebeu fast-forward; o commit documental final é publicado no mesmo fluxo. <code>main</code>/<code>origin/main</code> permanecem em <code>74b2c75e</code>.
 - Ensaio de merge final: árvore <code>ad68a5df</code>, 0 conflitos, 1400 arquivos.
 
+## V1 — verificação no M7
+
+- Worker `estudo-organizado` ativo em `de25f803-4ba6-434a-a0d6-07a346d6794e`; deploys V1 em 00:48/00:59, anteriores aos V2 das 03:07+.
+- Root público e main local compartilham os mesmos 17 assets e título, sem marcadores V2; a diferença de bytes/hash é compatível com minificação.
+- `44ec8568` é evidência histórica; esta sessão não fez deploy, rollback ou escrita na V1.
+
 ## Próximo
 
 ZIP final com o read-back de <code>origin/v2</code>, staging 20a461c1, OAuth A/B real e o gate da âncora. Permanecem UX-H humano/físico, F4-T13, limpeza dos 4 usuários sintéticos e G5/F8. Classificação: <code>PREMERGE_ENGINEERING_COMPLETE_WITH_EXPLICIT_GATES</code>.

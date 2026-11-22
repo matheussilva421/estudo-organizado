@@ -4,6 +4,12 @@
 **Worktree:** C:/Projetos/estudo-organizado/_v2-candidate · **Branch:** v2
 **Estado:** F7_STAGING_FINAL_PUBLISHED / OAUTH_AB_REAL_PASS / ANCHOR_DENY_ALL / G_F7_HUMAN_PENDING / F8_NOT_STARTED / ORIGIN_V2_PUBLISHED
 
+## 2026-11-22 — V1: versão ativa e conteúdo público
+
+- O Worker V1 `estudo-organizado` está na versão `de25f803-4ba6-434a-a0d6-07a346d6794e`, com dois deploys em 2026-11-22T00:48:58Z e 00:59:35Z, anteriores aos deploys V2 das 03:07+.
+- A evidência anterior de `44ec8568` é histórica. O root público continua V1: mesmos 17 assets e título do `src/index.html` da main local, sem marcadores V2; bytes/hash diferem por formatação/minificação.
+- Esta sessão não fez deploy, rollback ou escrita na V1. O fato e os hashes estão em `EVIDENCIAS/V1-ACTIVE-VERSION-20261122.json` no ZIP final.
+
 ## 2026-11-22 — M7: staging final, OAuth A/B e origin/v2
 
 - Site V2 ativo: <code>20a461c1-9e5c-4d7e-a4d9-72e75b96f9f4</code>, bundle <code>index-BXuAWcmr.js</code> SHA-256 <code>CAF526BD…</code>, SW <code>BB73111A…</code>, cache <code>estudo-organizado-v2-shell-c3df594d2ca4</code>.
