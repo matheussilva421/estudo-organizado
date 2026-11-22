@@ -19,7 +19,8 @@
 - Git: <code>origin/v2</code> recebeu fast-forward de <code>02b950cd</code> até <code>5fcb7a9b</code>; 0 à frente/0 atrás; <code>main</code>/<code>origin/main</code> em <code>74b2c75e</code>. O ensaio de merge final gerou a árvore <code>d0bf67e2</code>, 0 conflitos e 1400 arquivos.
 - Âncora **1/1 PASS** no runtime local do Worker (Miniflare/KV) e Emulator **37/37 PASS** no HEAD <code>5fcb7a9b</code>; o teste real da âncora no Cloudflare segue <code>BLOCKED_AUTO_REVIEW_ALLOWLIST</code>.
 - Inventário final: somente main e <code>_v2-candidate</code>; sem PRs/stashes; F5/recovery preservadas; PNGs F4 <code>A11D64D3…</code>, <code>76597B17…</code>, <code>47F20E38…</code>.
-- Pendências: aceite UX-H humano/físico, F4-T13, limpeza dos 4 usuários sintéticos e G5/F8. Nenhum merge com a main foi feito.
+- M1/M5: allowlist A/B aceita, âncora real **1/1 PASS** no KV público na versão <code>6d9de312</code>; allowlist final somente Google na versão <code>31f11751</code>; token sintético 401 e KV sintético em 0. Os 4 sintéticos foram removidos, os 2 Google preservados e o provider e-mail/senha desativado (<code>auth/operation-not-allowed</code>). A UI de backup Google ficou <code>NOT_RUN_TOOLING</code>.
+- Pendências: aceite UX-H humano/físico, F4-T13 e G5/F8. Nenhum merge com a main foi feito.
 
 ## 2026-11-22 — Auth hospedado simplificado para redirect
 

@@ -63,6 +63,13 @@
 - Firebase Emulator **37/37 PASS** reexecutado no HEAD <code>5fcb7a9b</code> com JDK 21.0.13.1 portátil.
 - Inventário final: apenas main e <code>_v2-candidate</code>; sem PRs ou stashes; F5/recovery preservadas; PNGs F4 com hashes <code>A11D64D3…</code>, <code>76597B17…</code> e <code>47F20E38…</code>.
 
+## M1/M5 — backup público e limpeza Auth
+
+- A allowlist estrita A/B foi aceita no Worker público; o teste real da âncora no Cloudflare KV passou **1/1** na versão <code>6d9de312</code>. Depois da limpeza, a allowlist final ficou somente com os dois UIDs Google na versão <code>31f11751</code>.
+- O token sintético não listado retorna **401**; sem auth 401; origem errada 403; OPTIONS 204. As duas chaves sintéticas do KV foram removidas e a contagem final é **0**.
+- Auth: os **4** usuários sintéticos foram removidos (status 200), os **2** Google foram preservados e o provider e-mail/senha foi desativado; login por senha retorna <code>auth/operation-not-allowed</code>.
+- A UI de backup Google não foi executada por bloqueio de tooling; o Worker e a âncora têm prova real sintética.
+
 ## V1 — verificação no M7
 
 - Worker `estudo-organizado` ativo em `de25f803-4ba6-434a-a0d6-07a346d6794e`; deploys V1 em 00:48/00:59, anteriores aos V2 das 03:07+.
