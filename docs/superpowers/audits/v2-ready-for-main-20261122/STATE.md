@@ -3,9 +3,9 @@
 **Atualizado:** 2026-11-22
 **Branch:** v2
 **HEAD de código/testes:** 3f953f38
-**origin/v2:** 02b950cd (antes da publicação final)
+**origin/v2:** publicado por fast-forward; read-back final no pacote
 **origin/main:** 74b2c75e
-**Staging:** https://estudo-organizado-v2-f7-test.matheussilva421.workers.dev
+**Staging:** https://estudo-organizado-v2-f7-test.matheussilva421.workers.dev (versão 20a461c1)
 **Firebase:** eo-v2-f7-test-20261117 (Spark, billing desabilitado)
 **Workers:** estudo-organizado-v2-f7-test / estudo-organizado-v2-f7-backup
 
@@ -47,10 +47,20 @@
 
 - Builds hospedados usam **redirect** por padrão; popup ficou como opt-in explícito. O objetivo é remover a dependência de nonce/armazenamento entre janelas que fazia o popup fechar sem identidade.
 - Build local <code>index-BXuAWcmr.js</code> SHA-256 <code>CAF526BDC1732456B99F1FDE0DDA1277B5927B3941B0A783F4B636A8DDCB05F4</code>; SW <code>BB73111A…</code>; cache <code>estudo-organizado-v2-shell-c3df594d2ca4</code>.
-- Staging ativo permanece 58615698 com o bundle popup anterior; o build redirect não foi publicado. OAuth Google interativo continua <code>NOT_RUN_EXTERNAL_IDENTITY_GATE</code>.
+- Staging ativo publicado em <code>20a461c1-9e5c-4d7e-a4d9-72e75b96f9f4</code>, com <code>index-BXuAWcmr.js</code>; <code>verify:staging</code> HTTP_CHECKS_PASS e E2E real 6/6.
+- OAuth Google real A/B: ambas as contas concluíram redirect, consentimento, prévia e confirmação com estado <code>READY</code>; logout A voltou a <code>LOCAL_ONLY</code>; B também ficou <code>READY</code>. Nenhum UID/e-mail foi registrado.
+- Firebase Auth: 2 usuários Google e 4 sintéticos; limpeza dos sintéticos permanece pendente.
 - Merge rehearsal no HEAD final: árvore <code>ad68a5df</code>, **0 conflitos**, 1400 arquivos; <code>apps/v2</code> idêntico à v2 e <code>src</code> idêntico a <code>origin/main</code>.
+
+## M7 — staging final, OAuth real e publicação
+
+- Build redirect publicado no Worker V2 do site; read-back HTTP e E2E real 6/6 PASS.
+- Contas A e B concluíram OAuth Google real em modo redirect; A/B sequenciais no mesmo perfil, sem registrar UID/e-mail. A prova simultânea em perfis separados não foi executada.
+- Worker de backup com âncora publicado em <code>6e07afe0-af7d-4df5-bbf7-0e3a75822ab2</code>, deny-all. O ensaio real da âncora ficou <code>BLOCKED_AUTO_REVIEW_ALLOWLIST</code>; a plataforma rejeitou reativar <code>ALLOWED_UIDS</code> e não houve contorno.
+- <code>origin/v2</code> recebeu fast-forward; o commit documental final é publicado no mesmo fluxo. <code>main</code>/<code>origin/main</code> permanecem em <code>74b2c75e</code>.
+- Ensaio de merge final: árvore <code>ad68a5df</code>, 0 conflitos, 1400 arquivos.
 
 ## Próximo
 
-M7 depende de autorização para publicar o build redirect no staging e repetir o E2E real; M8 ZIP final. Push, merge e limpeza Auth continuam gates separados. Classificação: <code>PREMERGE_ENGINEERING_COMPLETE_WITH_EXPLICIT_GATES</code>.
+ZIP final com o read-back de <code>origin/v2</code>, staging 20a461c1, OAuth A/B real e o gate da âncora. Permanecem UX-H humano/físico, F4-T13, limpeza dos 4 usuários sintéticos e G5/F8. Classificação: <code>PREMERGE_ENGINEERING_COMPLETE_WITH_EXPLICIT_GATES</code>.
 

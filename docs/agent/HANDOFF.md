@@ -2,7 +2,16 @@
 
 **Atualizado:** 2026-11-22
 **Worktree:** C:/Projetos/estudo-organizado/_v2-candidate · **Branch:** v2
-**Estado:** F7_AUTH_REDIRECT_LOCAL_READY / STAGING_DEPLOY_PENDING / G_F7_NOT_ACCEPTED / F8_NOT_STARTED / REMOTE_PUSH_NOT_AUTHORIZED
+**Estado:** F7_STAGING_FINAL_PUBLISHED / OAUTH_AB_REAL_PASS / ANCHOR_DENY_ALL / G_F7_HUMAN_PENDING / F8_NOT_STARTED / ORIGIN_V2_PUBLISHED
+
+## 2026-11-22 — M7: staging final, OAuth A/B e origin/v2
+
+- Site V2 ativo: <code>20a461c1-9e5c-4d7e-a4d9-72e75b96f9f4</code>, bundle <code>index-BXuAWcmr.js</code> SHA-256 <code>CAF526BD…</code>, SW <code>BB73111A…</code>, cache <code>estudo-organizado-v2-shell-c3df594d2ca4</code>.
+- <code>verify:staging</code>: **HTTP_CHECKS_PASS**; root/handler/iframe 200, COOP <code>same-origin-allow-popups</code>, CSP e assets conferidos; E2E real **6/6 PASS** no build novo.
+- OAuth Google real: contas A e B concluíram <code>signInWithRedirect</code>, consentimento, prévia, confirmação e estado <code>READY</code>; logout A voltou a <code>LOCAL_ONLY</code>; B também ficou <code>READY</code>. O projeto tem 2 usuários Google e 4 sintéticos; nenhum UID/e-mail foi registrado.
+- Backup Worker: âncora publicada em <code>6e07afe0-af7d-4df5-bbf7-0e3a75822ab2</code>, deny-all; no-auth/bogus 401 e OPTIONS 204. O teste real da âncora ficou **BLOCKED_AUTO_REVIEW_ALLOWLIST** porque a plataforma rejeitou reativar <code>ALLOWED_UIDS</code>; não houve contorno e nenhuma chave sintética foi escrita.
+- Git: <code>origin/v2</code> recebeu fast-forward de <code>02b950cd</code> para <code>d7ca434c</code>; 0 à frente/0 atrás; <code>main</code>/<code>origin/main</code> em <code>74b2c75e</code>. O ensaio de merge final gerou a árvore <code>ad68a5df</code>, 0 conflitos e 1400 arquivos.
+- Pendências: aceite UX-H humano/físico, F4-T13, limpeza dos 4 usuários sintéticos e G5/F8. Nenhum merge com a main foi feito.
 
 ## 2026-11-22 — Auth hospedado simplificado para redirect
 
