@@ -138,11 +138,15 @@ export class PersonalBackupScheduler {
     } catch {
       return 'FAILED';
     }
+    if (this.disposed) return 'FAILED';
     const id = `backup-${digest.slice(0, 16)}-${now}`;
     if (this.verifyIdentity) {
       const stillOwned = await this.verifyIdentity(profileId, uid).catch(() => false);
       if (!stillOwned) return 'FAILED';
     }
+    if (this.disposed) return 'FAILED';
+    const liveUid = await this.getUid(profileId).catch(() => null);
+    if (liveUid !== uid) return 'FAILED';
     const result = await this.remote.put({ uid, id, encrypted }).catch(() => 'FAILED' as const);
     if (result === 'QUOTA' || result === 'PENDING') {
       state.paused = true;
@@ -150,6 +154,7 @@ export class PersonalBackupScheduler {
       return 'DEFERRED';
     }
     if (result !== 'VERIFIED') return 'FAILED';
+    if (this.disposed) return 'FAILED';
 
     state.paused = false;
     state.lastVerifiedAt = now;

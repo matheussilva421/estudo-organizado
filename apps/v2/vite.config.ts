@@ -1,6 +1,6 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 
@@ -31,14 +31,18 @@ function swPrecache(): Plugin {
             const content = readFileSync(join(dist, rel));
             return `${rel}:${createHash('sha256').update(content).digest('hex')}`;
           }).join('|'))
+          .update('\n')
+          .update(source)
           .digest('hex')
           .slice(0, 12);
         writeFileSync(
           sw,
           `self.__PRECACHE__ = ${JSON.stringify(files)};\n${source.replace('__V2_BUILD__', buildId)}`,
         );
-      } catch {
-        // The SW is optional in non-browser/test builds.
+      } catch (error) {
+        // The SW is optional in non-browser/test builds, but an existing SW
+        // that cannot be versioned must fail the build rather than ship stale.
+        if (existsSync(sw)) throw error;
       }
     },
   };

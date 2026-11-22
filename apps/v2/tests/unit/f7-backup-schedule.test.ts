@@ -33,7 +33,7 @@ const encrypted: EncryptedBackup = {
 
 class MemoryRemote implements BackupRemotePort {
   readonly puts: Array<{ uid: string; id: string }> = [];
-  readonly deletes: string[] = [];
+  readonly deletes: Array<{ id: string; replacementId: string }> = [];
   result: 'VERIFIED' | 'PENDING' | 'QUOTA' | 'FAILED' = 'VERIFIED';
   async put(input: { uid: string; id: string }) {
     this.puts.push({ uid: input.uid, id: input.id });
@@ -46,7 +46,7 @@ class MemoryRemote implements BackupRemotePort {
     return [];
   }
   async deleteVerifiedOldVersion(id: string, replacementId: string) {
-    this.deletes.push(`${id}->${replacementId}`);
+    this.deletes.push({ id, replacementId });
     return true;
   }
 }
@@ -112,6 +112,9 @@ describe('F7 backup scheduler', () => {
     }
     expect(backup.state(profileId).versions).toHaveLength(7);
     expect(remote.deletes).toHaveLength(2);
+    expect(remote.deletes.every((entry) => entry.replacementId !== entry.id)).toBe(true);
+    const deletedIds = new Set(remote.deletes.map((entry) => entry.id));
+    expect(remote.deletes.every((entry) => !deletedIds.has(entry.replacementId))).toBe(true);
   });
 
   it('f7_new_backup_failure_does_not_delete_last_good_copy', async () => {
@@ -181,5 +184,37 @@ describe('F7 backup scheduler', () => {
     await expect(backup.request(profileId, 'MANUAL')).resolves.toBe('VERIFIED');
     expect(backup.state(profileId).versions).toHaveLength(7);
     expect(remote.deletes.length).toBeGreaterThan(0);
+  });
+
+  it('f7_disposed_scheduler_does_not_upload', async () => {
+    const remote = new MemoryRemote();
+    const backup = new PersonalBackupScheduler({
+      remote,
+      now: () => 0,
+      getRecoverySecret: async () => 'secret',
+      getUid: async () => uid,
+      collect: async () => {
+        backup.dispose();
+        return snapshot('a'.repeat(64));
+      },
+      encrypt: async () => encrypted,
+    });
+    await expect(backup.request(profileId, 'MANUAL')).resolves.toBe('FAILED');
+    expect(remote.puts).toHaveLength(0);
+  });
+
+  it('f7_uid_change_before_upload_fails_closed', async () => {
+    const remote = new MemoryRemote();
+    let calls = 0;
+    const backup = new PersonalBackupScheduler({
+      remote,
+      now: () => 0,
+      getRecoverySecret: async () => 'secret',
+      getUid: async () => (++calls === 1 ? uid : 'uid-b'),
+      collect: async () => snapshot('a'.repeat(64)),
+      encrypt: async () => encrypted,
+    });
+    await expect(backup.request(profileId, 'MANUAL')).resolves.toBe('FAILED');
+    expect(remote.puts).toHaveLength(0);
   });
 });

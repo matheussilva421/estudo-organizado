@@ -268,6 +268,7 @@ export class F7Runtime {
         this.coordinator = null;
         this.syncScheduler?.dispose();
         this.syncScheduler = null;
+        this.backupScheduler?.dispose();
         this.backupScheduler = null;
         this.backupRemote = null;
       }
@@ -719,6 +720,7 @@ export class F7Runtime {
       this.lastHealth = null;
       this.syncScheduler?.dispose();
       this.syncScheduler = null;
+      this.backupScheduler?.dispose();
       this.backupScheduler = null;
       this.backupRemote = null;
     } else {

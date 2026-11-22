@@ -34,6 +34,7 @@ export type BackupWorkerBindings = {
 };
 
 export const MAX_BACKUP_BYTES = 25 * 1024 * 1024;
+const ANCHOR_INDEX_PREFIX = 'anchors/';
 const defaultJwks = createGoogleJwksPort();
 
 function json(status: number, body: unknown, origin: string): Response {
@@ -153,7 +154,7 @@ export async function handleBackupRequest(
     }
     const record = parsed as Record<string, unknown>;
     const id = typeof record.id === 'string' ? record.id.trim() : '';
-    if (!/^[A-Za-z0-9_-]{1,128}$/.test(id) || !validEncrypted(record.encrypted)) {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(id) || id.startsWith('anchor-') || !validEncrypted(record.encrypted)) {
       return json(400, { error: 'INVALID_BACKUP' }, bindings.ALLOWED_ORIGIN);
     }
     const key = `${prefix}${id}`;
@@ -163,6 +164,18 @@ export async function handleBackupRequest(
       return json(409, { error: 'IMMUTABLE' }, bindings.ALLOWED_ORIGIN);
     }
     await bindings.BACKUPS.put(key, serialized);
+    // Keep one hidden, immutable recovery copy per uid. It is intentionally
+    // outside the retirement set, so even a stale/concurrent delete loop
+    // cannot leave the account with zero valid backups.
+    const anchorIndexKey = `${ANCHOR_INDEX_PREFIX}${uid}`;
+    const existingAnchorId = await bindings.BACKUPS.get(anchorIndexKey);
+    if (!existingAnchorId) {
+      const anchorId = `anchor-${Date.now()}`;
+      const anchorKey = `${prefix}${anchorId}`;
+      const existingAnchor = await bindings.BACKUPS.get(anchorKey);
+      if (!existingAnchor) await bindings.BACKUPS.put(anchorKey, serialized);
+      await bindings.BACKUPS.put(anchorIndexKey, anchorId);
+    }
     return json(201, { id }, bindings.ALLOWED_ORIGIN);
   }
 
@@ -172,8 +185,7 @@ export async function handleBackupRequest(
     return json(
       200,
       {
-        items: listed.keys.map((name) => {
-          const id = name.slice(prefix.length);
+        items: listed.keys.map((name) => name.slice(prefix.length)).filter((id) => !id.startsWith('anchor-')).map((id) => {
           const timestamp = Number(id.split('-').at(-1));
           return {
             id,
@@ -188,6 +200,14 @@ export async function handleBackupRequest(
     );
   }
 
+  if (request.method === 'GET' && parts.length === 2 && parts[1] === 'anchor') {
+    const anchorId = await bindings.BACKUPS.get(`${ANCHOR_INDEX_PREFIX}${uid}`);
+    if (!anchorId) return json(404, { error: 'NOT_FOUND' }, bindings.ALLOWED_ORIGIN);
+    const stored = await bindings.BACKUPS.get(`${prefix}${anchorId}`);
+    if (!stored) return json(404, { error: 'NOT_FOUND' }, bindings.ALLOWED_ORIGIN);
+    return json(200, { id: anchorId, encrypted: JSON.parse(stored) }, bindings.ALLOWED_ORIGIN);
+  }
+
   if (parts.length === 2 && parts[0] === 'backups') {
     const id = parts[1] ?? '';
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
@@ -200,6 +220,7 @@ export async function handleBackupRequest(
       return json(200, JSON.parse(stored), bindings.ALLOWED_ORIGIN);
     }
     if (request.method === 'DELETE') {
+      if (id.startsWith('anchor-')) return json(409, { error: 'ANCHOR' }, bindings.ALLOWED_ORIGIN);
       const replacementId = (url.searchParams.get('replacement') ?? '').trim();
       if (!/^[A-Za-z0-9_-]{1,128}$/.test(replacementId) || replacementId === id) {
         return json(409, { error: 'LAST_COPY' }, bindings.ALLOWED_ORIGIN);

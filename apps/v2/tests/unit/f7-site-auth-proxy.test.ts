@@ -21,7 +21,13 @@ describe('site Worker Firebase auth proxy', () => {
 
     const response = await siteWorker.fetch(
       new Request('https://estudo-organizado-v2-f7-test.example/__/auth/handler?foo=1', {
-        headers: { 'x-test-header': 'preserved' },
+        headers: {
+          Accept: 'text/html',
+          Cookie: 'session=secret',
+          Authorization: 'Bearer secret',
+          'CF-Access-Jwt-Assertion': 'secret',
+          'X-Test-Header': 'not-forwarded',
+        },
       }),
       env,
     );
@@ -33,7 +39,12 @@ describe('site Worker Firebase auth proxy', () => {
     expect(forwarded).toBe(
       'https://eo-v2-f7-test-20261117.firebaseapp.com/__/auth/handler?foo=1',
     );
-    expect(new Headers(init.headers).get('x-test-header')).toBe('preserved');
+    const forwardedHeaders = new Headers(init.headers);
+    expect(forwardedHeaders.get('accept')).toBe('text/html');
+    expect(forwardedHeaders.get('cookie')).toBeNull();
+    expect(forwardedHeaders.get('authorization')).toBeNull();
+    expect(forwardedHeaders.get('cf-access-jwt-assertion')).toBeNull();
+    expect(forwardedHeaders.get('x-test-header')).toBeNull();
     expect(init.method).toBe('GET');
     expect(init.redirect).toBe('manual');
   });

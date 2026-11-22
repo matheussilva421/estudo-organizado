@@ -9,6 +9,15 @@ export type SiteWorkerEnv = {
 
 const RESERVED_PREFIX = '/__/';
 const APPROVED_PROJECT_IDS = new Set(['eo-v2-f7-test-20261117']);
+const FORWARDED_HEADERS = new Set([
+  'accept',
+  'accept-language',
+  'content-type',
+  'origin',
+  'referer',
+  'user-agent',
+  'x-requested-with',
+]);
 
 type WorkerRequestInit = RequestInit & { duplex?: 'half' };
 
@@ -20,9 +29,13 @@ function isolatedFirebaseHost(projectId: string | undefined): string | null {
 }
 
 function forwardInit(request: Request): WorkerRequestInit {
+  const headers = new Headers();
+  request.headers.forEach((value, key) => {
+    if (FORWARDED_HEADERS.has(key.toLowerCase())) headers.set(key, value);
+  });
   const init: WorkerRequestInit = {
     method: request.method,
-    headers: request.headers,
+    headers,
     redirect: 'manual',
   };
   if (request.method !== 'GET' && request.method !== 'HEAD' && request.body) {

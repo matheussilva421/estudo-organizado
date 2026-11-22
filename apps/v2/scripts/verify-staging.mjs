@@ -120,6 +120,14 @@ if (!authIframeResult.response.ok) failures.push(`Auth iframe HTTP ${authIframeR
 if (new URL(authIframeResult.response.url).origin !== base.origin) {
   failures.push('Auth iframe redirected away from the staging origin');
 }
+const iframeXfo = (authIframeResult.response.headers.get('x-frame-options') ?? '').toLowerCase();
+if (iframeXfo && iframeXfo !== 'sameorigin') {
+  failures.push('Auth iframe X-Frame-Options blocks same-origin framing');
+}
+const iframeCsp = authIframeResult.response.headers.get('content-security-policy') ?? '';
+if (/frame-ancestors\s+'none'/i.test(iframeCsp)) {
+  failures.push('Auth iframe CSP frame-ancestors blocks same-origin framing');
+}
 if (!authIframeResult.body.includes('fireauth.iframe.AuthRelay.initialize')) {
   failures.push('Firebase auth iframe is not proxied on the staging origin');
 }
@@ -195,7 +203,13 @@ const evidence = {
   serviceWorker: { status: swResult.response.status, bytes: swResult.body.length, sha256: sha256(swResult.body), cachePrefix: 'estudo-organizado-v2' },
   authProxy: {
     handler: { status: authHandlerResult.response.status, bytes: authHandlerResult.body.length, sha256: sha256(authHandlerResult.body) },
-    iframe: { status: authIframeResult.response.status, bytes: authIframeResult.body.length, sha256: sha256(authIframeResult.body) },
+    iframe: {
+      status: authIframeResult.response.status,
+      bytes: authIframeResult.body.length,
+      sha256: sha256(authIframeResult.body),
+      xFrameOptions: iframeXfo || null,
+      contentSecurityPolicy: iframeCsp || null,
+    },
   },
   projectId: projectId ?? null,
   projectIdFound,

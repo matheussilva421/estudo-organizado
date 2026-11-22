@@ -72,6 +72,10 @@ describe.skipIf(!tokensPath)('real backup Worker, AES-GCM and cross-UID isolatio
 
     const created = await request(a.idToken, 'POST', '/backups', { id: firstId, encrypted });
     expect(created.status).toBe(201);
+    const anchorResponse = await request(a.idToken, 'GET', '/backups/anchor');
+    expect(anchorResponse.status).toBe(200);
+    const anchorBody = (await anchorResponse.json()) as { id: string };
+    expect(anchorBody.id).toMatch(/^anchor-/);
 
     const listedIds = await waitForIds(a.idToken, [firstId]);
     expect(listedIds).toContain(firstId);
@@ -90,6 +94,8 @@ describe.skipIf(!tokensPath)('real backup Worker, AES-GCM and cross-UID isolatio
 
     const crossRead = await request(b.idToken, 'GET', `/backups/${firstId}`);
     expect(crossRead.status).toBe(404);
+    const crossAnchor = await request(b.idToken, 'GET', '/backups/anchor');
+    expect(crossAnchor.status).toBe(404);
     const crossList = await request(b.idToken, 'GET', '/backups');
     expect(crossList.status).toBe(200);
     const crossBody = (await crossList.json()) as { items: Array<{ id: string }> };
@@ -107,5 +113,11 @@ describe.skipIf(!tokensPath)('real backup Worker, AES-GCM and cross-UID isolatio
     expect(crossDelete.status).toBe(409);
     const preserved = await request(a.idToken, 'GET', `/backups/${secondId}`);
     expect(preserved.status).toBe(200);
+    const deleteAnchor = await request(a.idToken, 'DELETE', `/backups/${anchorBody.id}`);
+    expect(deleteAnchor.status).toBe(409);
+    const deleteLastRegular = await request(a.idToken, 'DELETE', `/backups/${secondId}?replacement=${anchorBody.id}`);
+    expect(deleteLastRegular.status).toBe(204);
+    const anchorStillThere = await request(a.idToken, 'GET', '/backups/anchor');
+    expect(anchorStillThere.status).toBe(200);
   });
 });

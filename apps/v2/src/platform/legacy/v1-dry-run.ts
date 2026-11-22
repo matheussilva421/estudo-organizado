@@ -11,7 +11,9 @@ export type LegacyDryRunIssue = {
     | 'DUPLICATE_ID'
     | 'MISSING_REMOTE_PLAN'
     | 'ORPHAN_REFERENCE'
-    | 'UNMAPPED_KEY';
+    | 'UNMAPPED_KEY'
+    | 'MISSING_EXPORT_MANIFEST'
+    | 'MULTIPLE_BLOCK_SOURCES';
   entity: 'input' | 'edital' | 'event' | 'question' | 'block';
   id?: string;
   path?: string;
@@ -57,14 +59,21 @@ function questionArray(input: unknown): unknown[] {
   return Array.isArray(input.habitos.questoes) ? input.habitos.questoes : [];
 }
 
-function blocksOf(input: unknown): unknown[] {
+function blockSources(input: unknown): Array<{ source: string; blocks: unknown[] }> {
   if (!isRecord(input)) return [];
-  if (Array.isArray(input.blocos)) return input.blocos;
-  if (isRecord(input.retaFinal) && Array.isArray(input.retaFinal.blocos)) {
-    return input.retaFinal.blocos;
+  const sources: Array<{ source: string; blocks: unknown[] }> = [];
+  if (Array.isArray(input.blocos) && input.blocos.length > 0) {
+    sources.push({ source: 'blocos', blocks: input.blocos });
   }
-  if (isRecord(input.planejamento)) return blocksOf(input.planejamento);
-  return [];
+  if (isRecord(input.retaFinal) && Array.isArray(input.retaFinal.blocos) && input.retaFinal.blocos.length > 0) {
+    sources.push({ source: 'retaFinal.blocos', blocks: input.retaFinal.blocos });
+  }
+  if (isRecord(input.planejamento)) {
+    for (const nested of blockSources(input.planejamento)) {
+      sources.push({ source: `planejamento.${nested.source}`, blocks: nested.blocks });
+    }
+  }
+  return sources;
 }
 
 function hasContent(value: unknown): boolean {
@@ -91,14 +100,23 @@ export async function auditLegacyV1DryRun(input: unknown): Promise<LegacyDryRunR
   const editais = arrayOf(input, 'editais');
   const events = arrayOf(input, 'eventos');
   const questions = questionArray(input);
-  const blocks = blocksOf(input);
+  const sources = blockSources(input);
+  const blocks = sources.flatMap((source) => source.blocks);
   const idbVersion = isRecord(input) && typeof input.idbVersion === 'number' ? input.idbVersion : null;
+  const hasExplicitManifest = idbVersion !== null && isRecord(input)
+    && ['editais', 'eventos', 'habitos', 'retaFinal', 'planejamento', 'blocos'].some((key) => key in input);
 
   if (recognition.kind !== 'V1_SUPPORTED') {
     issues.push({ code: 'UNSUPPORTED_FORMAT', entity: 'input', detail: 'legacy export is not a recognized V1 shape' });
   }
   if (idbVersion !== null && idbVersion !== 6 && idbVersion !== 7) {
     issues.push({ code: 'UNSUPPORTED_IDB_VERSION', entity: 'input', detail: `IDB version ${idbVersion} is not supported` });
+  }
+  if (!hasExplicitManifest) {
+    issues.push({ code: 'MISSING_EXPORT_MANIFEST', entity: 'input', detail: 'export lacks an explicit IDB version and collection manifest' });
+  }
+  if (sources.length > 1) {
+    issues.push({ code: 'MULTIPLE_BLOCK_SOURCES', entity: 'input', detail: `block sources present: ${sources.map((source) => source.source).join(', ')}` });
   }
 
   const unmappedKeys = isRecord(input)

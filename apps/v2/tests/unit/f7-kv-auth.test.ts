@@ -30,6 +30,9 @@ class MemoryKV implements KVNamespaceLike {
   async delete(key: string) {
     this.values.delete(key);
   }
+  resetListCalls() {
+    this.listCalls.length = 0;
+  }
   async list(options: { prefix?: string; cursor?: string } = {}) {
     this.listCalls.push({ ...options });
     const prefix = options.prefix ?? '';
@@ -384,6 +387,40 @@ describe('F7 backup worker auth', () => {
     expect((await handleBackupRequest(request('DELETE', '/backups/v2?replacement=v1', token), bindings)).status).toBe(409);
   });
 
+  it('f7_worker_keeps_a_hidden_anchor_copy_across_regular_deletes', async () => {
+    const { privateKey, jwks } = await keyPair();
+    const kv = new MemoryKV();
+    const bindings: BackupWorkerBindings = {
+      BACKUPS: kv,
+      FIREBASE_PROJECT_ID: projectId,
+      ALLOWED_ORIGIN: origin,
+      ALLOWED_UIDS: 'uid-a',
+      JWKS: jwks,
+    };
+    const token = await jwt('uid-a', {}, privateKey);
+    const encrypted = {
+      format: 'eo-v2-encrypted-v1',
+      iv: 'a',
+      ciphertext: 'b',
+      wrappedKey: 'c',
+      kdf: { name: 'PBKDF2' },
+    };
+    const post = await handleBackupRequest(
+      request('POST', '/backups', token, JSON.stringify({ id: 'v1', encrypted }), { 'Content-Type': 'application/json' }),
+      bindings,
+    );
+    expect(post.status).toBe(201);
+    const list = (await (await handleBackupRequest(request('GET', '/backups', token), bindings)).json()) as { items: Array<{ id: string }> };
+    expect(list.items.map((item) => item.id)).toEqual(['v1']);
+    const anchor = await handleBackupRequest(request('GET', '/backups/anchor', token), bindings);
+    expect(anchor.status).toBe(200);
+    const anchorBody = (await anchor.json()) as { id: string };
+    expect(anchorBody.id).toMatch(/^anchor-/);
+    expect((await handleBackupRequest(request('DELETE', `/backups/${anchorBody.id}`, token), bindings)).status).toBe(409);
+    expect((await handleBackupRequest(request('DELETE', '/backups/v1?replacement=' + anchorBody.id, token), bindings)).status).toBe(204);
+    expect((await handleBackupRequest(request('GET', '/backups/anchor', token), bindings)).status).toBe(200);
+  });
+
   it('f7_worker_lists_backup_timestamps', async () => {
     const { privateKey, jwks } = await keyPair();
     const bindings: BackupWorkerBindings = {
@@ -490,9 +527,11 @@ describe('F7 backup worker auth', () => {
       );
     expect((await post('v1')).status).toBe(201);
     expect((await post('v2')).status).toBe(201);
+    kv.resetListCalls();
     expect((await handleBackupRequest(request('DELETE', '/backups/v1', token), bindings)).status).toBe(409);
     const deleted = await handleBackupRequest(request('DELETE', '/backups/v1?replacement=v2', token), bindings);
     expect(deleted.status).toBe(204);
+    expect(kv.listCalls).toHaveLength(0);
     expect((await handleBackupRequest(request('DELETE', '/backups/v2?replacement=v1', token), bindings)).status).toBe(409);
     expect(await kv.get('backups/uid-a/v1')).toBeNull();
     expect(await kv.get('backups/uid-a/v2')).not.toBeNull();

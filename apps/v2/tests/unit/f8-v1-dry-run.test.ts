@@ -61,6 +61,30 @@ describe('F8 V1 dry-run audit', () => {
     expect(report.issues.some((issue) => issue.code === 'UNSUPPORTED_IDB_VERSION')).toBe(true);
   });
 
+  it('does not approve a truncated export that only declares schemaVersion', async () => {
+    const report = await auditLegacyV1DryRun({ schemaVersion: 12 });
+    expect(report.status).toBe('AMBIGUOUS');
+    expect(report.issues.some((issue) => issue.code === 'MISSING_EXPORT_MANIFEST')).toBe(true);
+  });
+
+  it('accepts an explicitly empty manifest but flags competing block sources', async () => {
+    const empty = await auditLegacyV1DryRun({
+      schemaVersion: 12,
+      idbVersion: 7,
+      editais: [],
+      eventos: [],
+      habitos: { questoes: [] },
+      retaFinal: { blocos: [] },
+    });
+    expect(empty.status).toBe('ZERO_LOSS_CANDIDATE');
+    const competing = await auditLegacyV1DryRun({
+      ...validFixture(),
+      blocos: [{ id: 'other-block', planoRemoto: { id: 'remote-other' } }],
+    });
+    expect(competing.status).toBe('AMBIGUOUS');
+    expect(competing.issues.some((issue) => issue.code === 'MULTIPLE_BLOCK_SOURCES')).toBe(true);
+  });
+
   it('never uses the network', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
       throw new Error('network must not be used');
