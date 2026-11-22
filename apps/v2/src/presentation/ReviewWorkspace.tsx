@@ -1685,7 +1685,11 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
 <article className="session-card" data-testid="review-priorities">
         <h3>Prioridade contextual</h3>
         <div className="session-actions">
-          <select value={selectedEditalId} onChange={(event) => setSelectedEditalId(event.target.value)}>
+          <select
+            aria-label="Edital para prioridade contextual"
+            value={selectedEditalId}
+            onChange={(event) => setSelectedEditalId(event.target.value)}
+          >
             <option value="">Edital</option>
             {editais.map((edital) => (
               <option key={edital.id} value={edital.id}>{edital.title}</option>

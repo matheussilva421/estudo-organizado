@@ -243,3 +243,12 @@ test('F5-T47 keeps touch targets and reduced motion usable on mobile', async ({ 
   );
   expect(overflow).toBeLessThanOrEqual(1);
 });
+
+test('F5 review priority selector exposes an accessible name', async ({ page }) => {
+  await page.goto('/#/reviews');
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await expect(page.locator('[data-testid="review-workspace"]')).toBeVisible();
+  await expect(
+    page.getByRole('combobox', { name: 'Edital para prioridade contextual' }),
+  ).toBeVisible();
+});
