@@ -2,7 +2,7 @@
 
 **Atualizado:** 2026-11-22
 **Branch:** v2
-**HEAD de código/testes:** 1fb4ad27 (após 7e43d06c)
+**HEAD de código/testes:** 3f953f38
 **origin/v2:** 02b950cd (antes da publicação final)
 **origin/main:** 74b2c75e
 **Staging:** https://estudo-organizado-v2-f7-test.matheussilva421.workers.dev
@@ -20,8 +20,8 @@
 ## M1 — E2E, hardening e P2
 
 - Cinco E2E locais corrigidos: relógio determinístico compartilhado, espera de DB pronta antes do Tab, foco do Foco aguardando RUNNING.
-- Suíte local completa: **250 PASS / 11 SKIP / 0 FAIL** (captura F4 excluída).
-- Unit: **917/917 PASS**; typecheck, lint e build PASS.
+- Suíte local paralela: **250 PASS / 11 SKIP / 0 FAIL**; serial final: **250 PASS / 11 SKIP / 0 FAIL** em 5,3 min (captura F4 excluída).
+- Unit: **928/928 PASS** em 133 arquivos; typecheck, lint e build PASS.
 - Worker do site com allowlist positiva do project ID V2; cache do SW content-addressed; verify-staging exige auth-domain e origem; exemplo de config versionado.
 - Worker de backup: DELETE agora exige `replacement` lido diretamente, fail-closed; não confia na listagem eventual do KV.
 
@@ -43,7 +43,14 @@
 - `auditLegacyV1DryRun` read-only, com 5/5 testes e fixture sintética de 5 registros/0 perdas estruturais.
 - Nenhum dado real, freeze, migração ou cutover executado; G5 pendente.
 
+## M6 — Auth redirect e regressão final
+
+- Builds hospedados usam **redirect** por padrão; popup ficou como opt-in explícito. O objetivo é remover a dependência de nonce/armazenamento entre janelas que fazia o popup fechar sem identidade.
+- Build local <code>index-BXuAWcmr.js</code> SHA-256 <code>CAF526BDC1732456B99F1FDE0DDA1277B5927B3941B0A783F4B636A8DDCB05F4</code>; SW <code>BB73111A…</code>; cache <code>estudo-organizado-v2-shell-c3df594d2ca4</code>.
+- Staging ativo permanece 58615698 com o bundle popup anterior; o build redirect não foi publicado. OAuth Google interativo continua <code>NOT_RUN_EXTERNAL_IDENTITY_GATE</code>.
+- Merge rehearsal no HEAD final: árvore <code>ad68a5df</code>, **0 conflitos**, 1400 arquivos; <code>apps/v2</code> idêntico à v2 e <code>src</code> idêntico a <code>origin/main</code>.
+
 ## Próximo
 
-M6 regressão final e revisão independente; M7 staging final, push fast-forward em origin/v2 e merge rehearsal; M8 ZIP final.
+M7 depende de autorização para publicar o build redirect no staging e repetir o E2E real; M8 ZIP final. Push, merge e limpeza Auth continuam gates separados. Classificação: <code>PREMERGE_ENGINEERING_COMPLETE_WITH_EXPLICIT_GATES</code>.
 

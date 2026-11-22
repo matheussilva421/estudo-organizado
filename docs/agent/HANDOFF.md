@@ -2,7 +2,16 @@
 
 **Atualizado:** 2026-11-22
 **Worktree:** C:/Projetos/estudo-organizado/_v2-candidate · **Branch:** v2
-**Estado:** F7_AUTH_BLOCKED_HUMAN_ACTION_REQUIRED / AUTH_FLOW_FIXED / G_F7_NOT_ACCEPTED / F8_NOT_STARTED / REMOTE_PUSH_NOT_AUTHORIZED
+**Estado:** F7_AUTH_REDIRECT_LOCAL_READY / STAGING_DEPLOY_PENDING / G_F7_NOT_ACCEPTED / F8_NOT_STARTED / REMOTE_PUSH_NOT_AUTHORIZED
+
+## 2026-11-22 — Auth hospedado simplificado para redirect
+
+- HEAD de código/testes: **3f953f38**. O build hospedado passa a usar <code>signInWithRedirect</code> por padrão; <code>popup</code> permanece apenas como opt-in explícito no ambiente.
+- Motivo: o popup chegava ao Google, mas o retorno dependia de nonce/armazenamento entre janelas e fechava sem identidade. O redirect mantém o evento na mesma aba e reutiliza o handler same-origin já servido pelo Worker.
+- Evidência local: unit **928/928 PASS** (133 arquivos), typecheck/lint/build PASS, E2E serial **250 PASS / 11 SKIP / 0 FAIL** em 5,3 min (captura F4 excluída).
+- Build local: <code>index-BXuAWcmr.js</code> SHA-256 <code>CAF526BDC1732456B99F1FDE0DDA1277B5927B3941B0A783F4B636A8DDCB05F4</code>; SW SHA-256 <code>BB73111A112E6C33CB2601301B8F7661298566ADE27FC5E8878B23C8EF27BA7B</code>; cache <code>estudo-organizado-v2-shell-c3df594d2ca4</code>.
+- Staging ativo continua **58615698-45b4-4d47-a0f8-a52b65effc86**, com o bundle popup anterior <code>index-DS_DhpUl.js</code>. O build redirect **não foi publicado**; o deploy segue interrompido/não autorizado.
+- O teste E2E de staging foi atualizado para exigir redirect na mesma aba, mas não foi executado contra o staging real. OAuth Google interativo continua **NOT_RUN_EXTERNAL_IDENTITY_GATE**; nenhum PASS_REAL é reivindicado para o vínculo.
 
 ## 2026-11-21/22 — F7-R3 retomada: login Google same-origin
 
