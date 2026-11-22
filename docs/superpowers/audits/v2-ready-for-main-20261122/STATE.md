@@ -5,6 +5,7 @@
 **HEAD de código/testes:** 3f953f38
 **origin/v2:** publicado por fast-forward; read-back final no pacote
 **origin/main:** 74b2c75e
+**Status:** V2_PREMERGE_TECHNICALLY_VERIFIED / G_F7_HUMAN_ACCEPTANCE_PENDING / G5_NOT_AUTHORIZED / MAIN_UNCHANGED
 **Staging:** https://estudo-organizado-v2-f7-test.matheussilva421.workers.dev (versão 20a461c1)
 **Firebase:** eo-v2-f7-test-20261117 (Spark, billing desabilitado)
 **Workers:** estudo-organizado-v2-f7-test / estudo-organizado-v2-f7-backup
