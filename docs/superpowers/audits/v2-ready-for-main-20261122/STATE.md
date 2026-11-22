@@ -5,7 +5,7 @@
 **HEAD de código/testes:** 3f953f38
 **origin/v2:** publicado por fast-forward; read-back final no pacote
 **origin/main:** 74b2c75e
-**Status:** V2_PREMERGE_TECHNICALLY_VERIFIED / G_F7_HUMAN_ACCEPTANCE_PENDING / G5_NOT_AUTHORIZED / MAIN_UNCHANGED
+**Status:** F7_TECHNICAL_HOMOLOGATION_PARTIAL_WITH_EXPLICIT_TOOLING_GATE / UX_TECHNICALLY_REVIEWED / AWAITING_G_F7 / V2_PREMERGE_VERIFIED / MAIN_UNCHANGED
 **Staging:** https://estudo-organizado-v2-f7-test.matheussilva421.workers.dev (versão 20a461c1)
 **Firebase:** eo-v2-f7-test-20261117 (Spark, billing desabilitado)
 **Workers:** estudo-organizado-v2-f7-test / estudo-organizado-v2-f7-backup
@@ -76,6 +76,13 @@
 - Worker `estudo-organizado` ativo em `de25f803-4ba6-434a-a0d6-07a346d6794e`; deploys V1 em 00:48/00:59, anteriores aos V2 das 03:07+.
 - Root público e main local compartilham os mesmos 17 assets e título, sem marcadores V2; a diferença de bytes/hash é compatível com minificação.
 - `44ec8568` é evidência histórica; esta sessão não fez deploy, rollback ou escrita na V1.
+
+## Bloco C — axe e acessibilidade
+
+- axe-core: 28 scans (8 rotas × desktop/mobile + 12 temas na Home) com **0 violações** após corrigir o `select-name` crítico da Prioridade contextual.
+- Regressão F5/E2E: teste específico do select, F5 6/6, unit 928/928 e E2E serial **251 PASS / 11 SKIP / 0 FAIL**.
+- Staging ca74c967-9e63-438d-b05c-d01467ecc29d, bundle index-uCEOLZ2v.js, verify:staging PASS e E2E real 6/6.
+- A UI de backup Google permanece `NOT_RUN_TOOLING`; F7 técnica fica parcial, sem aceite G-F7 e sem merge.
 
 ## Próximo
 

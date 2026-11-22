@@ -2,7 +2,14 @@
 
 **Atualizado:** 2026-11-22
 **Worktree:** C:/Projetos/estudo-organizado/_v2-candidate · **Branch:** v2
-**Estado:** V2_PREMERGE_TECHNICALLY_VERIFIED / G_F7_HUMAN_ACCEPTANCE_PENDING / G5_NOT_AUTHORIZED / MAIN_UNCHANGED / GOOGLE_BACKUP_UI_NOT_RUN_TOOLING
+**Estado:** F7_TECHNICAL_HOMOLOGATION_PARTIAL_WITH_EXPLICIT_TOOLING_GATE / UX_TECHNICALLY_REVIEWED / AWAITING_G_F7 / V2_PREMERGE_VERIFIED / MAIN_UNCHANGED
+
+## 2026-11-22 — Bloco C: axe e AC01–AC24
+
+- A auditoria axe-core cobriu 8 rotas em desktop/mobile e os 12 temas na Home: **28 scans, 0 violações** após corrigir o `select-name` crítico da Prioridade contextual em `ReviewWorkspace.tsx`.
+- Regressão: teste E2E específico do select, F5 **6/6**, unit **928/928** e E2E serial **251 PASS / 11 SKIP / 0 FAIL** (5,8 min).
+- Staging corrigido: versão **ca74c967-9e63-438d-b05c-d01467ecc29d**, bundle `index-uCEOLZ2v.js` SHA-256 `E46DF13D…`, SW `D9D92A55…`; `verify:staging` HTTP_CHECKS_PASS e E2E real 6/6.
+- A UI de backup Google continua `NOT_RUN_TOOLING`; não declaro F7 plenamente homologada nem aceite G-F7. Nenhum merge na main.
 
 ## 2026-11-22 — V1: versão ativa e conteúdo público
 
