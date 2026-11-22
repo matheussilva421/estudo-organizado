@@ -57,8 +57,11 @@
 - Build redirect publicado no Worker V2 do site; read-back HTTP e E2E real 6/6 PASS.
 - Contas A e B concluíram OAuth Google real em modo redirect; A/B sequenciais no mesmo perfil, sem registrar UID/e-mail. A prova simultânea em perfis separados não foi executada.
 - Worker de backup com âncora publicado em <code>6e07afe0-af7d-4df5-bbf7-0e3a75822ab2</code>, deny-all. O ensaio real da âncora ficou <code>BLOCKED_AUTO_REVIEW_ALLOWLIST</code>; a plataforma rejeitou reativar <code>ALLOWED_UIDS</code> e não houve contorno.
-- <code>origin/v2</code> recebeu fast-forward; o commit documental final é publicado no mesmo fluxo. <code>main</code>/<code>origin/main</code> permanecem em <code>74b2c75e</code>.
-- Ensaio de merge final: árvore <code>ad68a5df</code>, 0 conflitos, 1400 arquivos.
+- <code>origin/v2</code> está em <code>5fcb7a9b</code>, com read-back remoto; <code>main</code>/<code>origin/main</code> permanecem em <code>74b2c75e</code>.
+- Ensaio de merge final: árvore <code>d0bf67e2</code>, 0 conflitos, 1400 arquivos.
+- Âncora validada **1/1 PASS** no runtime real do Worker com Miniflare/KV local e tokens sintéticos; o Worker público segue deny-all e o teste no Cloudflare KV real continua <code>BLOCKED_AUTO_REVIEW_ALLOWLIST</code>.
+- Firebase Emulator **37/37 PASS** reexecutado no HEAD <code>5fcb7a9b</code> com JDK 21.0.13.1 portátil.
+- Inventário final: apenas main e <code>_v2-candidate</code>; sem PRs ou stashes; F5/recovery preservadas; PNGs F4 com hashes <code>A11D64D3…</code>, <code>76597B17…</code> e <code>47F20E38…</code>.
 
 ## V1 — verificação no M7
 

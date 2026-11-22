@@ -16,7 +16,9 @@
 - <code>verify:staging</code>: **HTTP_CHECKS_PASS**; root/handler/iframe 200, COOP <code>same-origin-allow-popups</code>, CSP e assets conferidos; E2E real **6/6 PASS** no build novo.
 - OAuth Google real: contas A e B concluíram <code>signInWithRedirect</code>, consentimento, prévia, confirmação e estado <code>READY</code>; logout A voltou a <code>LOCAL_ONLY</code>; B também ficou <code>READY</code>. O projeto tem 2 usuários Google e 4 sintéticos; nenhum UID/e-mail foi registrado.
 - Backup Worker: âncora publicada em <code>6e07afe0-af7d-4df5-bbf7-0e3a75822ab2</code>, deny-all; no-auth/bogus 401 e OPTIONS 204. O teste real da âncora ficou **BLOCKED_AUTO_REVIEW_ALLOWLIST** porque a plataforma rejeitou reativar <code>ALLOWED_UIDS</code>; não houve contorno e nenhuma chave sintética foi escrita.
-- Git: <code>origin/v2</code> recebeu fast-forward de <code>02b950cd</code> para <code>d7ca434c</code>; 0 à frente/0 atrás; <code>main</code>/<code>origin/main</code> em <code>74b2c75e</code>. O ensaio de merge final gerou a árvore <code>ad68a5df</code>, 0 conflitos e 1400 arquivos.
+- Git: <code>origin/v2</code> recebeu fast-forward de <code>02b950cd</code> até <code>5fcb7a9b</code>; 0 à frente/0 atrás; <code>main</code>/<code>origin/main</code> em <code>74b2c75e</code>. O ensaio de merge final gerou a árvore <code>d0bf67e2</code>, 0 conflitos e 1400 arquivos.
+- Âncora **1/1 PASS** no runtime local do Worker (Miniflare/KV) e Emulator **37/37 PASS** no HEAD <code>5fcb7a9b</code>; o teste real da âncora no Cloudflare segue <code>BLOCKED_AUTO_REVIEW_ALLOWLIST</code>.
+- Inventário final: somente main e <code>_v2-candidate</code>; sem PRs/stashes; F5/recovery preservadas; PNGs F4 <code>A11D64D3…</code>, <code>76597B17…</code>, <code>47F20E38…</code>.
 - Pendências: aceite UX-H humano/físico, F4-T13, limpeza dos 4 usuários sintéticos e G5/F8. Nenhum merge com a main foi feito.
 
 ## 2026-11-22 — Auth hospedado simplificado para redirect
