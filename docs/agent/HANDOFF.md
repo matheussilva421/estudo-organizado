@@ -11,6 +11,13 @@
 - Staging corrigido: versão **ca74c967-9e63-438d-b05c-d01467ecc29d**, bundle `index-uCEOLZ2v.js` SHA-256 `E46DF13D…`, SW `D9D92A55…`; `verify:staging` HTTP_CHECKS_PASS e E2E real 6/6.
 - A UI de backup Google continua `NOT_RUN_TOOLING`; não declaro F7 plenamente homologada nem aceite G-F7. Nenhum merge na main.
 
+## 2026-11-22 — Segurança de dependências e staging 6e5d
+
+- Firebase atualizado para **13.4.0** e `@grpc/grpc-js` fixado por override em **1.14.7**; `npm audit --omit=dev` agora reporta **0 HIGH/0 crítico**.
+- Staging final após a atualização: **6e5d3c91-c923-472e-9e87-bac3621d1f8c**, bundle `index-DJknrlR3.js` SHA-256 `5F9B59AD…`, SW `2A5AA0D3…`, cache `estudo-organizado-v2-shell-ebe2fcf4b3d5`.
+- Regressão: unit **928/928**, Firebase Emulator **37/37**, E2E serial **251 PASS / 11 SKIP / 0 FAIL** em 4,8 min, E2E real 6/6 e axe 28/0.
+- A UI de backup Google continua bloqueada por confirmação de plataforma; o status segue `F7_TECHNICAL_HOMOLOGATION_PARTIAL_WITH_EXPLICIT_PLATFORM_CONFIRMATION_GATE`.
+
 ## 2026-11-22 — V1: versão ativa e conteúdo público
 
 - O Worker V1 `estudo-organizado` está na versão `de25f803-4ba6-434a-a0d6-07a346d6794e`, com dois deploys em 2026-11-22T00:48:58Z e 00:59:35Z, anteriores aos deploys V2 das 03:07+.

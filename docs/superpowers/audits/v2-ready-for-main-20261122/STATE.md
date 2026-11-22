@@ -84,6 +84,13 @@
 - Staging ca74c967-9e63-438d-b05c-d01467ecc29d, bundle index-uCEOLZ2v.js, verify:staging PASS e E2E real 6/6.
 - A UI de backup Google permanece `NOT_RUN_TOOLING`; F7 técnica fica parcial, sem aceite G-F7 e sem merge.
 
+## Segurança de dependências — 2026-11-22
+
+- Firebase **13.4.0** e override `@grpc/grpc-js` **1.14.7**; `npm audit --omit=dev` com **0 HIGH/0 crítico**.
+- Staging **6e5d3c91-c923-472e-9e87-bac3621d1f8c**, bundle `index-DJknrlR3.js` SHA-256 `5F9B59AD…`, SW `2A5AA0D3…`, cache `estudo-organizado-v2-shell-ebe2fcf4b3d5`.
+- Unit 928/928, Emulator 37/37, E2E serial 251/11/0, staging 6/6 e axe 28/0.
+- Backup UI Google continua aguardando confirmação explícita de plataforma; nenhum merge ou cutover.
+
 ## Próximo
 
 ZIP final com o read-back de <code>origin/v2</code>, staging 20a461c1, OAuth A/B real e o gate da âncora. Permanecem UX-H humano/físico, F4-T13, limpeza dos 4 usuários sintéticos e G5/F8. Classificação: <code>PREMERGE_ENGINEERING_COMPLETE_WITH_EXPLICIT_GATES</code>.
