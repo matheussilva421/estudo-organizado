@@ -17,7 +17,9 @@ import {
   getFirestoreDeviceId,
   isRemoteNewer,
   FIRESTORE_ENVELOPE_MAX_BYTES,
-  getFirestoreEnvelopeSizeBytes,
+  FIRESTORE_ENVELOPE_SAFETY_BYTES,
+  getFirestoreEncodedSizeBytes,
+  isFirestoreEnvelopeWithinBudget,
 } from "./firestore-schema.js?v=8.37";
 import {
   clearFirestoreConflict,
@@ -812,16 +814,20 @@ function pendingEnvelopeHasOperationalHistory(pending) {
 
 function envelopeTooLargeMessage(size) {
   return (
-    `Envelope Firestore com ${size} bytes excede ${FIRESTORE_ENVELOPE_MAX_BYTES}; ` +
-    "dados academicos preservados, segmentacao necessaria."
+    `Documento Firestore com ${size} bytes codificados excede o orcamento de ` +
+    `${FIRESTORE_ENVELOPE_MAX_BYTES - FIRESTORE_ENVELOPE_SAFETY_BYTES} ` +
+    `(limite ${FIRESTORE_ENVELOPE_MAX_BYTES}); dados academicos preservados, ` +
+    "segmentacao necessaria."
   );
 }
 
 async function repairPendingFirestoreSnapshot(pending, config) {
   if (!pending?.envelope) return pending;
-  const size = getFirestoreEnvelopeSizeBytes(pending.envelope);
+  const size = getFirestoreEncodedSizeBytes(pending.envelope);
   const hasHistory = pendingEnvelopeHasOperationalHistory(pending);
-  if (!hasHistory && size <= FIRESTORE_ENVELOPE_MAX_BYTES) return pending;
+  if (!hasHistory && isFirestoreEnvelopeWithinBudget(pending.envelope)) {
+    return pending;
+  }
 
   const removedBefore = JSON.stringify(config.removedBlocks || []);
   let envelope;
@@ -846,9 +852,9 @@ async function repairPendingFirestoreSnapshot(pending, config) {
   if (JSON.stringify(config.removedBlocks || []) !== removedBefore) {
     await persistSyncConfig(true);
   }
-  const nextSize = getFirestoreEnvelopeSizeBytes(envelope);
+  const nextSize = getFirestoreEncodedSizeBytes(envelope);
   config.lastEnvelopeBytes = nextSize;
-  if (nextSize > FIRESTORE_ENVELOPE_MAX_BYTES) {
+  if (!isFirestoreEnvelopeWithinBudget(envelope)) {
     config.lastError = envelopeTooLargeMessage(nextSize);
     config.hasPendingWrites = true;
     await persistSyncConfig(true);
@@ -1087,8 +1093,8 @@ async function recoverStaleAdoptionOutbox(pending, remote, config) {
         : ["plano ausente"],
     };
   }
-  const size = getFirestoreEnvelopeSizeBytes(envelope);
-  if (size > FIRESTORE_ENVELOPE_MAX_BYTES) {
+  const size = getFirestoreEncodedSizeBytes(envelope);
+  if (!isFirestoreEnvelopeWithinBudget(envelope)) {
     return {
       status: "unsafe",
       reasonCode: "rebase-too-large",
@@ -2117,9 +2123,9 @@ export async function queueFirestoreSnapshotFromState(
     sourceState,
     envelopeOptions,
   );
-  const envelopeSize = getFirestoreEnvelopeSizeBytes(envelope);
+  const envelopeSize = getFirestoreEncodedSizeBytes(envelope);
   config.lastEnvelopeBytes = envelopeSize;
-  if (envelopeSize > FIRESTORE_ENVELOPE_MAX_BYTES) {
+  if (!isFirestoreEnvelopeWithinBudget(envelope)) {
     config.hasPendingWrites = Boolean(pending);
     config.lastError = envelopeTooLargeMessage(envelopeSize);
     await persistSyncConfig(false);
@@ -2304,11 +2310,11 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     return true;
   }
 
-  const envelopeSize = getFirestoreEnvelopeSizeBytes(pending.envelope);
+  const envelopeSize = getFirestoreEncodedSizeBytes(pending.envelope);
   config.lastEnvelopeBytes = envelopeSize;
   if (
     pendingEnvelopeHasOperationalHistory(pending) ||
-    envelopeSize > FIRESTORE_ENVELOPE_MAX_BYTES
+    !isFirestoreEnvelopeWithinBudget(pending.envelope)
   ) {
     config.lastError = envelopeTooLargeMessage(envelopeSize);
     config.hasPendingWrites = true;

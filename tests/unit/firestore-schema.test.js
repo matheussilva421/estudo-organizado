@@ -340,4 +340,41 @@ describe('firestore-schema.js operational payload budget', () => {
       FIRESTORE_ENVELOPE_MAX_BYTES,
     );
   });
+
+  describe('Firestore encoded size budget', () => {
+    it('accepts a JSON-over-limit document that fits the encoded budget', async () => {
+      const {
+        getFirestoreEncodedSizeBytes,
+        getFirestoreEnvelopeSizeBytes,
+        isFirestoreEnvelopeWithinBudget,
+        FIRESTORE_ENVELOPE_MAX_BYTES,
+      } = await import('../../src/js/sync/firestore-schema.js');
+      const rows = Array.from({ length: 400000 }, (_, index) =>
+        index % 2 ? true : null,
+      );
+      const envelope = { version: 1, payload: { rows } };
+
+      expect(getFirestoreEnvelopeSizeBytes(envelope)).toBeGreaterThan(
+        FIRESTORE_ENVELOPE_MAX_BYTES,
+      );
+      expect(getFirestoreEncodedSizeBytes(envelope)).toBeLessThan(
+        FIRESTORE_ENVELOPE_MAX_BYTES,
+      );
+      expect(isFirestoreEnvelopeWithinBudget(envelope)).toBe(true);
+    });
+
+    it('rejects a document above the encoded budget', async () => {
+      const {
+        getFirestoreEncodedSizeBytes,
+        isFirestoreEnvelopeWithinBudget,
+        FIRESTORE_ENVELOPE_MAX_BYTES,
+      } = await import('../../src/js/sync/firestore-schema.js');
+      const envelope = { payload: { text: 'x'.repeat(1100000) } };
+
+      expect(getFirestoreEncodedSizeBytes(envelope)).toBeGreaterThan(
+        FIRESTORE_ENVELOPE_MAX_BYTES,
+      );
+      expect(isFirestoreEnvelopeWithinBudget(envelope)).toBe(false);
+    });
+  });
 });

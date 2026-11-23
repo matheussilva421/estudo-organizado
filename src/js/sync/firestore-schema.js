@@ -4,6 +4,9 @@ export const FIRESTORE_SYNC_VERSION = 1;
 export const FIRESTORE_SNAPSHOT_DOC_ID = 'main';
 export const FIRESTORE_DEVICE_ID_KEY = 'estudo_firestore_device_id';
 export const FIRESTORE_ENVELOPE_MAX_BYTES = 1_048_576;
+// The Firestore limit applies to the encoded document, not to JSON.stringify.
+// Keep a margin for the document name and protobuf framing.
+export const FIRESTORE_ENVELOPE_SAFETY_BYTES = 16_384;
 
 export function getFirestoreEnvelopeSizeBytes(envelope) {
   if (!envelope) return 0;
@@ -12,6 +15,84 @@ export function getFirestoreEnvelopeSizeBytes(envelope) {
     return new Blob([text]).size;
   }
   return text.length;
+}
+
+function utf8Length(value) {
+  const text = String(value);
+  const BufferCtor = globalThis.Buffer;
+  if (BufferCtor && typeof BufferCtor.byteLength === 'function') {
+    return BufferCtor.byteLength(text, 'utf8');
+  }
+  const Encoder = globalThis.TextEncoder;
+  if (typeof Encoder === 'function') {
+    return new Encoder().encode(text).length;
+  }
+  if (typeof Blob !== 'undefined') return new Blob([text]).size;
+  return text.length;
+}
+
+function varintSize(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) return 10;
+  if (number < 0x80) return 1;
+  if (number < 0x4000) return 2;
+  if (number < 0x200000) return 3;
+  if (number < 0x10000000) return 4;
+  if (number < 0x800000000) return 5;
+  let rest = BigInt(number);
+  let bytes = 1;
+  while (
+    rest > 0x7fn
+  ) {
+    rest >>= 7n;
+    bytes += 1;
+  }
+  return bytes;
+}
+
+function firestoreValueSize(value) {
+  if (value === null || value === undefined) return 1;
+  if (typeof value === 'string') {
+    const bytes = utf8Length(value);
+    return 2 + varintSize(bytes) + bytes;
+  }
+  if (typeof value === 'boolean') return 1;
+  if (typeof value === 'number') {
+    if (Number.isSafeInteger(value)) return 1 + varintSize(value);
+    return 9;
+  }
+  if (Array.isArray(value)) {
+    let size = 1 + varintSize(value.length);
+    for (const item of value) size += firestoreValueSize(item);
+    return size;
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value).filter(([, item]) => item !== undefined);
+    let size = 1 + varintSize(entries.length);
+    for (const [key, item] of entries) {
+      const keyBytes = utf8Length(key);
+      size += 1 + varintSize(keyBytes) + keyBytes + firestoreValueSize(item);
+    }
+    return size;
+  }
+  return 1;
+}
+
+/**
+ * Estimates the encoded Firestore document size. JSON.stringify overestimates
+ * string-heavy documents because of quotes/escapes and boolean/null literals;
+ * using it as the 1 MiB guard rejects payloads the server would accept.
+ */
+export function getFirestoreEncodedSizeBytes(documentData) {
+  if (!documentData) return 0;
+  return firestoreValueSize(documentData);
+}
+
+export function isFirestoreEnvelopeWithinBudget(envelope) {
+  return (
+    getFirestoreEncodedSizeBytes(envelope) <=
+    FIRESTORE_ENVELOPE_MAX_BYTES - FIRESTORE_ENVELOPE_SAFETY_BYTES
+  );
 }
 
 function stripFirestoreOperationalMetadata(payload) {
