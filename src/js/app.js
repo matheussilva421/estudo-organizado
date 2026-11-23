@@ -34,13 +34,13 @@ import {
 
 // ── Other module imports for orchestrator functions ──────────────────
 import { renderCurrentView } from './components.js?v=8.37';
-import { ensureDB, initDB, scheduleSave, setState, state } from './store.js?v=8.37';
+import { ensureDB, initDB, saveStateToDB, saveTimeout, scheduleSave, setState, state } from './store.js?v=8.37';
 import { initGoogleAPIs, updateDriveUI } from './drive-sync.js?v=8.37';
 import { esc } from './utils.js?v=8.37';
 import { initNotifications } from './notifications.js?v=8.37';
 import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.37';
 import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.37';
-import { startV1Sync } from './sync/v1-next/worker.js?v=8.37';
+import { resumeV1SyncForUser, startV1Sync, stopV1Sync, suspendV1SyncForAuth } from './sync/v1-next/worker.js';
 import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.37';
 import { reconcilePrincipalEdital } from './views/editais-crud.js';
 import { syncRetaFinalToEventos } from './logic/reta-final.js';
@@ -48,11 +48,12 @@ import { reconcileDerivedStateOnBoot } from './app/boot-reconciliation.js';
 import { consumeDerivedRecoveryPending } from './store/boot-recovery.js';
 import {
   bootstrapConfiguredV1Generation,
+  isV1AuthFailure,
   isV1SyncEnabled,
   runV1FirstAccessLifecycle,
 } from './sync/v1-next/bootstrap.js?v=8.37';
 import { initFirebaseServices, observeFirebaseAuth } from './firebase/firebase-client.js?v=8.37';
-import { wireFirestores } from './sync/v1-next/remote.js?v=8.37';
+import { wireFirestores } from './sync/v1-next/remote.js';
 import {
   collection,
   doc,
@@ -120,6 +121,7 @@ function gateV1FirstAccess(result) {
   const status = result?.status || 'blocked';
   const preparing = status === 'preparing';
   const offline = status === 'requires-network';
+  const needsLogin = result?.reason === 'V1_AUTH_REQUIRED' || isV1AuthFailure(result?.reason);
   const title = preparing
     ? 'Preparando seus dados'
     : offline
@@ -138,7 +140,8 @@ function gateV1FirstAccess(result) {
         role="status" aria-live="polite"
         style="max-width:560px;margin:72px auto;padding:28px;border:1px solid var(--border);border-radius:16px;background:var(--surface);">
         <h2 style="margin-top:0;">${title}</h2>
-        <p style="color:var(--text-secondary);line-height:1.6;">${message}</p>
+        <p style="color:var(--text-secondary);line-height:1.6;">${needsLogin ? 'Entre com sua conta Google para carregar os dados desta conta.' : message}</p>
+        ${needsLogin ? '<button type="button" class="btn btn-primary" data-action="firestore-sign-in">Entrar com Google</button>' : ''}
       </section>
     `;
   }
@@ -236,36 +239,70 @@ export function init(options = {}) {
     return initDB().then(completeInitialization).catch(showInitializationError);
   }
 
-  return runV1FirstAccessLifecycle({
-    gate: gateV1FirstAccess,
-    openStorage: ensureDB,
-    prepare: () => bootstrapConfiguredV1Generation({
-      windowRef: options.windowRef,
-      storage: options.storage,
-      initFirebaseServices: options.initFirebaseServices || initFirebaseServices,
-      wireFirestores: options.wireFirestores || wireFirestores,
-      firestoreSdk: options.firestoreSdk || V1_FIRESTORE_SDK,
-      observeFirebaseAuth: options.observeFirebaseAuth || observeFirebaseAuth,
-      remoteApi: options.remoteApi,
-      online: options.online,
-      local: options.local,
-      onBackgroundResult: (result) => {
-        if (result.status === 'blocked') gateV1FirstAccess(result);
-      },
-    }),
-    initDB: () => initDB({ loadState: false }),
-    applyState: (nextState) => setState(nextState),
-    release: releaseV1FirstAccess,
-  }).then((result) => {
-    if (result?.status !== 'ready' || v1GenerationBlocked) return undefined;
-    return completeInitialization({
-      v1Context: result.uid && result.generationId ? {
-        uid: result.uid,
-        generationId: result.generationId,
-      } : null,
-      runtimeRemoteApi: result.runtimeRemoteApi || options.remoteApi,
+  let session = 0;
+  let lastUid;
+  let boot;
+  function onAuthChange(user, initialUid) {
+    const uid = user?.uid ?? null;
+    if (uid === (lastUid === undefined ? initialUid : lastUid)) {
+      if (uid) Promise.resolve(resumeV1SyncForUser(uid)).catch(showInitializationError);
+      return;
+    }
+    lastUid = uid;
+    const version = ++session;
+    gateV1FirstAccess({ status: 'blocked', reason: uid ? null : 'V1_AUTH_REQUIRED' });
+    // Capture a debounced edit under the departing identity before clearing its context.
+    const saved = saveTimeout ? saveStateToDB() : Promise.resolve();
+    stopV1Sync();
+    setState({});
+    boot = Promise.all([boot, saved]).then(() => {
+      if (version !== session) return;
+      stopV1Sync();
+      if (uid) return openSession(version, user);
+    }).catch(showInitializationError);
+  }
+
+  function openSession(version, authUser) {
+    v1GenerationBlocked = false;
+    let authFailure;
+    return runV1FirstAccessLifecycle({
+      gate: result => { if (version === session) gateV1FirstAccess(result); },
+      openStorage: ensureDB,
+      prepare: () => bootstrapConfiguredV1Generation({
+        windowRef: options.windowRef,
+        storage: options.storage,
+        initFirebaseServices: options.initFirebaseServices || initFirebaseServices,
+        wireFirestores: options.wireFirestores || wireFirestores,
+        firestoreSdk: options.firestoreSdk || V1_FIRESTORE_SDK,
+        observeFirebaseAuth: options.observeFirebaseAuth || observeFirebaseAuth,
+        authUser,
+        onAuthChange,
+        remoteApi: options.remoteApi,
+        online: options.online,
+        local: options.local,
+        onBackgroundResult: result => {
+          if (version !== session) return;
+          if (isV1AuthFailure(result.reason)) {
+            authFailure = result.reason;
+            suspendV1SyncForAuth(authFailure);
+          } else if (result.status === 'blocked') {
+            gateV1FirstAccess(result);
+          }
+        },
+      }),
+      initDB: () => initDB({ loadState: false }),
+      applyState: nextState => { if (version === session) setState(nextState); },
+      release: () => { if (version === session) releaseV1FirstAccess(); },
+    }).then(result => {
+      if (result?.status !== 'ready' || version !== session || v1GenerationBlocked) return;
+      return completeInitialization({
+        v1Context: { uid: result.uid, generationId: result.generationId, authFailure },
+        runtimeRemoteApi: result.runtimeRemoteApi || options.remoteApi,
+      });
     });
-  }).catch(showInitializationError);
+  }
+  boot = openSession(session).catch(showInitializationError);
+  return boot;
 }
 
 // ── Interactive Prompts ───────────────────────────────────────────────

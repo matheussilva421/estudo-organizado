@@ -113,6 +113,10 @@ function canonical(value) {
     .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
 }
 
+function isOutstanding(operation) {
+  return ['pending', 'in-flight', 'retry'].includes(operation.status);
+}
+
 function operationItem(operation) {
   if (!operation || operation.action === 'delete') return null;
   return {
@@ -231,6 +235,20 @@ function insertRecordIntoState(state, item) {
 }
 
 function stateWithRecord(state, previous, item) {
+  if (previous && item) {
+    const { records } = convertBackupV12(state);
+    const siblings = records[entityCollectionForType(item.entityType)];
+    const index = siblings.findIndex(record => record.key === item.key);
+    if (index < 0) failClosed('record identity');
+    siblings[index] = { ...item, path: previous.path };
+    const rebuilt = reconstituteBackupV12(records);
+    if (canonical(previous.path) === canonical(item.path)) return rebuilt;
+    const subtree = previous.path.reduce((parent, segment) => parent[segment], rebuilt);
+    removeRecordFromState(rebuilt, previous.path);
+    insertRecordIntoState(rebuilt, { ...item, data: subtree });
+    convertBackupV12(rebuilt);
+    return rebuilt;
+  }
   const next = clone(state);
   if (previous) removeRecordFromState(next, previous.path);
   if (item) insertRecordIntoState(next, item);
@@ -328,6 +346,16 @@ export function prepareLocalCommit({
     }
   }
 
+  const openByEntity = new Map((existingConflicts || [])
+    .filter(row => row.uid === uid && row.generationId === generationId && row.status === 'open')
+    .map(row => [row.entityKey, row]));
+  const tailByEntity = new Map();
+  for (const op of pending) {
+    if (isOutstanding(op) && !(tailByEntity.get(op.entityKey)?.sequence >= op.sequence)) {
+      tailByEntity.set(op.entityKey, op);
+    }
+  }
+
   const tombstoneCandidates = [...nextRecords.entries()]
     .filter(([entityKey]) => metaByKey.get(entityKey)?.deleted === true)
     .sort(([leftKey, left], [rightKey, right]) => {
@@ -371,7 +399,6 @@ export function prepareLocalCommit({
     changes.set(entityKey, override);
   }
 
-  const updatedPending = new Map(pending.map((operation) => [operation.opId, clone(operation)]));
   const committedOperations = [];
   const entityMetaUpdates = new Map();
   const deletedOperationIds = [];
@@ -387,16 +414,18 @@ export function prepareLocalCommit({
   for (const [entityKey, change] of ordered) {
     const template = change.next || change.previous;
     const meta = metaByKey.get(entityKey);
-    const baseRevision = Number.isSafeInteger(meta?.baseRevision) ? meta.baseRevision : 0;
-    const candidate = [...updatedPending.values()]
-      .filter((operation) => operation.entityKey === entityKey &&
-        ['pending', 'retry'].includes(operation.status) &&
-        operation.baseRevision === baseRevision)
-      .sort((left, right) => right.sequence - left.sequence)[0] || null;
-    let operation = candidate;
+    const open = openByEntity.get(entityKey);
+    if (open) {
+      conflicts.push({ ...open, localVersion: recordVersion(open.local, change.next,
+        change.action === 'delete'), updatedAt: now });
+      continue;
+    }
+    const tail = tailByEntity.get(entityKey);
+    const candidate = tail?.status === 'pending' ? tail : null;
+    const baseRevision = candidate?.baseRevision ?? tail?.revision ?? meta?.baseRevision ?? 0;
+    let operation = candidate ? clone(candidate) : null;
     if (change.action === 'delete' && baseRevision === 0) {
       if (operation) {
-        updatedPending.delete(operation.opId);
         deletedOperationIds.push(operation.opId);
       }
       deletedEntityMetaKeys.push(entityMetaKey(uid, generationId, entityKey));
@@ -433,7 +462,7 @@ export function prepareLocalCommit({
           entityId: template.entityId,
           collection: entityCollectionForType(template.entityType),
           path: clone(template.path),
-          baseRecord: change.previous ? clone(change.previous) : null,
+          baseRecord: tail ? operationItem(tail) : clone(meta?.lastRecord ?? change.previous ?? null),
           baseRevision,
           revision: baseRevision + 1,
           action: 'delete',
@@ -459,7 +488,7 @@ export function prepareLocalCommit({
           entityId: change.next.entityId,
           collection: entityCollectionForType(change.next.entityType),
           path: clone(change.next.path),
-          baseRecord: change.previous ? clone(change.previous) : null,
+          baseRecord: tail ? operationItem(tail) : clone(meta?.lastRecord ?? change.previous ?? null),
           baseRevision,
           revision: baseRevision + 1,
           action: 'upsert',
@@ -475,10 +504,10 @@ export function prepareLocalCommit({
           updatedAt: now,
         };
       }
-      updatedPending.set(operation.opId, operation);
     }
     committedOperations.push(clone(operation));
     entityMetaUpdates.set(entityMetaKey(uid, generationId, entityKey), {
+      ...meta,
       key: entityMetaKey(uid, generationId, entityKey),
       uid,
       generationId,
@@ -494,10 +523,7 @@ export function prepareLocalCommit({
   }
 
   for (const { entityKey, record, meta } of tombstonedAttempts) {
-    const open = (Array.isArray(existingConflicts) ? existingConflicts : []).some(
-      (conflict) => conflict?.entityKey === entityKey && conflict.status === 'open',
-    );
-    if (open) continue;
+    if (openByEntity.has(entityKey)) continue;
     sequence += 1;
     const opId = operationId(existingIds);
     existingIds.add(opId);
@@ -813,7 +839,7 @@ export async function installRemoteBaseline({
           const existing = reads.state;
           const pending = (reads.operations || []).filter((operation) =>
             operation?.uid === uid && operation?.generationId === generationId &&
-            ['pending', 'retry'].includes(operation.status));
+            isOutstanding(operation));
           if (pending.length) failClosed('baseline with pending work');
 
           if (existing && (existing.key !== stateKey || existing.uid !== uid ||
@@ -969,7 +995,7 @@ export async function applyRemoteRecord({
           }
           const pending = (reads.operations || []).filter((operation) =>
             operation?.uid === uid && operation?.generationId === generationId &&
-            operation?.entityKey === entityKey && ['pending', 'retry'].includes(operation.status));
+            operation?.entityKey === entityKey && isOutstanding(operation));
           const meta = reads.meta;
           const ownTombstone = record.deleted && pending.some(
             (operation) => operation.opId === record.opId,
@@ -978,7 +1004,9 @@ export async function applyRemoteRecord({
             control.setResult({ applied: false, reason: 'tombstoned' });
             return;
           }
-          if (pending.length && !record.deleted) {
+          if (!record.deleted && (pending.length || reads.conflicts.some(conflict =>
+            conflict.uid === uid && conflict.generationId === generationId &&
+            conflict.entityKey === entityKey && conflict.status === 'open'))) {
             control.setResult({ applied: false, reason: 'pending' });
             return;
           }
@@ -1004,11 +1032,26 @@ export async function applyRemoteRecord({
             }
           }
 
+          if (record.deleted) {
+            if (meta?.lastRemoteRecord?.revision > record.revision) {
+              control.setResult({ applied: false, reason: 'already-current' });
+              return;
+            }
+            for (const conflict of reads.conflicts) {
+              if (conflict.uid === uid && conflict.generationId === generationId &&
+                conflict.entityKey === entityKey && conflict.status === 'open') {
+                conflictStore.put({ ...conflict, reason: 'tombstone', remote: record.revision,
+                  remoteDeleted: true, remoteRecord: clone(record),
+                  remoteVersion: recordVersion(record.revision, null, true), updatedAt: now });
+              }
+            }
+          }
+
           if (pending.length && record.deleted && !ownTombstone) {
             const conflicts = [];
-            const existing = new Map((reads.conflicts || []).map(
-              (conflict) => [conflict.conflictId, conflict],
-            ));
+            const existing = new Map((reads.conflicts || [])
+              .filter(conflict => conflict.uid === uid && conflict.generationId === generationId)
+              .map(conflict => [conflict.conflictId, conflict]));
             for (const operation of pending) {
               const candidate = conflictRecord(operation, {
                 code: 'tombstone',
@@ -1215,18 +1258,53 @@ export async function setLocalGenerationVerified(uid, generationId, verified = t
   });
 }
 
+// Read conflict barriers and FIFO heads in the same transaction as the claim.
+function readQueueHeads(transaction, control, uid, generationId, ready) {
+  const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
+  const ops = outbox.getAll();
+  const conflicts = transaction.objectStore(V1_SYNC_CONFLICT_STORE).getAll();
+  let remaining = 2;
+  const finish = () => {
+    remaining -= 1;
+    if (remaining > 0) return;
+    const scoped = row => row.uid === uid && row.generationId === generationId;
+    const seen = new Set(conflicts.result.filter(row => scoped(row) && row.status !== 'resolved')
+      .map(row => row.entityKey));
+    const heads = ops.result.filter(row => scoped(row) && isOutstanding(row))
+      .sort((left, right) => left.sequence - right.sequence)
+      .filter(row => {
+        if (seen.has(row.entityKey)) return false;
+        seen.add(row.entityKey);
+        return true;
+      });
+    ready(heads, outbox);
+  };
+  ops.onsuccess = conflicts.onsuccess = finish;
+  ops.onerror = () => control.abort(ops.error);
+  conflicts.onerror = () => control.abort(conflicts.error);
+}
+
 export async function getPendingOperations(uid, generationId) {
   validateScope(uid, generationId);
-  const all = await runTransaction([V1_SYNC_OUTBOX_STORE], 'readonly', (transaction, control) => {
-    const request = transaction.objectStore(V1_SYNC_OUTBOX_STORE).getAll();
-    request.onsuccess = () => control.setResult(request.result || []);
-    request.onerror = () => control.abort(request.error);
+  return runTransaction([V1_SYNC_OUTBOX_STORE, V1_SYNC_CONFLICT_STORE], 'readonly', (tx, control) => {
+    readQueueHeads(tx, control, uid, generationId, heads => control.setResult(heads));
   });
-  return all
-    .filter((operation) => operation?.uid === uid && operation?.generationId === generationId &&
-      ['pending', 'retry'].includes(operation.status))
-    .sort((left, right) => left.sequence - right.sequence || left.createdAt.localeCompare(right.createdAt))
-    .map(clone);
+}
+
+export async function claimLocalOperation({ uid, generationId, opId }) {
+  validateScope(uid, generationId);
+  return runTransaction([V1_SYNC_OUTBOX_STORE, V1_SYNC_CONFLICT_STORE], 'readwrite', (tx, control) => {
+    readQueueHeads(tx, control, uid, generationId, (heads, outbox) => {
+      const head = heads.find(row => row.opId === opId);
+      if (!head || Date.parse(head.nextAttemptAt) > Date.now()) {
+        control.setResult(null);
+        return;
+      }
+      const operation = { ...head, status: 'in-flight' };
+      outbox.put(operation);
+      control.setResult(operation);
+    });
+  });
 }
 
 /** Persist bounded retry metadata without changing the operation payload. */
@@ -1254,7 +1332,7 @@ export async function markLocalOperationRetry(opId, {
         control.abort(new Error('V1 operation not found'));
         return;
       }
-      if (!['pending', 'retry'].includes(operation.status)) {
+      if (!isOutstanding(operation)) {
         control.setResult(false);
         return;
       }
@@ -1297,11 +1375,24 @@ export async function markLocalOperationConflict(opId, conflict, {
           control.setResult(false);
           return;
         }
-        if (!['pending', 'retry'].includes(operation.status)) {
+        if (!isOutstanding(operation)) {
           control.abort(new Error('V1 operation cannot enter conflict'));
           return;
         }
-        conflicts.put(conflictRecord(operation, conflict, { now }));
+        const queued = outbox.getAll();
+        queued.onerror = () => control.abort(queued.error);
+        queued.onsuccess = () => {
+          const tail = queued.result.filter(op => op.uid === operation.uid &&
+            op.generationId === operation.generationId && op.entityKey === operation.entityKey &&
+            op.sequence > operation.sequence && isOutstanding(op))
+            .sort((left, right) => right.sequence - left.sequence)[0];
+          const entry = conflictRecord(operation, conflict, { now });
+          if (tail) {
+            entry.local = tail.revision;
+            entry.localVersion = recordVersion(tail.revision, operationItem(tail), tail.action === 'delete');
+          }
+          conflicts.put(entry);
+        };
         outbox.put({
           ...operation,
           status: 'conflict',
@@ -1325,7 +1416,7 @@ export async function mergeLocalOperationWithRemote(opId, conflict, {
     failClosed('conflict');
   }
   return runTransaction(
-    [V1_SYNC_OUTBOX_STORE, V1_LOCAL_STATE_STORE, V1_ENTITY_META_STORE],
+    [V1_SYNC_OUTBOX_STORE, V1_LOCAL_STATE_STORE, V1_ENTITY_META_STORE, V1_SYNC_CONFLICT_STORE],
     'readwrite',
     (transaction, control) => {
       const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
@@ -1334,16 +1425,19 @@ export async function mergeLocalOperationWithRemote(opId, conflict, {
       const reads = {};
       const done = new Set();
       const stage = () => {
-        if (done.size !== 3) return;
+        if (done.size !== 4) return;
         try {
           const operation = reads.operation;
           if (!operation) failClosed('operation');
           validateScope(operation.uid, operation.generationId);
-          if (conflict.remoteDeleted === true || conflict.remoteRecord?.deleted === true) {
+          if (reads.meta?.deleted || conflict.remoteDeleted === true || conflict.remoteRecord?.deleted === true) {
             control.setResult({ merged: false, reason: 'tombstone' });
             return;
           }
-          if (!['pending', 'retry'].includes(operation.status)) {
+          if (reads.conflicts.some(row => row.uid === operation.uid &&
+            row.generationId === operation.generationId && row.entityKey === operation.entityKey &&
+            row.status === 'open') || !isOutstanding(operation) || (reads.meta?.pendingOpId &&
+            reads.meta.pendingOpId !== opId)) {
             control.setResult({ merged: false, reason: 'operation-status' });
             return;
           }
@@ -1423,6 +1517,8 @@ export async function mergeLocalOperationWithRemote(opId, conflict, {
             revision,
             deleted: false,
             pendingOpId: operation.opId,
+            lastRecord: clone(remoteItem),
+            lastRemoteRecord: clone(remoteRecord),
             updatedAt: now,
           });
           control.setResult({ merged: true, operation: clone(updated), record: merged.record });
@@ -1431,7 +1527,7 @@ export async function mergeLocalOperationWithRemote(opId, conflict, {
         }
       };
       const read = (store, key, field) => {
-        const request = store.get(key);
+        const request = key === null ? store.getAll() : store.get(key);
         request.onsuccess = () => {
           reads[field] = request.result || null;
           done.add(field);
@@ -1443,12 +1539,13 @@ export async function mergeLocalOperationWithRemote(opId, conflict, {
       initial.onsuccess = () => {
         reads.operation = initial.result || null;
         if (!reads.operation) {
-          stage();
+          control.abort(new Error('V1 operation not found'));
           return;
         }
         const scope = scopeKey(reads.operation.uid, reads.operation.generationId);
         const metaKey = entityMetaKey(reads.operation.uid, reads.operation.generationId,
           reads.operation.entityKey);
+        read(transaction.objectStore(V1_SYNC_CONFLICT_STORE), null, 'conflicts');
         read(stateStore, scope, 'state');
         read(metaStore, metaKey, 'meta');
         done.add('operation');
@@ -1548,9 +1645,26 @@ export async function resolveLocalConflict({
                 if (!remote || !Number.isSafeInteger(remote.revision)) {
                   failClosed('remote conflict version');
                 }
+                const confirmedRevision = meta?.pendingOpId
+                  ? meta.lastRemoteRecord?.revision ?? operation.baseRevision
+                  : meta?.revision;
+                if (confirmedRevision > remote.revision ||
+                  (meta?.deleted && (!remote.deleted || choice !== 'remote'))) {
+                  failClosed('stale conflict or terminal tombstone');
+                }
                 const previous = convertBackupV12(stateRecord.state)
                   .records[conflict.collection]
                   .find((candidate) => candidate.key === conflict.entityKey) || null;
+                // The selected version resolves the entire entity, including edits queued during apply.
+                const queued = outbox.getAll();
+                queued.onerror = () => control.abort(queued.error);
+                queued.onsuccess = () => {
+                  for (const op of queued.result) {
+                    if (op.uid === uid && op.generationId === generationId &&
+                      op.entityKey === operation.entityKey && op.sequence > operation.sequence &&
+                      isOutstanding(op)) outbox.put({ ...op, status: 'resolved', updatedAt: now });
+                  }
+                };
                 let resultStatus;
                 let nextOperation = null;
                 let nextState;
@@ -1624,6 +1738,8 @@ export async function resolveLocalConflict({
                     baseRevision,
                     revision,
                     deleted: false,
+                    lastRecord: clone(remote.record),
+                    lastRemoteRecord: clone(conflict.remoteRecord),
                     pendingOpId: conflict.opId,
                     updatedAt: now,
                   });
@@ -1726,7 +1842,7 @@ export async function ackLocalOperation(opId, receipt) {
           }
           return;
         }
-        if (!['pending', 'retry'].includes(operation.status)) {
+        if (!isOutstanding(operation)) {
           control.abort(new Error('V1 operation cannot be acknowledged'));
           return;
         }
@@ -1752,9 +1868,9 @@ export async function ackLocalOperation(opId, receipt) {
             entityId: operation.entityId,
             collection: operation.collection,
             baseRevision: validated.revision,
-            revision: validated.revision,
+            revision: Math.max(previous?.revision ?? 0, validated.revision),
             deleted: validated.deleted,
-            pendingOpId: null,
+            pendingOpId: previous?.pendingOpId === opId ? null : previous?.pendingOpId ?? null,
             lastAckedOpId: operation.opId,
             lastRecord: validated.deleted ? null : operationItem(operation),
             lastRemoteRecord: {
@@ -1832,7 +1948,7 @@ export async function getLocalSyncStatus(uid, generationId) {
   const openConflicts = conflicts.filter((conflict) => conflict.status !== 'resolved');
   return {
     verified: result.state?.verified === true,
-    pending: operations.filter((operation) => operation.status === 'pending').length,
+    pending: operations.filter((operation) => ['pending', 'in-flight'].includes(operation.status)).length,
     retry: operations.filter((operation) => operation.status === 'retry').length,
     acked: operations.filter((operation) => operation.status === 'acked').length,
     conflicts: openConflicts.length,

@@ -5,6 +5,7 @@
 
 import { state } from "../../store.js?v=8.37";
 import { esc } from "../../utils.js?v=8.37";
+import { isLegacySyncBlocked } from '../../sync/v1-next/bootstrap.js';
 import { buildSyncCenterModel } from "../../sync/sync-center.js?v=8.37";
 import { getFirestoreSyncStatus } from "../../sync/firestore-sync-engine.js?v=8.37";
 import { formatBackupDateTime } from "./backup-settings.js?v=8.37";
@@ -656,12 +657,11 @@ function renderQuietSyncCenterCard() {
 
         ${v1StatusMarkup}
 
+        ${v1Status || isLegacySyncBlocked() ? '' : `
         <div class="sync-manual-primary">
-          ${v1Status
-            ? ""
-            : `<button type="button" class="btn btn-primary btn-lg" data-action="manual-sync-all">
+          <button type="button" class="btn btn-primary btn-lg" data-action="manual-sync-all">
             <i class="fa fa-arrows-rotate"></i> Sincronizar agora
-          </button>`}
+          </button>
           <button type="button" class="btn btn-outline btn-sm" data-action="download-from-source" title="Baixa dados de um canal remoto e substitui os dados locais. Use ao iniciar em um dispositivo desatualizado.">
             <i class="fa fa-cloud-arrow-down"></i> Baixar dados
           </button>
@@ -687,7 +687,7 @@ function renderQuietSyncCenterCard() {
 
         <div class="sync-source-advanced-list">
           ${sources.map(renderSourceAdvancedBlock).join("")}
-        </div>
+        </div>`}
       </div>
     </div>
   `;

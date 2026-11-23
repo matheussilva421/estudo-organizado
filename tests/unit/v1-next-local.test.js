@@ -423,6 +423,49 @@ describe('v1-next local persistence', () => {
     expect(pending.find((operation) => operation.entityId === 'ev_coalesce').action).toBe('delete');
   });
 
+  it.each(['ack', 'conflict'])('serializes an edit during apply and handles %s', async (result) => {
+    createDatabase();
+    const local = await importLocal();
+    const scope = { uid: 'uid_edit', generationId: 'gen_edit' };
+    const pending = () => local.getPendingOperations(scope.uid, scope.generationId);
+    const state = academicState({ eventos: [createEvento({ id: 'ev_1', titulo: 'Original' }),
+      createEvento({ id: 'ev_2', titulo: 'Independent' })] });
+    const save = () => local.commitLocalChange({ ...scope, nextState: state });
+    await save();
+    const original = (await pending()).find(op => op.entityId === 'ev_1');
+    const apply = async (sent) => {
+      expect(sent.status).toBe('in-flight');
+      state.eventos[0].titulo = 'Edited';
+      await save();
+      return receiptFor(sent);
+    };
+    const receipt = await apply(await local.claimLocalOperation(original));
+    const immutable = (await pending()).find(op => op.opId === original.opId);
+    expect(immutable).toMatchObject({ status: 'in-flight', opDigest: original.opDigest });
+    if (result === 'ack') {
+      await local.ackLocalOperation(original.opId, receipt);
+      const successor = (await pending()).find(op => op.entityId === 'ev_1');
+      expect(successor).toMatchObject({ baseRevision: original.revision, data: { titulo: 'Edited' } });
+      expect(successor.opId).not.toBe(original.opId);
+    } else {
+      const remote = { ...materializeOperation(original), revision: 3, baseRevision: 2, opId: 'remote_current' };
+      await local.markLocalOperationConflict(original.opId, {
+        code: 'revision', remoteRevision: 3, remoteRecord: remote,
+      });
+      state.eventos[0].titulo = 'Edited again';
+      const before = await local.getLocalSyncStatus(scope.uid, scope.generationId);
+      await save();
+      expect(await local.getLocalSyncStatus(scope.uid, scope.generationId)).toEqual(before);
+      expect((await pending()).some(op => op.entityId === 'ev_1')).toBe(false);
+      expect((await pending()).some(op => op.entityId === 'ev_2')).toBe(true);
+      const resolved = await local.resolveLocalConflict({ ...scope, conflictId: original.opId, choice: 'local' });
+      expect(resolved.operation).toMatchObject({ baseRevision: 3, revision: 4,
+        baseRecord: { data: { titulo: 'Original' } }, data: { titulo: 'Edited again' } });
+      await local.ackLocalOperation(original.opId, receiptFor(resolved.operation));
+      expect((await pending()).some(op => op.entityId === 'ev_1')).toBe(false);
+    }
+  });
+
   it('rejects a foreign ACK and persists an identical receipt', async () => {
     const idb = createDatabase();
     const local = await importLocal();

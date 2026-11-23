@@ -45,6 +45,10 @@ function safeReason(error) {
     : 'V1_BOOTSTRAP_FAILED';
 }
 
+export function isV1AuthFailure(code) {
+  return ['V1_REMOTE_AUTH_REQUIRED', 'V1_REMOTE_UID_MISMATCH', 'V1_REMOTE_PERMISSION_DENIED'].includes(code);
+}
+
 function requiresNetwork(error) {
   return [
     'V1_REMOTE_OFFLINE',
@@ -245,7 +249,7 @@ export async function revalidateV1Generation({
     }
     return { status: 'ready', generationId: pointer.generationId };
   } catch (error) {
-    if (!requiresNetwork(error)) {
+    if (!requiresNetwork(error) && !isV1AuthFailure(error?.code)) {
       try {
         const pointer = await local.readV1GenerationPointer(uid);
         if (pointer) await local.markV1GenerationBlocked(uid, pointer.generationId);
@@ -306,6 +310,10 @@ export function isV1SyncEnabled({
   }
 }
 
+export function isLegacySyncBlocked() {
+  return isV1SyncEnabled() || Boolean(localModule.getActiveV1Context());
+}
+
 function configuredV1(windowRef) {
   try {
     const explicit = windowRef?.[TEST_CONFIG_KEY];
@@ -321,6 +329,7 @@ export function waitForAuthUser(observeAuth, {
   timeoutMs = AUTH_TIMEOUT_MS,
   setTimeoutRef = globalThis.setTimeout,
   clearTimeoutRef = globalThis.clearTimeout,
+  onAuthChange,
 } = {}) {
   if (typeof observeAuth !== 'function') return Promise.resolve(null);
   return new Promise((resolve) => {
@@ -332,19 +341,30 @@ export function waitForAuthUser(observeAuth, {
       settled = true;
       if (timer !== null) clearTimeoutRef?.(timer);
       try {
-        unsubscribe?.();
+        if (!onAuthChange) unsubscribe?.();
       } catch {
         // The restored identity remains authoritative even if cleanup fails.
       }
       resolve(user || null);
     };
     try {
-      unsubscribe = observeAuth((user) => finish(user));
+      let initialUid = null;
+      unsubscribe = observeAuth((user) => {
+        if (settled) {
+          onAuthChange?.(user || null, initialUid);
+          return;
+        }
+        initialUid = user?.uid ?? null;
+        finish(user);
+      });
     } catch {
       finish(null);
       return;
     }
-    if (settled) return;
+    if (settled) {
+      if (!onAuthChange) unsubscribe?.();
+      return;
+    }
     timer = setTimeoutRef(() => finish(null), timeoutMs);
   });
 }
@@ -353,7 +373,7 @@ function blockedBoot(reason) {
   return { enabled: true, status: 'blocked', reason };
 }
 
-function authenticatedBootInput(options, online) {
+function authenticatedBootInput(options) {
   if (typeof options.initFirebaseServices !== 'function') {
     throw Object.assign(new Error('Firebase services unavailable'), {
       code: 'V1_FIREBASE_NOT_CONFIGURED',
@@ -374,7 +394,7 @@ function authenticatedBootInput(options, online) {
     db: services.db,
     auth: services.auth,
     firestore: options.firestoreSdk,
-    isOnline: () => online,
+    isOnline: () => options.online ?? onlineByDefault(),
   });
   return services;
 }
@@ -389,10 +409,11 @@ export async function bootstrapConfiguredV1Generation(options = {}) {
   let uid = config?.enabled === true ? config.uid : options.uid;
   try {
     if (config?.enabled !== true) {
-      authenticatedBootInput(options, online);
+      authenticatedBootInput(options);
       const user = options.authUser !== undefined
         ? options.authUser
         : await waitForAuthUser(options.observeFirebaseAuth, {
+          onAuthChange: options.onAuthChange,
           timeoutMs: options.authTimeoutMs,
           setTimeoutRef: options.setTimeoutRef,
           clearTimeoutRef: options.clearTimeoutRef,
@@ -409,7 +430,7 @@ export async function bootstrapConfiguredV1Generation(options = {}) {
   const result = await bootstrapV1Generation({
     uid,
     online,
-    remoteApi: options.remoteApi || config.remoteApi || DEFAULT_REMOTE,
+    remoteApi: options.remoteApi || config?.remoteApi || DEFAULT_REMOTE,
     local: options.local || localModule,
     now: options.now,
     onBackgroundResult: options.onBackgroundResult,

@@ -1,3 +1,4 @@
+import { isLegacySyncBlocked } from './v1-next/bootstrap.js';
 import { debugLog } from "../debug.js";
 import {
   completeGoogleRedirectSignIn,
@@ -1646,6 +1647,7 @@ let pollingInterval = null;
 const DEFAULT_POLL_INTERVAL_MS = 30000;
 
 export async function pollFirestoreRemote() {
+  if (isLegacySyncBlocked()) return false;
   const config = getConfig();
   if (!config.enabled || config.mode !== "primary" || !currentUser?.uid)
     return false;
@@ -1743,6 +1745,7 @@ export async function pollFirestoreRemote() {
 }
 
 export function startPolling(intervalMs = DEFAULT_POLL_INTERVAL_MS) {
+  if (isLegacySyncBlocked()) return false;
   if (pollingInterval) return;
   if (isGlobalSyncPaused(state.config)) return;
   pollFirestoreRemote().catch(() => {});
@@ -1873,6 +1876,7 @@ export async function downloadSyncDiagnosticLog() {
 }
 
 export function initFirestoreSync() {
+  if (isLegacySyncBlocked()) return false;
   const services = initFirebaseServices();
   const _config = getConfig();
 
@@ -1994,6 +1998,7 @@ export function initFirestoreSync() {
 
 export async function firestoreSignIn() {
   const credential = await signInWithGoogle();
+  if (isLegacySyncBlocked()) return credential?.user ?? null;
   if (credential?.cancelled) {
     // Usuario fechou o popup: nenhuma navegacao aconteceu, entao a UI volta ao
     // estado desconectado em vez de ficar presa em "redirecionando".
@@ -2037,6 +2042,7 @@ export async function firestoreSignIn() {
 
 export async function firestoreSignOut() {
   await signOutFirebase();
+  if (isLegacySyncBlocked()) return;
   currentUser = null;
   stopPolling();
   const config = getConfig();
@@ -2046,6 +2052,7 @@ export async function firestoreSignOut() {
 }
 
 export async function enableFirestoreSync(mode = "shadow") {
+  if (isLegacySyncBlocked()) return false;
   const config = getConfig();
   config.enabled = true;
   config.mode = mode === "primary" ? "primary" : "shadow";
@@ -2057,6 +2064,7 @@ export async function enableFirestoreSync(mode = "shadow") {
 }
 
 export async function disableFirestoreSync() {
+  if (isLegacySyncBlocked()) return false;
   const config = getConfig();
   config.enabled = false;
   config.hasPendingWrites = false;
@@ -2069,6 +2077,7 @@ export async function queueFirestoreSnapshotFromState(
   sourceState = state,
   options = {},
 ) {
+  if (isLegacySyncBlocked()) return false;
   const config = getConfig();
   if (!config.enabled) return false;
   const pending = await getPendingFirestoreSnapshot();
@@ -2199,6 +2208,7 @@ async function registerConflict(remoteEnvelope, localEnvelope) {
 }
 
 export async function autoPullRemoteWhenNewer() {
+  if (isLegacySyncBlocked()) return false;
   const config = getConfig();
   if (!config.enabled || config.mode !== "primary") return false;
 
@@ -2785,10 +2795,12 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
 }
 
 export async function flushFirestoreOutbox(options = {}) {
+  if (isLegacySyncBlocked()) return false;
   return firestoreLock.withLock(() => flushFirestoreOutboxUnlocked(options));
 }
 
 export async function pullFromFirestore(forceOverwrite = false, options = {}) {
+  if (isLegacySyncBlocked()) return false;
   const config = getConfig();
   if (!config.enabled && !forceOverwrite) return false;
   emitStatus("syncing");
@@ -3047,6 +3059,7 @@ export async function previewFirestoreRestore() {
 }
 
 export async function forcePushFirestore() {
+  if (isLegacySyncBlocked()) return false;
   // "Enviar local" must not replace an unconfirmed operation: repair it first.
   if (await getPendingFirestoreSnapshot()) {
     await flushFirestoreOutbox({ manual: true, forceOverwrite: true });
@@ -3258,10 +3271,12 @@ async function syncFirestoreNowUnlocked() {
 }
 
 export async function syncFirestoreNow() {
+  if (isLegacySyncBlocked()) return false;
   return firestoreLock.withLock(() => syncFirestoreNowUnlocked());
 }
 
 export async function mergeFromFirestore() {
+  if (isLegacySyncBlocked()) return false;
   const config = getConfig();
   emitStatus("syncing");
 
@@ -3429,6 +3444,7 @@ export async function mergeFromFirestore() {
 }
 
 export async function resolveEntityConflictKeepLocal() {
+  if (isLegacySyncBlocked()) return false;
   const config = getConfig();
   if (isRetaFinalConflict(config.conflict)) {
     try {
@@ -3498,6 +3514,7 @@ export async function resolveEntityConflictKeepLocal() {
 }
 
 export async function resolveEntityConflictKeepRemote(options = {}) {
+  if (isLegacySyncBlocked()) return false;
   const config = getConfig();
   if (isRetaFinalConflict(config.conflict)) {
     try {

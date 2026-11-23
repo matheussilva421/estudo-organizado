@@ -235,6 +235,22 @@ describe('V1 next first access bootstrap', () => {
     expect(observeFirebaseAuth).toHaveBeenCalledOnce();
   });
 
+  it('leaves the verified pointer usable after an expired session', async () => {
+    createDatabase();
+    const { local, bootstrap } = await importModules();
+    const uid = 'uid_auth';
+    const remoteApi = fakeRemote(remoteBaseline(academicState('Auth')));
+    await bootstrap.bootstrapV1Generation({ uid, online: true, remoteApi });
+    remoteApi.getCurrentGeneration.mockRejectedValueOnce(Object.assign(new Error(), {
+      code: 'V1_REMOTE_AUTH_REQUIRED',
+    }));
+    await expect(bootstrap.revalidateV1Generation({ uid, online: true, remoteApi })).resolves.toMatchObject({
+      reason: 'V1_REMOTE_AUTH_REQUIRED',
+    });
+    expect((await local.readV1GenerationPointer(uid)).status).toBe('ready');
+    await expect(bootstrap.revalidateV1Generation({ uid, online: true, remoteApi })).resolves.toMatchObject({ status: 'ready' });
+  });
+
   it('opens a verified UID generation from cache without touching the network', async () => {
     createDatabase();
     const { local, bootstrap } = await importModules();

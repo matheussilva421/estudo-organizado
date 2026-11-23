@@ -174,6 +174,40 @@ afterEach(() => {
 });
 
 describe('V1 terminal tombstones', () => {
+  it('rejects stale local and merged resolutions and resolves remote to the terminal revision', async () => {
+    createDatabase();
+    const local = await importLocal();
+    const op = await seed(local);
+    const scope = { uid: UID, generationId: GENERATION };
+    const conflict = { ...scope, conflictId: op.opId };
+    await local.markLocalOperationConflict(op.opId, {
+      code: 'revision', remoteRevision: 2, remoteRecord: remoteUpsert(item('Remote'), 2),
+    });
+    await local.applyRemoteRecord({ ...scope, record: remoteDelete(3) });
+    for (const choice of ['local', 'merged']) {
+      await expect(local.resolveLocalConflict({ ...conflict, choice, record: item('Stale') }))
+        .rejects.toThrow(/tombstone/);
+    }
+    await local.resolveLocalConflict({ ...conflict, choice: 'remote' });
+    expect((await local.readLocalGeneration(UID, GENERATION)).state.eventos).toEqual([]);
+    expect(await local.getPendingOperations(UID, GENERATION)).toEqual([]);
+  });
+
+  it.each([['other_uid', GENERATION], [UID, 'other_generation']])(
+    'ignores a foreign tombstone conflict with the same ID in %s/%s', async (uid, generationId) => {
+      const idb = createDatabase();
+      const local = await importLocal();
+      const op = await seed(local);
+      const key = local.v1ScopeKey(uid, generationId) + String.fromCharCode(0) + op.opId;
+      const foreign = { uid, generationId, key, entityKey: op.entityKey, conflictId: op.opId, status: 'open' };
+      idb.setRecord('v1_sync_conflicts', key, foreign);
+      await local.applyRemoteRecord({ uid: UID, generationId: GENERATION, record: remoteDelete(2) });
+      expect(await local.readLocalConflict(UID, GENERATION, op.opId)).toMatchObject({
+        uid: UID, generationId: GENERATION, remoteDeleted: true,
+      });
+      expect(await local.readLocalConflict(uid, generationId, op.opId)).toEqual(foreign);
+    });
+
   it('wins over a pending edit, preserves both versions and never ACKs the losing update', async () => {
     createDatabase();
     const local = await importLocal();

@@ -42,6 +42,7 @@ import {
   resolveEntityConflictKeepLocal,
   resolveEntityConflictKeepRemote,
 } from '../../sync/firestore-sync-engine.js?v=8.37';
+import { isLegacySyncBlocked } from '../../sync/v1-next/bootstrap.js';
 import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.37';
 import { syncAllChannels, isManualSyncRunning } from '../../sync/manual-sync.js?v=8.37';
 import { downloadSyncLog } from '../../sync/sync-diagnostic.js?v=8.37';
@@ -56,6 +57,13 @@ import {
   mergeFromDrive,
   driveAction,
 } from '../../drive-sync.js?v=8.37';
+
+function registerLegacySyncAction(name, handler) {
+  registerAction(name, (...args) => {
+    if (isLegacySyncBlocked()) return false;
+    return handler(...args);
+  });
+}
 
 // Registrar ações
 registerAction('update-config', (el) => {
@@ -84,7 +92,7 @@ registerAction('toggle-password-visibility', (el) => {
   const input = document.getElementById(el.dataset.targetId);
   if (input) input.type = input.type === 'password' ? 'text' : 'password';
 });
-registerAction('toggle-cf-sync', (el) => toggleCfSync(el.checked));
+registerLegacySyncAction('toggle-cf-sync', (el) => toggleCfSync(el.checked));
 registerAction('archive-old-events', (el) => {
   const days = parseInt(el.dataset.days || '90', 10);
   archiveOldEvents(days);
@@ -116,16 +124,16 @@ registerAction('test-notification', () => {
 });
 
 // Sync and advanced config actions
-registerAction('force-cloudflare-sync', forceCloudflareSync);
+registerLegacySyncAction('force-cloudflare-sync', forceCloudflareSync);
 registerAction('cloud-conflict-export-local', exportData);
-registerAction('cloud-conflict-pull-remote', () => {
+registerLegacySyncAction('cloud-conflict-pull-remote', () => {
   showConfirm(
     'Baixar os dados remotos agora? Isso substituirá os dados locais. Exporte um backup local antes se tiver dúvida.',
     () => pullFromCloudflare(true),
     { label: 'Baixar remoto', title: 'Resolver conflito de sync' }
   );
 });
-registerAction('cloud-conflict-force-push', () => {
+registerLegacySyncAction('cloud-conflict-force-push', () => {
   showConfirm(
     'Forçar envio local para a nuvem? Isso sobrescreverá a versão remota mais recente.',
     () => pushToCloudflare(true),
@@ -134,32 +142,32 @@ registerAction('cloud-conflict-force-push', () => {
 });
 registerAction('firestore-sign-in', firestoreSignIn);
 registerAction('firestore-sign-out', firestoreSignOut);
-registerAction('firestore-enable-primary', () => enableFirestoreSync('primary'));
-registerAction('firestore-enable-shadow', () => enableFirestoreSync('shadow'));
-registerAction('firestore-disable-sync', disableFirestoreSync);
-registerAction('firestore-sync-now', syncFirestoreNow);
-registerAction('firestore-force-sync', async () => {
+registerLegacySyncAction('firestore-enable-primary', () => enableFirestoreSync('primary'));
+registerLegacySyncAction('firestore-enable-shadow', () => enableFirestoreSync('shadow'));
+registerLegacySyncAction('firestore-disable-sync', disableFirestoreSync);
+registerLegacySyncAction('firestore-sync-now', syncFirestoreNow);
+registerLegacySyncAction('firestore-force-sync', async () => {
   const ok = await syncFirestoreNow();
   showToast(
     ok ? 'Sincronização forçada concluída.' : 'Sincronização forçada falhou. Verifique o log.',
     ok ? 'success' : 'error'
   );
 });
-registerAction('firestore-pull-remote', () => {
+registerLegacySyncAction('firestore-pull-remote', () => {
   showConfirm(
     'Baixar snapshot do Firestore? Isso pode substituir dados locais. Exporte um backup local antes de confirmar.',
     () => pullFromFirestore(true, { discardPending: true }),
     { label: 'Baixar Firestore', title: 'Restaurar Firestore' }
   );
 });
-registerAction('firestore-merge-remote', () => {
+registerLegacySyncAction('firestore-merge-remote', () => {
   showConfirm(
     'Mesclar Firestore com os dados locais? Itens locais e remotos serão preservados quando possível, e o resultado será enviado ao Firestore.',
     () => mergeFromFirestore(),
     { label: 'Mesclar Firestore', title: 'Mesclar dados' }
   );
 });
-registerAction('firestore-force-push', () => {
+registerLegacySyncAction('firestore-force-push', () => {
   showConfirm(
     'Enviar dados locais para o Firestore e sobrescrever o snapshot remoto?',
     () => forcePushFirestore(),
@@ -170,14 +178,14 @@ registerAction('firestore-export-local', exportData);
 registerAction('firestore-open-conflict-review', () => {
   showToast('Revise as entidades afetadas nas opções avançadas de sync.', 'info');
 });
-registerAction('entity-conflict-keep-local', async () => {
+registerLegacySyncAction('entity-conflict-keep-local', async () => {
   const ok = await resolveEntityConflictKeepLocal();
   showToast(
     ok ? 'Conflito resolvido: dados locais enviados.' : 'Erro ao resolver conflito.',
     ok ? 'success' : 'error'
   );
 });
-registerAction('entity-conflict-keep-remote', async () => {
+registerLegacySyncAction('entity-conflict-keep-remote', async () => {
   const ok = await resolveEntityConflictKeepRemote({ discardPending: true });
   showToast(
     ok ? 'Conflito resolvido: dados da nuvem aplicados.' : 'Erro ao resolver conflito.',
@@ -192,28 +200,28 @@ registerAction('firestore-download-log', async () => {
     showToast('Erro ao gerar log: ' + err.message, 'error');
   }
 });
-registerAction('cloud-merge-remote', () => {
+registerLegacySyncAction('cloud-merge-remote', () => {
   showConfirm(
     'Mesclar Cloudflare com os dados locais? Itens locais e remotos serão preservados quando possível, e o resultado será enviado ao Worker.',
     () => mergeFromCloudflare(),
     { label: 'Mesclar Cloudflare', title: 'Mesclar dados' }
   );
 });
-registerAction('drive-sync-now', () => {
+registerLegacySyncAction('drive-sync-now', () => {
   syncWithDrive()
     .then(() => showToast('Sincronizado!', 'success'))
     .catch(() => showToast('Erro ao sincronizar', 'error'));
 });
-registerAction('pull-from-drive', pullFromDrive);
-registerAction('merge-from-drive', () => {
+registerLegacySyncAction('pull-from-drive', pullFromDrive);
+registerLegacySyncAction('merge-from-drive', () => {
   showConfirm(
     'Mesclar Google Drive com os dados locais? Itens locais e remotos serão preservados quando possível, e o resultado será reenviado ao Drive.',
     () => mergeFromDrive(),
     { label: 'Mesclar Drive', title: 'Mesclar dados' }
   );
 });
-registerAction('drive-action', driveAction);
-registerAction('sync-center-smart-sync', async () => {
+registerLegacySyncAction('drive-action', driveAction);
+registerLegacySyncAction('sync-center-smart-sync', async () => {
   if (state.config?.globalSyncPaused) {
     showToast('Sync global pausado. Retome o sync para enviar dados à nuvem.', 'info');
     return;
@@ -316,11 +324,11 @@ async function runManualSync(trigger) {
   showToast('Sincronização falhou. Verifique o log.', 'error');
   renderCurrentView();
 }
-registerAction('sync-now', () => {
+registerLegacySyncAction('sync-now', () => {
   setSyncPopoverOpen(false);
   return runManualSync('header-button');
 });
-registerAction('manual-sync-all', () => runManualSync('config-button'));
+registerLegacySyncAction('manual-sync-all', () => runManualSync('config-button'));
 registerAction('download-sync-log', async () => {
   setSyncPopoverOpen(false);
   try {
@@ -330,7 +338,7 @@ registerAction('download-sync-log', async () => {
     showToast('Erro ao gerar log: ' + (err?.message || 'desconhecido'), 'error');
   }
 });
-registerAction('download-from-source', () => {
+registerLegacySyncAction('download-from-source', () => {
   setSyncPopoverOpen(false);
   openDownloadFromSourceDialog();
 });

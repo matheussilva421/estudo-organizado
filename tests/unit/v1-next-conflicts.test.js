@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createBaseState, createEvento } from '../helpers/state-builders.js';
+import { createBaseState, createDisciplina, createEdital, createEvento } from '../helpers/state-builders.js';
 import { createTransactionalIdb } from './reta-final-draft-idb-helper.js';
 import { convertBackupV12 } from '../../src/js/sync/v1-next/backup-codec.js';
 import {
@@ -181,6 +181,28 @@ describe('V1 revision classification and field merge', () => {
 });
 
 describe('V1 local conflict protocol', () => {
+  it('reconstructs parent and root records while preserving nested disciplines', async () => {
+    createDatabase();
+    const local = await importLocal();
+    const scope = { uid: 'uid_composite', generationId: 'gen_conflicts' };
+    const child = createDisciplina({ id: 'disc_child' });
+    const baseline = createBaseState({ schemaVersion: 12, editais: [createEdital({
+      id: 'ed_parent', nome: 'Base', disciplinas: [child],
+    })] });
+    await local.installRemoteBaseline({ ...scope, state: baseline, manifest: manifestFor(baseline) });
+    const edited = structuredClone(baseline);
+    edited.editais[0].nome = 'Changed';
+    edited.extraRootField = 'Root delta';
+    const { records } = convertBackupV12(edited);
+    for (const record of [records.editais[0], records.meta.find(r => r.key === 'meta:$root')]) {
+      await local.applyRemoteRecord({ ...scope, record: remoteRecord(record, 1, {
+        collection: record.entityType === 'edital' ? 'editais' : 'meta',
+      }) });
+    }
+    expect((await local.readLocalGeneration(scope.uid, scope.generationId)).state)
+      .toMatchObject({ editais: [{ nome: 'Changed', disciplinas: [child] }], extraRootField: 'Root delta' });
+  });
+
   it('rebases an advanced independent edit, updates local state and ACKs the exact revision', async () => {
     createDatabase();
     const local = await importLocal();

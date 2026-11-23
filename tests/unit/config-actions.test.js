@@ -245,6 +245,21 @@ describe('ui/actions/config.js', () => {
     expect(firestoreSync.enableFirestoreSync).toHaveBeenCalledWith('shadow');
   });
 
+  it('blocks manual legacy writers before opening confirmations under V1', async () => {
+    window.__ESTUDO_V1_SYNC_TEST__ = { enabled: true };
+    try {
+      for (const action of ['manual-sync-all', 'firestore-force-sync', 'firestore-pull-remote',
+        'firestore-force-push', 'firestore-merge-remote', 'firestore-enable-primary']) {
+        await registerAction.mock.calls.find(([name]) => name === action)[1]();
+      }
+      expect(appModule.showConfirm).not.toHaveBeenCalled();
+      expect(firestoreSync.syncFirestoreNow).not.toHaveBeenCalled();
+      expect(firestoreSync.enableFirestoreSync).not.toHaveBeenCalled();
+    } finally {
+      delete window.__ESTUDO_V1_SYNC_TEST__;
+    }
+  });
+
   it('firestore-pull-remote shows confirmation', () => {
     const handler = registerAction.mock.calls.find((c) => c[0] === 'firestore-pull-remote')[1];
     handler({});

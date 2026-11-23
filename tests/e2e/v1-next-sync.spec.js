@@ -172,6 +172,81 @@ test.describe('V1 realtime worker', () => {
     expect(await page.evaluate(() => window.__V1_REMOTE_CALLS__.applyRemoteOperation)).toBe(0);
   });
 
+  test('preserves an edit during apply and sends its successor after the original ACK', async ({ page }) => {
+    await installHarness(page);
+    await page.goto('/');
+    await waitForWorker(page);
+    await page.evaluate(async () => {
+      const { saveStateToDB, state } = await import('/js/store.js?v=8.37');
+      window.sentOperations = [];
+      window.__ESTUDO_V1_SYNC_TEST__.remoteApi.applyRemoteOperation = async op => {
+        window.sentOperations.push(op);
+        if (op.entityId === 'ev_remote_sync' && !window.releaseFirstApply) {
+          await new Promise(resolve => { window.releaseFirstApply = resolve; });
+        }
+        const { generationId, entityType, entityId, collection, baseRevision, revision, opId, opDigest } = op;
+        return { acknowledged: true, receipt: { schemaVersion: 1, generationId, entityType,
+          entityId, collection, baseRevision, revision, opId, opDigest, deleted: false,
+          updatedAt: { seconds: 1800000001, nanoseconds: 0 } } };
+      };
+      window.editDuringApply = async title => {
+        state.eventos.find(event => event.id === 'ev_remote_sync').titulo = title;
+        await saveStateToDB();
+      };
+      await window.editDuringApply('Edit one');
+    });
+    await expect.poll(() => page.evaluate(() => !!window.releaseFirstApply)).toBe(true);
+    await page.evaluate(async () => {
+      await window.editDuringApply('Edit two');
+      window.releaseFirstApply();
+    });
+    await expect.poll(() => page.evaluate(() => window.sentOperations.filter(
+      op => op.entityId === 'ev_remote_sync').map(op => [op.baseRevision, op.revision, op.data.titulo])
+    )).toEqual([[0, 1, 'Edit one'], [1, 2, 'Edit two']]);
+    await expect.poll(() => page.evaluate(async ([uid, gen]) => {
+      const local = await import('/js/sync/v1-next/local.js');
+      return (await local.getPendingOperations(uid, gen)).length;
+    }, [UID, GENERATION])).toBe(0);
+    await page.locator('[data-view="config"]').click();
+    const center = page.getByTestId('sync-center');
+    await expect(center).toBeVisible();
+    await expect(center.locator('[data-action*="force"], [data-action*="pull"], [data-action*="merge"], [data-action="download-from-source"], [data-action="manual-sync-all"]')).toHaveCount(0);
+  });
+
+  test('observes sign-out, same-account login and a switch to a separately installed UID', async ({ page }) => {
+    await installHarness(page);
+    await page.goto('/');
+    await waitForWorker(page);
+    await page.evaluate(async uid => {
+      const { init } = await import('/js/app.js?v=8.37');
+      const api = window.__ESTUDO_V1_SYNC_TEST__.remoteApi;
+      await init({
+        windowRef: {}, storage: { getItem: () => 'true' },
+        initFirebaseServices: () => ({ configured: true, db: {}, auth: {} }),
+        wireFirestores: () => {},
+        observeFirebaseAuth: cb => {
+          window.changeUser = cb;
+          cb({ uid });
+          return () => {};
+        },
+        remoteApi: { ...api, getCurrentGeneration: async account => ({
+          ...await api.getCurrentGeneration(), uid: account,
+        }) },
+      });
+      window.changeUser(null);
+    }, UID);
+    await expect(page.locator('[data-v1-sync-gate="blocked"]')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => !!window.__V1_EMIT_REMOTE_DELTA__)).toBe(false);
+    await page.evaluate(uid => window.changeUser({ uid }), UID);
+    await expect.poll(() => page.evaluate(() => !!window.__V1_EMIT_REMOTE_DELTA__)).toBe(true);
+    await page.evaluate(() => window.changeUser({ uid: 'account_b' }));
+    await expect.poll(() => page.evaluate(() => window.__V1_SUBSCRIPTION__.uid)).toBe('account_b');
+    expect(await page.evaluate(async () => {
+      const local = await import('/js/sync/v1-next/local.js');
+      return (await local.readV1GenerationPointer('account_b')).status;
+    })).toBe('ready');
+  });
+
   test('starts the listener from a verified online cache and applies deltas without manual sync', async ({
     page,
   }) => {

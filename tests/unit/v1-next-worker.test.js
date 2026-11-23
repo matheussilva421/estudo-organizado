@@ -56,6 +56,7 @@ async function loadWorker() {
     clearActiveV1Context: vi.fn(() => { local.active = null; }),
     getActiveV1Context: vi.fn(() => local.active),
     getPendingOperations: vi.fn(async () => []),
+    claimLocalOperation: vi.fn(async op => ({ ...op, status: 'in-flight' })),
     ackLocalOperation: vi.fn(async () => {}),
     markLocalOperationRetry: vi.fn(async () => {}),
     markLocalOperationConflict: vi.fn(async () => {}),
@@ -76,6 +77,7 @@ async function loadWorker() {
     }),
   };
   bootstrap = {
+    isV1AuthFailure: code => ['V1_REMOTE_AUTH_REQUIRED', 'V1_REMOTE_UID_MISMATCH'].includes(code),
     reconcileRemoteDelta: vi.fn(async () => {}),
     revalidateV1Generation: vi.fn(async () => ({ status: 'ready' })),
   };
@@ -219,7 +221,7 @@ describe('V1 sync worker', () => {
     expect(local.markLocalOperationRetry).toHaveBeenCalledOnce();
 
     await vi.advanceTimersByTimeAsync(1_000);
-    const result = await worker.drainPendingOperations();
+    await worker.drainPendingOperations();
 
     expect(remote.applyRemoteOperation).toHaveBeenCalledTimes(2);
     expect(local.ackLocalOperation).toHaveBeenCalledTimes(2);
@@ -241,6 +243,26 @@ describe('V1 sync worker', () => {
       expect.objectContaining({ reason: 'V1_REMOTE_AUTH_REQUIRED' }),
     );
     expect(remote.applyRemoteOperation).toHaveBeenCalledOnce();
+  });
+
+  it('detaches an unauthenticated listener until the same UID signs in again', async () => {
+    const queue = persistentQueue();
+    await worker.startV1Sync({ uid: UID, generationId: GENERATION });
+    const old = subscribed;
+    old.handlers.onError({ code: 'V1_REMOTE_AUTH_REQUIRED' });
+    queue.set([operation()]);
+    await vi.advanceTimersByTimeAsync(6000);
+    await worker.drainPendingOperations();
+    expect(old.stop).toHaveBeenCalledOnce();
+    expect(remote.subscribeGeneration).toHaveBeenCalledOnce();
+    expect(remote.applyRemoteOperation).not.toHaveBeenCalled();
+    await worker.resumeV1SyncForUser('other');
+    remote.applyRemoteOperation.mockResolvedValue({ acknowledged: true, receipt: receiptFor(operation()) });
+    await worker.resumeV1SyncForUser(UID);
+    await old.handlers.onDelta({});
+    expect(bootstrap.reconcileRemoteDelta).not.toHaveBeenCalled();
+    expect(remote.subscribeGeneration).toHaveBeenCalledTimes(2);
+    expect(local.ackLocalOperation).toHaveBeenCalledOnce();
   });
 
   it('isolates a conflict to its entity and continues the remaining FIFO operations', async () => {
@@ -386,6 +408,34 @@ describe('V1 sync worker', () => {
     expect(leaderQueue.get()).toEqual([]);
     leaderWorker.stopV1Sync();
     expect(leaderLocal.ackLocalOperation).toHaveBeenCalledOnce();
+  });
+
+  it('wakes at the earliest persisted retry, continues a full batch and cancels on stop', async () => {
+    const later = new Date(Date.now() + 5000).toISOString();
+    const earlier = new Date(Date.now() + 2000).toISOString();
+    const items = Array.from({ length: 28 }, (_, i) => operation({
+      opId: `op_${i}`, entityKey: `evento:${i}`, sequence: i, nextAttemptAt: i ? earlier : later,
+    }));
+    persistentQueue(items);
+    remote.applyRemoteOperation.mockImplementation(async item => ({ acknowledged: true, receipt: receiptFor(item) }));
+    await worker.startV1Sync({ uid: UID, generationId: GENERATION });
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(remote.applyRemoteOperation).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(remote.applyRemoteOperation).toHaveBeenCalledTimes(27);
+    worker.stopV1Sync();
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(remote.applyRemoteOperation).toHaveBeenCalledTimes(27);
+  });
+
+  it('retries a busy lease automatically', async () => {
+    persistentQueue([operation()]);
+    local.acquireV1WorkerLease.mockResolvedValueOnce(null);
+    remote.applyRemoteOperation.mockResolvedValue({ acknowledged: true, receipt: receiptFor(operation()) });
+    await worker.startV1Sync({ uid: UID, generationId: GENERATION });
+    expect(remote.applyRemoteOperation).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1200);
+    expect(remote.applyRemoteOperation).toHaveBeenCalledOnce();
   });
 
   it('returns the exact empty result and never calls remote transport', async () => {

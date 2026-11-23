@@ -6,6 +6,20 @@ describe('firestore-sync-engine.js', () => {
     vi.useFakeTimers();
   });
 
+  it('blocks direct manual writers under V1 before accessing storage or Firebase', async () => {
+    const engine = await import('../../src/js/sync/firestore-sync-engine.js?v=8.37');
+    window.__ESTUDO_V1_SYNC_TEST__ = { enabled: true };
+    try {
+      for (const write of [engine.forcePushFirestore, engine.mergeFromFirestore,
+        engine.syncFirestoreNow, () => engine.pullFromFirestore(true),
+        () => engine.flushFirestoreOutbox({ manual: true, forceOverwrite: true })]) {
+        await expect(write()).resolves.toBe(false);
+      }
+    } finally {
+      delete window.__ESTUDO_V1_SYNC_TEST__;
+    }
+  });
+
   describe('getFirestoreSyncStatus()', () => {
     it('returns status with configured=false when Firebase not configured', async () => {
       vi.doMock('../firebase/firebase-client.js?v=8.37', () => ({

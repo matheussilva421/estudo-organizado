@@ -1,6 +1,7 @@
 import {
   ackLocalOperation,
   acquireV1WorkerLease,
+  claimLocalOperation,
   clearActiveV1Context,
   getActiveV1Context,
   getPendingOperations,
@@ -14,6 +15,7 @@ import {
 } from './local.js';
 import { applyRemoteOperation, subscribeGeneration } from './remote.js';
 import {
+  isV1AuthFailure,
   reconcileRemoteDelta,
   revalidateV1Generation,
 } from './bootstrap.js';
@@ -65,7 +67,7 @@ function isOnline() {
 }
 
 function isActive(entry = runtime) {
-  if (!entry || entry !== runtime || entry.stopping) return false;
+  if (!entry || entry !== runtime || entry.stopping || entry.authPaused) return false;
   const active = getActiveV1Context();
   return active?.uid === entry.uid && active.generationId === entry.generationId;
 }
@@ -131,7 +133,7 @@ function conflictFrom(error, outcome) {
   };
 }
 
-async function retryOperation(entry, operation, reason) {
+async function retryOperation(operation, reason) {
   const attempts = (Number(operation.attempts) || 0) + 1;
   const nextAttemptAt = new Date(Date.now() + retryDelay(attempts)).toISOString();
   await markLocalOperationRetry(operation.opId, {
@@ -139,7 +141,7 @@ async function retryOperation(entry, operation, reason) {
     nextAttemptAt,
     attempts,
   });
-  scheduleRetry(entry, Date.parse(nextAttemptAt));
+
 }
 
 async function conflictOperation(entry, operation, conflict) {
@@ -192,15 +194,40 @@ async function handleDelta(entry, delta) {
   await refreshFromCachedState(entry);
 }
 
+function pauseForAuth(entry, reason) {
+  entry.authPaused = true;
+  clearTimer(entry, 'debounceTimer');
+  clearTimer(entry, 'retryTimer');
+  clearTimer(entry, 'listenerTimer');
+  entry.unsubscribe?.();
+  entry.unsubscribe = null;
+  emitStatus(entry, 'auth-required', { reason });
+}
+
+export function suspendV1SyncForAuth(reason) {
+  if (isActive(runtime)) pauseForAuth(runtime, reason);
+}
+
+export function resumeV1SyncForUser(uid) {
+  const entry = runtime;
+  if (entry?.uid === uid && entry.authPaused) {
+    return startV1Sync({ uid, generationId: entry.generationId, remoteApi: entry.remoteApi });
+  }
+}
+
 function handleListenerError(entry, error) {
   if (!isActive(entry)) return;
+  if (isV1AuthFailure(error?.code)) {
+    pauseForAuth(entry, error.code);
+    return;
+  }
   emitStatus(entry, 'error', {
     reason: error?.code || 'V1_REMOTE_LISTENER_ERROR',
     error: error?.message || 'Falha no listener remoto.',
   });
-  clearTimer(entry, 'retryTimer');
-  entry.retryTimer = setTimeout(() => {
-    entry.retryTimer = null;
+  clearTimer(entry, 'listenerTimer');
+  entry.listenerTimer = setTimeout(() => {
+    entry.listenerTimer = null;
     if (isActive(entry)) void restartSubscription(entry);
   }, RETRY_BASE_MS);
 }
@@ -257,8 +284,9 @@ async function runWithIdbLease(entry, work) {
       if (!owned) leaseLost = true;
     }).catch(() => { leaseLost = true; });
   }, Math.floor(LEASE_TTL_MS / 3));
+  entry.heartbeat = heartbeat;
   try {
-    return await work(() => leaseLost);
+    return isActive(entry) ? await work(() => leaseLost) : emptyResult();
   } finally {
     clearInterval(heartbeat);
     await releaseV1WorkerLease({
@@ -278,17 +306,13 @@ async function withExclusiveScan(entry, work) {
 
 async function drainUnderLease(entry, leaseLost) {
   const summary = emptyResult();
-  let processed = 0;
   let stopReason = null;
-
-  while (processed < BATCH_LIMIT && isActive(entry) && !leaseLost()) {
-    const operations = await getPendingOperations(entry.uid, entry.generationId);
-    const operation = operations.find((candidate) => {
-      if (!candidate.nextAttemptAt) return true;
-      return Date.parse(candidate.nextAttemptAt) <= Date.now();
-    });
-    if (!operation) break;
-    processed += 1;
+  const heads = await getPendingOperations(entry.uid, entry.generationId);
+  const due = heads.filter(op => !(Date.parse(op.nextAttemptAt) > Date.now()));
+  for (const candidate of due.slice(0, BATCH_LIMIT)) {
+    if (!isActive(entry) || leaseLost()) break;
+    const operation = await claimLocalOperation(candidate);
+    if (!operation || !isActive(entry) || leaseLost()) continue;
 
     let outcome;
     try {
@@ -300,10 +324,14 @@ async function drainUnderLease(entry, leaseLost) {
         if (!merged) summary.conflicts += 1;
         continue;
       }
-      await retryOperation(entry, operation, error?.code || error?.message || 'remote-error');
+      if (isV1AuthFailure(error?.code)) {
+        pauseForAuth(entry, error.code);
+        await markLocalOperationRetry(operation.opId, { reason: error.code, nextAttemptAt: null });
+        return { ...summary, pending: (await getPendingOperations(entry.uid, entry.generationId)).length };
+      }
+      await retryOperation(operation, error?.code || error?.message || 'remote-error');
       stopReason = error?.code || 'V1_REMOTE_TRANSIENT';
-      emitStatus(entry, error?.code === 'V1_REMOTE_AUTH_REQUIRED' ||
-        error?.code === 'V1_REMOTE_UID_MISMATCH' ? 'auth-required' : 'backoff', {
+      emitStatus(entry, 'backoff', {
         reason: stopReason,
         error: error?.message || null,
       });
@@ -318,7 +346,7 @@ async function drainUnderLease(entry, leaseLost) {
       continue;
     }
     if (outcome?.acknowledged !== true || !outcome.receipt) {
-      await retryOperation(entry, operation, 'V1_REMOTE_ACK_MISSING');
+      await retryOperation(operation, 'V1_REMOTE_ACK_MISSING');
       stopReason = 'V1_REMOTE_ACK_MISSING';
       emitStatus(entry, 'backoff', { reason: stopReason });
       continue;
@@ -328,13 +356,18 @@ async function drainUnderLease(entry, leaseLost) {
       summary.acked += 1;
     } catch (error) {
       if (!isActive(entry) || leaseLost()) return summary;
-      await retryOperation(entry, operation, error?.message || 'ACK_FAILED');
+      await retryOperation(operation, error?.message || 'ACK_FAILED');
       stopReason = 'V1_LOCAL_ACK_FAILED';
       emitStatus(entry, 'backoff', { reason: stopReason });
     }
   }
 
-  summary.pending = await pendingCount(entry);
+  const remaining = await getPendingOperations(entry.uid, entry.generationId);
+  summary.pending = remaining.length;
+  if (remaining.length) {
+    const earliest = Math.min(...remaining.map(op => Date.parse(op.nextAttemptAt) || Date.now()));
+    scheduleRetry(entry, Math.max(Date.now() + EVENT_DEBOUNCE_MS, earliest));
+  }
   if (isActive(entry)) {
     if (summary.conflicts > 0) {
       emitStatus(entry, 'conflict-paused', {
@@ -370,6 +403,14 @@ async function drainOnce(entry) {
     return emptyResult();
   }
 
+  const earliest = initial.reduce((time, op) => Math.min(time,
+    Date.parse(op.nextAttemptAt) || 0), Infinity);
+  if (earliest > Date.now()) {
+    scheduleRetry(entry, earliest);
+    emitStatus(entry, 'backoff', { reason: 'V1_RETRY_SCHEDULED', pending: initial.length });
+    return { ...emptyResult(), pending: initial.length };
+  }
+
   emitStatus(entry, 'syncing', { reason: entry.reason });
   const validated = await revalidateV1Generation({
     uid: entry.uid,
@@ -377,7 +418,12 @@ async function drainOnce(entry) {
     ...(entry.remoteApi === DEFAULT_REMOTE_API ? {} : { remoteApi: entry.remoteApi }),
   });
   if (!isActive(entry)) return emptyResult();
+  if (isV1AuthFailure(validated.reason)) {
+    pauseForAuth(entry, validated.reason);
+    return { ...emptyResult(), pending: initial.length };
+  }
   if (validated.status === 'requires-network') {
+    scheduleRetry(entry, Date.now() + RETRY_BASE_MS);
     emitStatus(entry, 'offline', { reason: validated.reason || 'offline' });
     return { ...emptyResult(), pending: await pendingCount(entry) };
   }
@@ -391,6 +437,7 @@ async function drainOnce(entry) {
   const locked = await withExclusiveScan(entry, (leaseLost = () => false) =>
     drainUnderLease(entry, leaseLost));
   if (locked !== null) return locked;
+  scheduleRetry(entry, Date.now() + RETRY_BASE_MS);
   emitStatus(entry, 'queued', { reason: 'other-tab' });
   return { ...emptyResult(), pending: await pendingCount(entry) };
 }
@@ -445,9 +492,9 @@ function detachListeners(entry) {
 }
 
 /** Start one worker for the active UID/generation. Repeated calls are idempotent. */
-export async function startV1Sync({ uid, generationId, remoteApi } = {}) {
+export async function startV1Sync({ uid, generationId, remoteApi, authFailure } = {}) {
   const key = contextKey(uid, generationId);
-  if (runtime?.key === key && !runtime.stopping) {
+  if (runtime?.key === key && !runtime.stopping && !runtime.authPaused) {
     return runtime.initialDrain || Promise.resolve();
   }
   stopV1Sync();
@@ -461,6 +508,9 @@ export async function startV1Sync({ uid, generationId, remoteApi } = {}) {
     unsubscribe: null,
     debounceTimer: null,
     retryTimer: null,
+    listenerTimer: null,
+    heartbeat: null,
+    authPaused: false,
     reason: 'start',
     initialDrain: null,
     remoteApi: remoteApi || DEFAULT_REMOTE_API,
@@ -469,6 +519,10 @@ export async function startV1Sync({ uid, generationId, remoteApi } = {}) {
   runtime = entry;
   setActiveV1Context(uid, generationId);
   attachListeners(entry);
+  if (isV1AuthFailure(authFailure)) {
+    pauseForAuth(entry, authFailure);
+    return;
+  }
 
   try {
     entry.unsubscribe = entry.remoteApi.subscribeGeneration(uid, generationId, {
@@ -482,6 +536,10 @@ export async function startV1Sync({ uid, generationId, remoteApi } = {}) {
     entry.initialDrain = triggerDrain(entry, 'start');
     await entry.initialDrain;
   } catch (error) {
+    if (runtime === entry && isV1AuthFailure(error?.code)) {
+      pauseForAuth(entry, error.code);
+      return;
+    }
     if (runtime === entry && startEpoch === epoch) {
       emitStatus(entry, 'error', {
         reason: error?.code || 'V1_WORKER_START_FAILED',
@@ -502,6 +560,8 @@ export function stopV1Sync() {
   }
   epoch += 1;
   entry.stopping = true;
+  clearTimer(entry, 'listenerTimer');
+  clearInterval(entry.heartbeat);
   runtime = null;
   clearTimer(entry, 'debounceTimer');
   clearTimer(entry, 'retryTimer');
