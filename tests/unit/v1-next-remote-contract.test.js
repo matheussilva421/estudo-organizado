@@ -66,6 +66,13 @@ function snapshot(value, id = '') {
 
 const stableMetadata = { fromCache: false, hasPendingWrites: false };
 
+function listenerParts(optionsOrNext, nextOrError, maybeError) {
+  if (typeof optionsOrNext === 'function') {
+    return { options: null, next: optionsOrNext, onError: nextOrError };
+  }
+  return { options: optionsOrNext, next: nextOrError, onError: maybeError };
+}
+
 function ref(path) {
   return { path };
 }
@@ -233,8 +240,11 @@ describe('V1 remote injected contract', () => {
       ['users/A/v1SyncControl/current', control],
       ['users/A/v1SyncNamespaces/g1', manifest],
     ]) });
-    fake.sdk.onSnapshot = vi.fn((collectionRef, next) => {
+    const listenerOptions = [];
+    fake.sdk.onSnapshot = vi.fn((collectionRef, optionsOrNext, nextOrError, maybeError) => {
+      const { options, next } = listenerParts(optionsOrNext, nextOrError, maybeError);
       registrations.set(collectionRef.path, next);
+      listenerOptions.push(options);
       const unsubscribe = vi.fn();
       unsubscribers.push(unsubscribe);
       return unsubscribe;
@@ -245,6 +255,9 @@ describe('V1 remote injected contract', () => {
     const stopFirst = subscribeGeneration('A', 'g1', first);
     const stopSecond = subscribeGeneration('A', 'g1', second);
     await vi.waitFor(() => expect(fake.sdk.onSnapshot).toHaveBeenCalledTimes(7));
+    expect(listenerOptions).toEqual(Array.from({ length: 7 }, () => ({
+      includeMetadataChanges: true,
+    })));
 
     const eventPath = fake.sdk.collection(fake.sdk, 'users/A/v1SyncNamespaces/g1/eventos').path;
     registrations.get(eventPath)({
@@ -265,20 +278,26 @@ describe('V1 remote injected contract', () => {
     expect(unsubscribers.every(unsubscribe => unsubscribe.mock.calls.length === 1)).toBe(true);
   });
 
-  it('ignores cache and pending snapshots until a server baseline arrives', async () => {
+  it('builds a complete server baseline from docs after cache and pending snapshots', async () => {
     let eventNext;
+    let eventOptions;
     const fake = sdkWith({ documents: new Map([
       ['users/A/v1SyncControl/current', control],
       ['users/A/v1SyncNamespaces/g1', manifest],
     ]) });
-    fake.sdk.onSnapshot = vi.fn((collectionRef, next) => {
-      if (collectionRef.path.endsWith('/eventos')) eventNext = next;
+    fake.sdk.onSnapshot = vi.fn((collectionRef, optionsOrNext, nextOrError, maybeError) => {
+      const { options, next } = listenerParts(optionsOrNext, nextOrError, maybeError);
+      if (collectionRef.path.endsWith('/eventos')) {
+        eventNext = next;
+        eventOptions = options;
+      }
       return () => {};
     });
     configure(fake);
     const handlers = { onDelta: vi.fn(), onError: vi.fn() };
     subscribeGeneration('A', 'g1', handlers);
     await vi.waitFor(() => expect(fake.sdk.onSnapshot).toHaveBeenCalledTimes(7));
+    expect(eventOptions).toEqual({ includeMetadataChanges: true });
 
     const record = remoteRecord();
     const doc = snapshot(record, encodeDocId(item.key));
@@ -296,7 +315,7 @@ describe('V1 remote injected contract', () => {
     expect(handlers.onDelta).not.toHaveBeenCalled();
     expect(handlers.onError).not.toHaveBeenCalled();
 
-    eventNext({ metadata: stableMetadata, docs: [doc], docChanges: changed });
+    eventNext({ metadata: stableMetadata, docs: [doc], docChanges: () => [] });
     expect(handlers.onDelta).toHaveBeenCalledWith(expect.objectContaining({
       entityId: 'e1', baseline: true,
     }));
@@ -309,7 +328,8 @@ describe('V1 remote injected contract', () => {
       ['users/A/v1SyncControl/current', control],
       ['users/A/v1SyncNamespaces/g1', manifest],
     ]) });
-    fake.sdk.onSnapshot = vi.fn((collectionRef, next) => {
+    fake.sdk.onSnapshot = vi.fn((collectionRef, optionsOrNext, nextOrError, maybeError) => {
+      const { next } = listenerParts(optionsOrNext, nextOrError, maybeError);
       if (collectionRef.path.endsWith('/eventos')) eventNext = next;
       return () => {};
     });
@@ -319,7 +339,7 @@ describe('V1 remote injected contract', () => {
     await vi.waitFor(() => expect(fake.sdk.onSnapshot).toHaveBeenCalledTimes(7));
 
     const doc = snapshot(remoteRecord({ generationId: 'g2' }), encodeDocId(item.key));
-    eventNext({ metadata: stableMetadata, docs: [], docChanges: () => [{ type: 'added', doc }] });
+    eventNext({ metadata: stableMetadata, docs: [doc], docChanges: () => [] });
     expect(handlers.onError).toHaveBeenCalledWith(expect.objectContaining({
       code: 'V1_REMOTE_INVALID_RECORD',
     }));
@@ -332,7 +352,8 @@ describe('V1 remote injected contract', () => {
       ['users/A/v1SyncControl/current', control],
       ['users/A/v1SyncNamespaces/g1', manifest],
     ]) });
-    fake.sdk.onSnapshot = vi.fn((collectionRef, next) => {
+    fake.sdk.onSnapshot = vi.fn((collectionRef, optionsOrNext, nextOrError, maybeError) => {
+      const { next } = listenerParts(optionsOrNext, nextOrError, maybeError);
       if (collectionRef.path.endsWith('/eventos')) eventNext = next;
       return () => {};
     });
@@ -371,7 +392,8 @@ describe('V1 remote injected contract', () => {
       ['users/A/v1SyncControl/current', control],
       ['users/A/v1SyncNamespaces/g1', manifest],
     ]) });
-    fake.sdk.onSnapshot = vi.fn((collectionRef, next) => {
+    fake.sdk.onSnapshot = vi.fn((collectionRef, optionsOrNext, nextOrError, maybeError) => {
+      const { next } = listenerParts(optionsOrNext, nextOrError, maybeError);
       if (collectionRef.path.endsWith('/eventos')) eventNext = next;
       return () => {};
     });
@@ -379,6 +401,8 @@ describe('V1 remote injected contract', () => {
     const handlers = { onDelta: vi.fn(), onError: vi.fn() };
     subscribeGeneration('A', 'g1', handlers);
     await vi.waitFor(() => expect(fake.sdk.onSnapshot).toHaveBeenCalledTimes(7));
+    const baselineDoc = snapshot(remoteRecord(), encodeDocId(item.key));
+    eventNext({ metadata: stableMetadata, docs: [baselineDoc], docChanges: () => [] });
     eventNext({
       metadata: stableMetadata,
       docs: [],
@@ -387,7 +411,8 @@ describe('V1 remote injected contract', () => {
     expect(handlers.onError).toHaveBeenCalledWith(expect.objectContaining({
       code: 'V1_REMOTE_INVALID_RECORD',
     }));
-    expect(handlers.onDelta).not.toHaveBeenCalled();
+    expect(handlers.onDelta).toHaveBeenCalledTimes(1);
+    expect(handlers.onDelta).toHaveBeenCalledWith(expect.objectContaining({ baseline: true }));
   });
 
   it('forwards a Firestore listener error to every active subscriber', async () => {
@@ -396,7 +421,8 @@ describe('V1 remote injected contract', () => {
       ['users/A/v1SyncControl/current', control],
       ['users/A/v1SyncNamespaces/g1', manifest],
     ]) });
-    fake.sdk.onSnapshot = vi.fn((collectionRef, _next, onError) => {
+    fake.sdk.onSnapshot = vi.fn((collectionRef, optionsOrNext, nextOrError, maybeError) => {
+      const { onError } = listenerParts(optionsOrNext, nextOrError, maybeError);
       if (collectionRef.path.endsWith('/eventos')) failListener = onError;
       return () => {};
     });

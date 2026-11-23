@@ -662,6 +662,43 @@ function baselineFor(subscriber, entry) {
   }
 }
 
+function listenerRecord(entry, collectionName, documentSnapshot) {
+  try {
+    const record = documentSnapshot.data();
+    validateRecord(record);
+    if (record.generationId !== entry.generationId ||
+      record.collection !== collectionName ||
+      encodeDocId(recordKey(record.entityType, record.entityId)) !== documentSnapshot.id) {
+      throw new TypeError('listener document identity');
+    }
+    return record;
+  } catch (error) {
+    throw remoteError(
+      'V1_REMOTE_INVALID_RECORD',
+      'Um documento recebido pelo listener é inválido.',
+      error,
+    );
+  }
+}
+
+function replaceBaseline(entry, collectionName, snapshot) {
+  const next = new Map();
+  for (const documentSnapshot of snapshot.docs) {
+    next.set(documentSnapshot.id, listenerRecord(entry, collectionName, documentSnapshot));
+  }
+  entry.baselines.set(collectionName, next);
+  entry.initialized.add(collectionName);
+  for (const record of next.values()) {
+    emitDelta(entry, {
+      collection: collectionName,
+      entityId: record.entityId,
+      record,
+      changeType: 'added',
+      baseline: true,
+    });
+  }
+}
+
 function watchCollection(entry, collectionName) {
   const collectionRef = entry.config.sdk.collection(
     entry.config.db,
@@ -673,15 +710,15 @@ function watchCollection(entry, collectionName) {
   );
   const unsubscribe = entry.config.sdk.onSnapshot(
     collectionRef,
+    { includeMetadataChanges: true },
     snapshot => {
       if (entry.stopped) return;
       try {
         if (snapshot.metadata?.fromCache !== false ||
           snapshot.metadata?.hasPendingWrites !== false) return;
-        const baseline = !entry.initialized.has(collectionName);
-        if (baseline) {
-          entry.initialized.add(collectionName);
-          entry.baselines.set(collectionName, new Map());
+        if (!entry.initialized.has(collectionName)) {
+          replaceBaseline(entry, collectionName, snapshot);
+          return;
         }
         const cache = entry.baselines.get(collectionName);
         for (const change of snapshot.docChanges()) {
@@ -698,24 +735,9 @@ function watchCollection(entry, collectionName) {
             });
             continue;
           }
-          let record;
-          try {
-            record = change.doc.data();
-            validateRecord(record);
-            if (record.generationId !== entry.generationId ||
-              record.collection !== collectionName ||
-              encodeDocId(recordKey(record.entityType, record.entityId)) !== docId) {
-              throw new TypeError('changed document identity');
-            }
-          } catch (error) {
-            throw remoteError(
-              'V1_REMOTE_INVALID_RECORD',
-              'Um documento recebido pelo listener é inválido.',
-              error,
-            );
-          }
+          const record = listenerRecord(entry, collectionName, change.doc);
           const previous = cache.get(docId);
-          if (!baseline && previous?.opId === record.opId &&
+          if (previous?.opId === record.opId &&
             previous?.revision === record.revision &&
             previous?.opDigest === record.opDigest) {
             continue;
@@ -726,7 +748,7 @@ function watchCollection(entry, collectionName) {
             entityId: record.entityId,
             record,
             changeType: change.type,
-            baseline,
+            baseline: false,
           });
         }
       } catch (error) {

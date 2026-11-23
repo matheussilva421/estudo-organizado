@@ -149,6 +149,54 @@ function makeSdk(counters = { reads: 0, writes: 0 }) {
   };
 }
 
+function listenerParts(optionsOrNext, nextOrError, maybeError) {
+  if (typeof optionsOrNext === 'function') {
+    return { options: null, next: optionsOrNext, onError: nextOrError };
+  }
+  return { options: optionsOrNext, next: nextOrError, onError: maybeError };
+}
+
+function cacheThenServerSdk(baseSdk) {
+  const listenerOptions = [];
+  return {
+    listenerOptions,
+    sdk: {
+      ...baseSdk,
+      onSnapshot: (ref, optionsOrNext, nextOrError, maybeError) => {
+        const { options, next, onError } = listenerParts(
+          optionsOrNext,
+          nextOrError,
+          maybeError,
+        );
+        listenerOptions.push(options);
+        let forcedCache = false;
+        let serverStripped = false;
+        const forward = snapshot => {
+          if (!forcedCache) {
+            forcedCache = true;
+            next({
+              metadata: { fromCache: true, hasPendingWrites: false },
+              docs: snapshot.docs,
+              docChanges: () => [],
+            });
+          }
+          if (snapshot.metadata?.fromCache) return;
+          const serverSnapshot = serverStripped ? snapshot : {
+            metadata: snapshot.metadata,
+            docs: snapshot.docs,
+            docChanges: () => [],
+          };
+          serverStripped = true;
+          next(serverSnapshot);
+        };
+        return options ?
+          onSnapshot(ref, options, forward, onError) :
+          onSnapshot(ref, forward, onError);
+      },
+    },
+  };
+}
+
 function wire(db, counters, auth = { currentUser: { uid: UID } }) {
   return wireFirestores({ db, auth, firestore: makeSdk(counters) });
 }
@@ -470,16 +518,26 @@ describe('V1 remote baseline and listeners', () => {
     });
   });
 
-  it('delivers a validated baseline, then deltas, and stops completely on unsubscribe', async () => {
+  it('delivers a complete server baseline after cache even without docChanges', async () => {
     await pair(operation({ opId: 'baseline' }));
     await activate({ counts: { ...EMPTY_COUNTS, eventos: 1 } });
-    wire(ownerDb, { reads: 0, writes: 0 });
+    const baseSdk = makeSdk({ reads: 0, writes: 0 });
+    const { sdk, listenerOptions } = cacheThenServerSdk(baseSdk);
+    wireFirestores({
+      db: ownerDb,
+      auth: { currentUser: { uid: UID } },
+      firestore: sdk,
+    });
     const deltas = [];
     const errors = [];
     const unsubscribe = subscribeGeneration(UID, GENERATION, {
       onDelta: delta => deltas.push(delta),
       onError: error => errors.push(error),
     });
+    await waitFor(() => listenerOptions.length === COLLECTIONS.length);
+    expect(listenerOptions).toEqual(Array.from({ length: COLLECTIONS.length }, () => ({
+      includeMetadataChanges: true,
+    })));
     await waitFor(() => deltas.some(delta => delta.baseline && delta.entityId === 'e1'));
 
     const second = operation({ opId: 'second', item: eventItem('e2', 'Segundo') });
