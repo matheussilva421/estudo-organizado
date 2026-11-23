@@ -91,6 +91,27 @@ describe('V1 optional private backup verifier', () => {
     expect(convert).not.toHaveBeenCalled();
   });
 
+  it('fix round 2: verifies both col/id root and collection/id config formats without exposing metadata', () => {
+    const fixture = synthetic();
+    const raw = JSON.parse(fixture.bytes.toString('utf8'));
+    raw.config.entityTombstones = ['synthetic-deleted-a', 'synthetic-deleted-b'].map(id => ({
+      collection: 'eventos', deletedAt: null, deletedBy: 'synthetic-author', id,
+      key: 'synthetic-opaque-key', revision: 2,
+    }));
+    const bytes = Buffer.from(JSON.stringify(raw));
+    const expected = { ...fixture.expected, sizeBytes: bytes.length,
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+      businessCounts: { ...fixture.expected.businessCounts, tombstones: 3 },
+      tombstonesByOrigin: { root: 1, config: 2 },
+    };
+    const result = verifyBackupBytes(bytes, expected);
+    expect(result.status).toBe('PASS');
+    for (const name of ['schemaAndConversion', 'tombstonesByOrigin', 'businessEquivalence', 'businessDigest']) {
+      expect(result.checks.find(check => check.check === name).ok).toBe(true);
+    }
+    expect(JSON.stringify(result)).not.toMatch(/synthetic-|deletedBy|revision|opaque/);
+  });
+
   it.each(['businessCounts', 'tombstonesByOrigin', 'habitCounts', 'historicalUnresolvedReferences'])(
     'rejects mismatched aggregate %s', field => {
       const { bytes, expected } = synthetic();

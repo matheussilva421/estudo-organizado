@@ -320,11 +320,37 @@ describe('V1 next backup codec', () => {
 
   it('fix round 1: rejects tombstones without recoverable identity rather than using their index', () => {
     for (const tombstone of [{ deletedAt: null }, { col: 'eventos' }, {}, null, 123,
-      { col: 'eventos', id: '' }, { entityType: 'evento', entityId: {} }]) {
+      { col: 'eventos', id: '' }, { entityType: 'evento', entityId: {} },
+      { collection: 'eventos' }, { collection: '', id: 'synthetic-id' },
+      { collection: 'eventos', id: '' }, { collection: 'eventos', id: {} }]) {
       const raw = business();
       raw.config.entityTombstones = [tombstone];
       expect(() => convertBackupV12(raw)).toThrow(/tombstone identity/);
     }
+  });
+
+  it('fix round 2: preserves collection/id config tombstones and stable identity across reordering', () => {
+    const raw = business();
+    raw.syncTombstones = [{ col: 'eventos', id: 'synthetic-shared', deletedAt: null }];
+    raw.config.entityTombstones = ['eventos', 'disciplinas'].map(collection => ({
+      collection, deletedAt: null, deletedBy: 'synthetic-author', id: 'synthetic-shared',
+      key: 'synthetic-opaque-key', revision: 2,
+    }));
+    const before = structuredClone(raw);
+    const first = convertBackupV12(raw);
+    expect(raw).toStrictEqual(before);
+    expect(first.records.tombstones.map(record => record.key).sort()).toEqual([
+      'tombstone.config.entityTombstones.disciplinas:synthetic-shared',
+      'tombstone.config.entityTombstones.eventos:synthetic-shared',
+      'tombstone.syncTombstones.eventos:synthetic-shared',
+    ]);
+    const identities = records => Object.fromEntries(records.map(record => [record.key, record.data]));
+    raw.config.entityTombstones.reverse();
+    const reordered = convertBackupV12(raw);
+    expect(identities(reordered.records.tombstones)).toStrictEqual(identities(first.records.tombstones));
+    expect(reconstituteBackupV12(first.records)).toStrictEqual(before);
+    expect(reconstituteBackupV12(reordered.records)).toStrictEqual(raw);
+    expect(auditBusinessEquivalence(raw, reconstituteBackupV12(reordered.records)).ok).toBe(true);
   });
 
   it('fix round 1: distinguishes legacy tombstone types sharing an ID and preserves zero IDs', () => {

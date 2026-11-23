@@ -55,9 +55,10 @@ function tombstoneIdentity(data, slot, isArray, path) {
   const validId = value => (typeof value === 'string' && value.length > 0) ||
     (typeof value === 'number' && Number.isFinite(value));
   const validType = value => typeof value === 'string' && value.length > 0;
-  // Legacy root shape {col,id}; legacy config shape {entityType,entityId}.
+  // Legacy root {col,id}; config {collection,id} or {entityType,entityId}.
   if (isObject(data)) {
     if (validType(data.col) && validId(data.id)) return [data.col, data.id];
+    if (validType(data.collection) && validId(data.id)) return [data.collection, data.id];
     if (validType(data.entityType) && validId(data.entityId)) return [data.entityType, data.entityId];
   }
   // Legacy map keys encode type:id; split only the first colon, preserving IDs.
