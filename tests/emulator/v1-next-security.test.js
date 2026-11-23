@@ -53,7 +53,7 @@ const COLLECTIONS = [
 ];
 const EMPTY_COUNTS = Object.fromEntries(COLLECTIONS.map(name => [name, 0]));
 const digest = value => createHash('sha256').update(value ?? 'null').digest('hex');
-const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8085';
+const emulatorHost = globalThis.process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8085';
 const emulatorSeparator = emulatorHost.lastIndexOf(':');
 const EMULATOR = {
   host: emulatorHost.slice(0, emulatorSeparator),

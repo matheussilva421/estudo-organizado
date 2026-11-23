@@ -647,7 +647,7 @@ describe('V1 next first access bootstrap', () => {
     const rootItem = convertBackupV12(baselineState).records.meta
       .find(item => item.key === 'meta:$root');
     const data = encodeRecordData(rootItem);
-    const outcome = await local.applyRemoteRecord({
+    const input = {
       uid: 'uid_root',
       generationId: 'gen_a',
       record: {
@@ -664,11 +664,73 @@ describe('V1 next first access bootstrap', () => {
         data,
         updatedAt: { seconds: 1800000000, nanoseconds: 0 },
       },
-    });
+    };
 
+    const outcome = await local.applyRemoteRecord(input);
+    await local.applyRemoteRecord(input);
     expect(outcome, JSON.stringify(outcome)).toMatchObject({ applied: true });
     const cached = await local.readLocalGeneration('uid_root', 'gen_a');
     expect(cached.state.planejamentoArquivado).toEqual({ arquivadoEm: '2026-11-23' });
+  });
+
+  it.each([null, []].map(value => [value]))('preserves normalized tombstones %j when omitted remotely', async tombstones => {
+    createDatabase();
+    const { local, bootstrap } = await importModules();
+    const baselineState = academicState('Root sem tombstones');
+    await bootstrap.bootstrapV1Generation({
+      uid: 'uid_null_root_slot',
+      online: true,
+      remoteApi: fakeRemote(remoteBaseline(baselineState)),
+    });
+    const normalized = { ...baselineState, syncTombstones: tombstones };
+    await local.cacheLocalGenerationState({
+      uid: 'uid_null_root_slot',
+      generationId: 'gen_a',
+      state: normalized,
+    });
+
+    const rootItem = convertBackupV12(baselineState).records.meta
+      .find(item => item.key === 'meta:$root');
+    expect(rootItem.data).not.toHaveProperty('syncTombstones');
+    const data = encodeRecordData(rootItem);
+    const outcome = await local.applyRemoteRecord({
+      uid: 'uid_null_root_slot',
+      generationId: 'gen_a',
+      record: {
+        schemaVersion: 1,
+        generationId: 'gen_a',
+        entityType: 'meta',
+        entityId: '$root',
+        collection: 'meta',
+        baseRevision: 0,
+        revision: 1,
+        opId: 'op_root_without_null_slot',
+        opDigest: sha256Utf8(data),
+        deleted: false,
+        data,
+        updatedAt: { seconds: 1800000000, nanoseconds: 0 },
+      },
+    });
+
+    expect(outcome, JSON.stringify(outcome)).toMatchObject({ applied: true });
+    const cached = await local.readLocalGeneration('uid_null_root_slot', 'gen_a');
+    expect(cached.state.syncTombstones).toEqual(tombstones);
+  });
+
+  it('buffers a remote deletion until the parent removes its slot', async () => {
+    createDatabase();
+    const { local, bootstrap } = await importModules();
+    const state = academicState('Evento removido');
+    const uid = 'uid_remote_delete';
+    await bootstrap.bootstrapV1Generation({ uid, online: true, remoteApi: fakeRemote(remoteBaseline(state)) });
+    const record = { ...remoteRecord({ state, revision: 2 }), deleted: true, data: null, opDigest: sha256Utf8('null') };
+    const input = { uid, generationId: 'gen_a', record };
+    await expect(local.applyRemoteRecord(input)).resolves.toMatchObject({ buffered: true });
+    const root = convertBackupV12({ ...state, eventos: [] }).records.meta.find(item => item.entityId === '$root');
+    const data = encodeRecordData(root);
+    await local.applyRemoteRecord({ ...input, record: { ...record, entityType: 'meta', collection: 'meta',
+      entityId: '$root', opId: 'op_drop_slot', deleted: false, data, opDigest: sha256Utf8(data) } });
+    expect((await local.readLocalGeneration(uid, 'gen_a')).state.eventos).toEqual([]);
   });
 
   it('preserves a pending local entity when the remote delta arrives', async () => {

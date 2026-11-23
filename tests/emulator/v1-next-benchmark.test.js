@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -18,6 +19,7 @@ import {
 } from 'firebase/firestore';
 import { createBaseState } from '../helpers/state-builders.js';
 import { convertBackupV12 } from '../../src/js/sync/v1-next/backup-codec.js';
+import { validateV1Baseline } from '../../src/js/sync/v1-next/bootstrap.js';
 import { encodeDocId, encodeRecordData } from '../../src/js/sync/v1-next/contracts.js';
 import {
   applyRemoteOperation,
@@ -48,7 +50,7 @@ const METRICS_PATH = resolve(
   '.superpowers/sdd/2026-11-23-estudo-organizado-v1-sync-definitivo/task-11-metrics.json',
 );
 const digest = value => createHash('sha256').update(value ?? 'null').digest('hex');
-const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8085';
+const emulatorHost = globalThis.process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8085';
 const emulatorSeparator = emulatorHost.lastIndexOf(':');
 const EMULATOR = {
   host: emulatorHost.slice(0, emulatorSeparator),
@@ -94,9 +96,11 @@ function benchmarkSdk(counters) {
     },
     onSnapshot,
     runTransaction: async (db, callback) => runTransaction(db, transaction => callback({
-      get: ref => {
+      get: async ref => {
         counters.reads += 1;
-        return transaction.get(ref);
+        const snapshot = await transaction.get(ref);
+        counters.documents += snapshot.exists() ? 1 : 0;
+        return snapshot;
       },
       set: (ref, value) => {
         counters.writes += 1;
@@ -148,7 +152,8 @@ function buildFixture() {
     },
     eventos,
     editais: [{ id: 'ed', nome: 'Benchmark', disciplinas: [
-      { id: 'd', nome: 'Disciplina', assuntos: [], aulas: [] },
+      { id: 'd', nome: 'Disciplina', assuntos: Array.from({ length: 140 }, (_, i) => ({ id: `a${i}`, nome: `Tema ${i}` })),
+        aulas: Array.from({ length: 60 }, (_, i) => ({ id: `l${i}`, nome: `Aula ${i}` })) },
     ] }],
   });
   const converted = convertBackupV12(state);
@@ -217,41 +222,14 @@ async function seed() {
   return { manifest, records: records.length };
 }
 
-function operation(counters, opId = 'benchmark_edit') {
-  const item = {
-    key: 'evento:benchmark_new',
-    entityType: 'evento',
-    entityId: 'benchmark_new',
-    path: ['eventos', 90],
-    data: {
-      id: 'benchmark_new',
-      titulo: 'Edição isolada do benchmark',
-      data: '2026-11-25',
-      status: 'agendado',
-      tempoAcumulado: 0,
-    },
-  };
+function editOperation(previous, collectionName, changes, opId) {
+  const item = { ...previous, data: { ...previous.data, ...changes } };
   const dataText = encodeRecordData(item);
   return {
-    counters,
-    value: {
-      uid: UID,
-      generationId: GENERATION,
-      opId,
-      entityKey: item.key,
-      entityType: item.entityType,
-      entityId: item.entityId,
-      collection: 'eventos',
-      path: item.path,
-      baseRevision: 0,
-      revision: 1,
-      action: 'upsert',
-      baseRecord: null,
-      data: item.data,
-      dataText,
-      opDigest: digest(dataText),
-      status: 'pending',
-    },
+    uid: UID, generationId: GENERATION, opId, entityKey: item.key,
+    entityType: item.entityType, entityId: item.entityId, collection: collectionName,
+    path: item.path, baseRevision: 1, revision: 2, action: 'upsert',
+    baseRecord: previous, data: item.data, dataText, opDigest: digest(dataText), status: 'pending',
   };
 }
 
@@ -285,9 +263,11 @@ it('records measured Emulator counters for V1 incremental sync against a legacy 
   const bootstrap = await timer(async () => {
     const current = await getCurrentGeneration(UID);
     const fetched = await fetchGenerationRecords(UID, current.generationId);
-    return { current, fetched };
+    return { fetched, verified: validateV1Baseline(fetched) };
   });
   expect(bootstrap.value.fetched.records.length).toBe(238);
+  expect(bootstrap.value.verified.state.eventos).toEqual(fixture.state.eventos);
+  expect(bootstrap.value.verified.state.planejamento.retaFinal.blocos).toEqual(fixture.blocks);
 
   const editCounters = emptyCounters();
   wireFirestores({
@@ -295,20 +275,22 @@ it('records measured Emulator counters for V1 incremental sync against a legacy 
     auth: { currentUser: { uid: UID } },
     firestore: benchmarkSdk(editCounters),
   });
-  const edit = operation(editCounters);
-  const v1Edit = await timer(() => applyRemoteOperation(edit.value));
-  expect(v1Edit.value).toMatchObject({ acknowledged: true, revision: 1 });
+  const edit = editOperation(fixture.converted.records.eventos[0], 'eventos',
+    { titulo: 'Edição isolada do benchmark' }, 'benchmark_edit');
+  const v1Edit = await timer(() => applyRemoteOperation(edit));
+  expect(v1Edit.value).toMatchObject({ acknowledged: true, revision: 2 });
 
   const remoteRecord = await getDoc(doc(
     ownerDb,
     ROOT,
     'eventos',
-    encodeDocId(edit.value.entityKey),
+    encodeDocId(edit.entityKey),
   ));
   const v1RecordBytes = Buffer.byteLength(JSON.stringify(remoteRecord.data()), 'utf8');
 
   const legacyCounters = emptyCounters();
   const legacyRef = doc(ownerDb, 'users', UID, 'snapshots', 'main');
+  const legacyStarted = performance.now();
   const legacyRead = await getDoc(legacyRef);
   legacyCounters.reads += 1;
   legacyCounters.documents += legacyRead.exists() ? 1 : 0;
@@ -316,8 +298,10 @@ it('records measured Emulator counters for V1 incremental sync against a legacy 
     ...legacyRead.data(),
     payloadUpdatedAt: new Date().toISOString(),
   };
+  legacyPayload.payload.eventos[0].titulo = edit.data.titulo;
   const legacyBytes = Buffer.byteLength(JSON.stringify(legacyPayload), 'utf8');
-  const legacyWrite = await timer(() => setDoc(legacyRef, legacyPayload));
+  await setDoc(legacyRef, legacyPayload);
+  const legacyLatency = Number((performance.now() - legacyStarted).toFixed(3));
   legacyCounters.writes += 1;
 
   setActiveV1Context(UID, GENERATION);
@@ -349,10 +333,18 @@ it('records measured Emulator counters for V1 incremental sync against a legacy 
   }));
   expect(retaFinalPublish.value).toMatchObject({ status: 'published', revision: 1 });
 
+  const largest = fixture.converted.records.disciplinas.reduce((left, right) =>
+    Buffer.byteLength(encodeRecordData(left)) >= Buffer.byteLength(encodeRecordData(right)) ? left : right);
+  const disciplineCounters = emptyCounters();
+  wireFirestores({ db: ownerDb, auth: { currentUser: { uid: UID } }, firestore: benchmarkSdk(disciplineCounters) });
+  const disciplineEdit = editOperation(largest, 'disciplinas', { nome: 'Disciplina editada' }, 'edit_discipline');
+  const disciplineAck = await timer(() => applyRemoteOperation(disciplineEdit));
+  expect(disciplineAck.value).toMatchObject({ acknowledged: true, revision: 2 });
+
   const metrics = {
     generatedAt: new Date().toISOString(),
     environment: {
-      backend: 'Firestore Emulator 127.0.0.1:8085',
+      backend: `Firestore Emulator ${emulatorHost}`,
       projectId: PROJECT_ID,
       data: 'synthetic-private-safe fixture',
     },
@@ -360,8 +352,20 @@ it('records measured Emulator counters for V1 incremental sync against a legacy 
       documents: bootstrap.value.fetched.manifest.counts.total,
       events: 90,
       retaFinalBlocks: 140,
+      largestDiscipline: {
+        disciplineId: largest.entityId,
+        events: fixture.state.eventos.filter(event => event.discId === largest.entityId).length,
+        retaFinalBlocks: nextBlocks.filter(block => block.discId === largest.entityId).length,
+      },
       historicalUnresolvedReferences: fixture.converted.manifestDraft
         .historicalUnresolvedReferences,
+    },
+    largestDisciplineEdit: {
+      ...disciplineCounters,
+      latencyMsToAckMs: disciplineAck.latencyMs,
+      dataJsonBytes: Buffer.byteLength(disciplineEdit.dataText),
+      lessons: largest.data.aulas.length,
+      subjects: largest.data.assuntos.length,
     },
     v1Bootstrap: {
       latencyMs: bootstrap.latencyMs,
@@ -378,7 +382,7 @@ it('records measured Emulator counters for V1 incremental sync against a legacy 
       fullBaselineRewrite: false,
     },
     legacySnapshotBaseline: {
-      latencyMsToAckMs: legacyWrite.latencyMs,
+      latencyMsToAckMs: legacyLatency,
       reads: legacyCounters.reads,
       documents: legacyCounters.documents,
       writes: legacyCounters.writes,
@@ -397,6 +401,7 @@ it('records measured Emulator counters for V1 incremental sync against a legacy 
       counters: 'SDK helper calls and snapshot document counts at the V1 repository boundary',
       bytes: 'UTF-8 byte length of JSON payloads before SDK encoding, not Firestore wire overhead',
       latency: 'One local Emulator run per scenario, wall clock to helper completion or ACK',
+      largestDiscipline: 'Largest synthetic discipline by codec JSON UTF-8 bytes; edit of existing document',
       legacy: 'One legacy snapshots/main read plus one full synthetic snapshot write',
       limitations: [
         'Emulator locality is not production network latency or billing.',
@@ -408,11 +413,18 @@ it('records measured Emulator counters for V1 incremental sync against a legacy 
   await mkdir(dirname(METRICS_PATH), { recursive: true });
   await writeFile(METRICS_PATH, `${JSON.stringify(metrics, null, 2)}\n`, 'utf8');
 
+  expect(metrics.v1IncrementalEdit.reads).toBeLessThan(10);
+  expect(metrics.v1IncrementalEdit.documents).toBeLessThan(10);
   expect(metrics.v1IncrementalEdit.writes).toBe(2);
   expect(metrics.v1IncrementalEdit.writes).toBeLessThan(metrics.dataset.documents);
   expect(metrics.v1IncrementalEdit.fullBaselineRewrite).toBe(false);
   expect(metrics.legacySnapshotBaseline.snapshotJsonBytes)
     .toBeGreaterThan(metrics.v1IncrementalEdit.recordJsonBytes);
   expect(metrics.retaFinal140Blocks.batches).toBe(4);
+  expect(metrics.dataset.largestDiscipline).toEqual({
+    disciplineId: 'd',
+    events: 90,
+    retaFinalBlocks: 140,
+  });
   expect(metrics.dataset.documents).toBe(238);
 });

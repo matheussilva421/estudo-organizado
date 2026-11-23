@@ -321,6 +321,11 @@ function applyRemoteFragment(records, record) {
     // Local normalization may add meta fields absent from the migration
     // baseline. Keep their null slots so the rebuilt root stays a valid
     // topology instead of buffering every subsequent delta.
+    const previousRoot = records.meta.find(candidate => candidate.key === key);
+    if (!Object.hasOwn(item.data, 'syncTombstones') && previousRoot &&
+      Object.hasOwn(previousRoot.data, 'syncTombstones')) {
+      item.data.syncTombstones = previousRoot.data.syncTombstones;
+    }
     for (const candidate of next.meta) {
       if (candidate.path.length !== 1) continue;
       const [slot] = candidate.path;
@@ -1161,7 +1166,9 @@ export async function applyRemoteRecord({
             // A whole-state commit from another tab may have overwritten the
             // shared cache after this revision was acknowledged. Repair it
             // from the exact acknowledged record instead of trusting metadata.
-            const repaired = stateWithRecord(stateRecord.state, previous, payload);
+            const repaired = entityKey === 'meta:$root'
+              ? reconstituteBackupV12(applyRemoteFragment(converted.records, record))
+              : stateWithRecord(stateRecord.state, previous, payload);
             stateStore.put({
               ...stateRecord,
               state: repaired,
@@ -1252,7 +1259,7 @@ export async function applyRemoteRecord({
 
           const held = [];
           const eligible = [];
-          const currentRecords = convertBackupV12(stateRecord.state).records;
+          const currentRecords = converted.records;
           for (const fragment of fragments) {
             const fragmentKey = recordKey(fragment.entityType, fragment.entityId);
             const fragmentMeta = metas.get(fragmentKey) || null;
@@ -1270,7 +1277,7 @@ export async function applyRemoteRecord({
             }
             const current = currentRecords[fragment.collection]
               .find(candidate => candidate.key === fragmentKey);
-            if (current) {
+            if (current && !fragment.deleted) {
               const item = JSON.parse(fragment.data);
               if (canonical(current.data) === canonical(item.data) &&
                 canonical(current.path) === canonical(item.path)) {
@@ -1290,7 +1297,7 @@ export async function applyRemoteRecord({
 
           let rebuilt;
           try {
-            let records = convertBackupV12(stateRecord.state).records;
+            let records = currentRecords;
             for (const fragment of eligible) {
               records = applyRemoteFragment(records, fragment);
             }
