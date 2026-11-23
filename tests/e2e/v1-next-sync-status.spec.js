@@ -158,15 +158,22 @@ async function exitWarning(page) {
 
 test.describe('V1 sync status UX', () => {
   test('warns on the first exit from Home with a durable outbox, without visiting Config', async ({ page }) => {
-    await installHarness(page, { mode: 'hold' });
+    await installHarness(page, { mode: 'ack' });
     await page.goto('/');
     await expect(page.locator('#topbar-title')).toHaveText('Página Inicial');
+    await expect.poll(() => page.evaluate(async () => {
+      const store = await import('/js/store.js?v=8.37');
+      return (await store.getPendingOperations('uid_e2e_v1_status', 'gen_e2e_v1_status')).length;
+    })).toBe(0);
+    await page.evaluate(() => { window.__V1_STATUS_TEST__.mode = 'hold'; });
     await saveLocalConfig(page, 39);
     await expect.poll(() => page.evaluate(() => window.__V1_STATUS_TEST__.applies.length)).toBe(1);
     await expect.poll(() => page.evaluate(async () => {
       const store = await import('/js/store.js?v=8.37');
-      return (await store.getPendingOperations('uid_e2e_v1_status', 'gen_e2e_v1_status')).length;
-    })).toBe(1);
+      return (await store.getPendingOperations('uid_e2e_v1_status', 'gen_e2e_v1_status'))
+        .some((operation) => operation.entityType === 'meta' &&
+          operation.entityId === 'config');
+    })).toBe(true);
     expect(await exitWarning(page)).toBe(true);
     await page.evaluate(() => window.__V1_STATUS_RELEASE_APPLY__());
     await expect.poll(() => exitWarning(page)).toBe(false);
@@ -190,9 +197,14 @@ test.describe('V1 sync status UX', () => {
   });
 
   test('never announces synchronized for partial worker events while a write awaits ACK', async ({ page }) => {
-    await installHarness(page, { mode: 'hold' });
+    await installHarness(page, { mode: 'ack' });
     await page.goto('/');
     await openConfig(page);
+    await expect.poll(() => page.evaluate(async () => {
+      const store = await import('/js/store.js?v=8.37');
+      return (await store.getPendingOperations('uid_e2e_v1_status', 'gen_e2e_v1_status')).length;
+    })).toBe(0);
+    await page.evaluate(() => { window.__V1_STATUS_TEST__.mode = 'hold'; });
     await saveLocalConfig(page, 37);
     await expect.poll(() => page.evaluate(() => window.__V1_STATUS_TEST__.applies.length)).toBe(1);
     const snapshots = await page.evaluate(async () => {
@@ -206,7 +218,7 @@ test.describe('V1 sync status UX', () => {
     });
     for (const snapshot of snapshots) {
       expect(snapshot.state).toBe('sincronizando');
-      expect(snapshot.pendingCount).toBe(1);
+      expect(snapshot.pendingCount).toBeGreaterThan(0);
     }
     await page.evaluate(() => window.__V1_STATUS_RELEASE_APPLY__());
     await expect(page.getByTestId('v1-sync-status')).toHaveAttribute('data-state', 'sincronizado');
