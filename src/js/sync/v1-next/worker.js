@@ -6,6 +6,7 @@ import {
   getPendingOperations,
   markLocalOperationConflict,
   markLocalOperationRetry,
+  mergeLocalOperationWithRemote,
   readLocalGeneration,
   releaseV1WorkerLease,
   renewV1WorkerLease,
@@ -142,12 +143,28 @@ async function retryOperation(entry, operation, reason) {
 }
 
 async function conflictOperation(entry, operation, conflict) {
+  let merged = null;
+  try {
+    merged = await mergeLocalOperationWithRemote(operation.opId, conflict);
+  } catch {
+    merged = { merged: false };
+  }
+  if (merged?.merged === true) {
+    emitStatus(entry, 'syncing', {
+      reason: 'independent-fields-merged',
+      entityId: operation.entityId,
+      entityType: operation.entityType,
+      revision: merged.operation?.revision,
+    });
+    return true;
+  }
   await markLocalOperationConflict(operation.opId, conflict);
   emitStatus(entry, 'conflict-paused', {
     reason: conflict.code || 'conflict',
     entityId: operation.entityId,
     entityType: operation.entityType,
   });
+  return false;
 }
 
 async function refreshFromCachedState(entry) {
@@ -279,8 +296,8 @@ async function drainUnderLease(entry, leaseLost) {
     } catch (error) {
       if (!isActive(entry) || leaseLost()) return summary;
       if (CONFLICT_CODES.has(error?.code)) {
-        await conflictOperation(entry, operation, conflictFrom(error));
-        summary.conflicts += 1;
+        const merged = await conflictOperation(entry, operation, conflictFrom(error));
+        if (!merged) summary.conflicts += 1;
         continue;
       }
       await retryOperation(entry, operation, error?.code || error?.message || 'remote-error');
@@ -296,8 +313,8 @@ async function drainUnderLease(entry, leaseLost) {
 
     if (!isActive(entry) || leaseLost()) return summary;
     if (outcome?.conflict) {
-      await conflictOperation(entry, operation, outcome.conflict);
-      summary.conflicts += 1;
+      const merged = await conflictOperation(entry, operation, outcome.conflict);
+      if (!merged) summary.conflicts += 1;
       continue;
     }
     if (outcome?.acknowledged !== true || !outcome.receipt) {

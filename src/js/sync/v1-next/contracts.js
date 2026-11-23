@@ -62,6 +62,101 @@ export function compareRevisions(base, remote) {
   return Math.sign(base - remote);
 }
 
+/** T7 relation used by merge decisions. `compareRevisions` stays numeric for T4 callers. */
+export function classifyRevisions(base, remote, { remoteDeleted = false } = {}) {
+  check(natural(base) && natural(remote), 'revision');
+  check(typeof remoteDeleted === 'boolean', 'remote deletion');
+  if (remoteDeleted) return 'conflict';
+  if (base === remote) return 'equal';
+  return remote > base ? 'advanced' : 'conflict';
+}
+
+function sameJson(left, right) {
+  if (Object.is(left, right)) return true;
+  if (left === null || right === null || typeof left !== typeof right) return false;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length &&
+      left.every((value, index) => sameJson(value, right[index]));
+  }
+  if (typeof left !== 'object') return false;
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  return leftKeys.length === rightKeys.length && leftKeys.every((key) =>
+    Object.hasOwn(right, key) && sameJson(left[key], right[key]));
+}
+
+function mergeJsonObject(base, local, remote, path, conflicts) {
+  const keys = new Set([
+    ...(isMap(base) ? Object.keys(base) : []),
+    ...Object.keys(local),
+    ...Object.keys(remote),
+  ]);
+  const merged = {};
+  for (const key of keys) {
+    const hasBase = isMap(base) && Object.hasOwn(base, key);
+    const hasLocal = Object.hasOwn(local, key);
+    const hasRemote = Object.hasOwn(remote, key);
+    const baseValue = hasBase ? base[key] : undefined;
+    const localValue = hasLocal ? local[key] : undefined;
+    const remoteValue = hasRemote ? remote[key] : undefined;
+    const nextPath = [...path, key];
+    if ((hasLocal === hasRemote) && sameJson(localValue, remoteValue)) {
+      if (hasLocal) merged[key] = structuredClone(localValue);
+    } else if (hasLocal === hasBase && sameJson(localValue, baseValue)) {
+      if (hasRemote) merged[key] = structuredClone(remoteValue);
+    } else if (hasRemote === hasBase && sameJson(remoteValue, baseValue)) {
+      if (hasLocal) merged[key] = structuredClone(localValue);
+    } else if (hasLocal && hasRemote && isMap(localValue) && isMap(remoteValue) &&
+      (!hasBase || isMap(baseValue))) {
+      merged[key] = mergeJsonObject(baseValue, localValue, remoteValue, nextPath, conflicts);
+    } else {
+      conflicts.push({
+        path: nextPath,
+        base: hasBase ? structuredClone(baseValue) : undefined,
+        local: hasLocal ? structuredClone(localValue) : undefined,
+        remote: hasRemote ? structuredClone(remoteValue) : undefined,
+      });
+    }
+  }
+  return merged;
+}
+
+/**
+ * Three-way merge for T1 record items. Objects merge only when every changed
+ * leaf is independent. Arrays, identities and any divergent same leaf make the
+ * whole entity a conflict, so no partial or silent last-write-wins value leaks.
+ */
+export function mergeIndependentRecords({ base = null, local = null, remote = null } = {}) {
+  for (const value of [base, local, remote]) {
+    if (value !== null) checkCodecRecord(value);
+  }
+  if (!local || !remote) {
+    return { merged: false, conflicts: [{ path: ['identity'], reason: 'missing-version' }] };
+  }
+  if (local.key !== remote.key || local.entityType !== remote.entityType ||
+    String(local.entityId) !== String(remote.entityId) ||
+    (base && (base.key !== local.key || base.entityType !== local.entityType ||
+      String(base.entityId) !== String(local.entityId)))) {
+    return { merged: false, conflicts: [{ path: ['identity'], reason: 'identity' }] };
+  }
+
+  const conflicts = [];
+  const path = mergeJsonObject(base ? { 0: base.path } : null,
+    { 0: local.path }, { 0: remote.path }, ['path'], conflicts);
+  const data = mergeJsonObject(base?.data ?? null, local.data, remote.data, ['data'], conflicts);
+  if (conflicts.length) return { merged: false, conflicts };
+  return {
+    merged: true,
+    record: {
+      key: local.key,
+      entityType: local.entityType,
+      entityId: local.entityId,
+      path: structuredClone(path[0]),
+      data,
+    },
+  };
+}
+
 function checkJson(value, depth = 0) {
   check(depth <= 32, 'JSON depth');
   if (value === null || typeof value === 'boolean' || Number.isFinite(value)) return;

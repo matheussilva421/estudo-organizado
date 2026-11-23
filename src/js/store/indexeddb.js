@@ -579,7 +579,8 @@ export function saveStateToDB(
 
   const activeContext = getActiveV1Context();
   const v1Stores = activeContext
-    ? [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_ENTITY_META_STORE, V1_SYNC_META_STORE]
+    ? [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_ENTITY_META_STORE,
+      V1_SYNC_CONFLICT_STORE, V1_SYNC_META_STORE]
     : [];
   if (v1Stores.some((storeName) => !db.objectStoreNames.contains(storeName))) {
     const error = new Error('V1 local stores are unavailable');
@@ -612,6 +613,7 @@ export function saveStateToDB(
           state: undefined,
           operations: undefined,
           entityMeta: undefined,
+          conflicts: undefined,
           syncMeta: undefined,
           done: new Set(),
         }
@@ -623,7 +625,7 @@ export function saveStateToDB(
     };
     const stage = () => {
       if (staged || !currentDone ||
-        (v1Reads && v1Reads.done.size !== 4)) return;
+        (v1Reads && v1Reads.done.size !== 5)) return;
       staged = true;
       let prepared = null;
       try {
@@ -642,6 +644,7 @@ export function saveStateToDB(
             nextState: stateSnapshot,
             pendingOperations: v1Reads.operations || [],
             entityMeta: v1Reads.entityMeta || [],
+            existingConflicts: v1Reads.conflicts || [],
             syncMeta: v1Reads.syncMeta || null,
             verified: record?.verified,
           });
@@ -668,6 +671,8 @@ export function saveStateToDB(
           for (const key of prepared.deletedEntityMetaKeys) {
             trackWrite(entityMeta.delete(key));
           }
+          const conflicts = transaction.objectStore(V1_SYNC_CONFLICT_STORE);
+          for (const conflict of prepared.conflicts) trackWrite(conflicts.put(conflict));
           trackWrite(transaction.objectStore(V1_SYNC_META_STORE).put(prepared.syncMeta));
         }
       } catch (error) {
@@ -744,6 +749,14 @@ export function saveStateToDB(
         stage();
       };
       metaRequest.onerror = () => rejectOnce(metaRequest.error);
+
+      const conflictRequest = transaction.objectStore(V1_SYNC_CONFLICT_STORE).getAll();
+      conflictRequest.onsuccess = () => {
+        v1Reads.conflicts = conflictRequest.result || [];
+        v1Reads.done.add('conflicts');
+        stage();
+      };
+      conflictRequest.onerror = () => rejectOnce(conflictRequest.error);
 
       const syncMetaRequest = transaction.objectStore(V1_SYNC_META_STORE).get(v1Reads.scopeKey);
       syncMetaRequest.onsuccess = () => {

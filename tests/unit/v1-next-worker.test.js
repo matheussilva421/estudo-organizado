@@ -59,6 +59,7 @@ async function loadWorker() {
     ackLocalOperation: vi.fn(async () => {}),
     markLocalOperationRetry: vi.fn(async () => {}),
     markLocalOperationConflict: vi.fn(async () => {}),
+    mergeLocalOperationWithRemote: vi.fn(async () => ({ merged: false })),
     acquireV1WorkerLease: vi.fn(async () => ({ acquired: true, token: 'lease' })),
     renewV1WorkerLease: vi.fn(async () => true),
     releaseV1WorkerLease: vi.fn(async () => {}),
@@ -218,7 +219,7 @@ describe('V1 sync worker', () => {
     expect(local.markLocalOperationRetry).toHaveBeenCalledOnce();
 
     await vi.advanceTimersByTimeAsync(1_000);
-    await worker.drainPendingOperations();
+    const result = await worker.drainPendingOperations();
 
     expect(remote.applyRemoteOperation).toHaveBeenCalledTimes(2);
     expect(local.ackLocalOperation).toHaveBeenCalledTimes(2);
@@ -276,6 +277,48 @@ describe('V1 sync worker', () => {
       expect.any(Object),
     );
     expect(result.conflicts).toBeGreaterThanOrEqual(1);
+  });
+
+  it('rebases an independent advanced edit, retries once and acknowledges the new revision', async () => {
+    const original = operation({
+      baseRevision: 1,
+      revision: 2,
+      baseRecord: { data: { titulo: 'Base' } },
+    });
+    const rebased = operation({
+      baseRevision: 2,
+      revision: 3,
+      baseRecord: { data: { titulo: 'Remote title' } },
+    });
+    const queue = persistentQueue([original]);
+    local.mergeLocalOperationWithRemote.mockImplementation(async () => {
+      queue.set([rebased]);
+      return { merged: true, operation: rebased };
+    });
+    remote.applyRemoteOperation
+      .mockResolvedValueOnce({
+        acknowledged: false,
+        conflict: { code: 'revision', remoteRevision: 2, remoteRecord: { revision: 2 } },
+      })
+      .mockResolvedValueOnce({
+        acknowledged: true,
+        receipt: receiptFor(rebased),
+      });
+
+    await worker.startV1Sync({ uid: UID, generationId: GENERATION });
+    await worker.drainPendingOperations();
+
+    expect(local.mergeLocalOperationWithRemote).toHaveBeenCalledWith(
+      original.opId,
+      expect.objectContaining({ remoteRevision: 2 }),
+    );
+    expect(local.ackLocalOperation).toHaveBeenCalledWith(
+      original.opId,
+      expect.objectContaining({ baseRevision: 2, revision: 3 }),
+    );
+    expect(local.markLocalOperationConflict).not.toHaveBeenCalled();
+    expect(remote.applyRemoteOperation).toHaveBeenCalledTimes(2);
+    expect(queue.get()).toEqual([]);
   });
 
   it('removes all old listeners and ignores late callbacks after a UID switch', async () => {

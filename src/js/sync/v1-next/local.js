@@ -2,6 +2,7 @@ import { convertBackupV12, reconstituteBackupV12 } from './backup-codec.js';
 import {
   encodeRecordData,
   entityCollectionForType,
+  mergeIndependentRecords,
   recordKey,
   validateManifest,
   validateRecord,
@@ -112,6 +113,132 @@ function canonical(value) {
     .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
 }
 
+function operationItem(operation) {
+  if (!operation || operation.action === 'delete') return null;
+  return {
+    key: operation.entityKey,
+    entityType: operation.entityType,
+    entityId: operation.entityId,
+    path: clone(operation.path),
+    data: clone(operation.data),
+  };
+}
+
+function itemFromRemote(record) {
+  if (!record || record.deleted) return null;
+  return JSON.parse(record.data);
+}
+
+function recordVersion(revision, item, deleted = false) {
+  return {
+    revision,
+    deleted,
+    record: clone(item),
+    data: item ? clone(item.data) : null,
+  };
+}
+
+function operationVersions(operation, conflict = {}) {
+  const remoteRecord = conflict?.remoteRecord || null;
+  const localItem = operationItem(operation);
+  return {
+    base: {
+      revision: operation.baseRevision,
+      deleted: false,
+      record: clone(operation.baseRecord || null),
+      data: operation.baseRecord ? clone(operation.baseRecord.data) : null,
+    },
+    local: recordVersion(operation.revision, localItem, operation.action === 'delete'),
+    remote: remoteRecord || Number.isSafeInteger(conflict?.remoteRevision) ?
+      recordVersion(
+        remoteRecord?.revision ?? conflict.remoteRevision,
+        itemFromRemote(remoteRecord),
+        remoteRecord?.deleted === true || conflict?.remoteDeleted === true,
+      ) : null,
+  };
+}
+
+function conflictRecord(operation, conflict, { now, status = 'open' } = {}) {
+  const versions = operationVersions(operation, conflict || {});
+  return {
+    key: conflictKey(operation.uid, operation.generationId, operation.opId),
+    uid: operation.uid,
+    generationId: operation.generationId,
+    conflictId: operation.opId,
+    opId: operation.opId,
+    entityKey: operation.entityKey,
+    entityType: operation.entityType,
+    entityId: operation.entityId,
+    collection: operation.collection,
+    base: operation.baseRevision,
+    local: operation.revision,
+    remote: Number.isSafeInteger(conflict?.remoteRevision) ?
+      conflict.remoteRevision : null,
+    baseVersion: versions.base,
+    localVersion: versions.local,
+    remoteVersion: versions.remote,
+    reason: typeof conflict?.code === 'string' ? conflict.code : 'conflict',
+    remoteDeleted: conflict?.remoteDeleted === true ||
+      conflict?.remoteRecord?.deleted === true,
+    remoteRecord: clone(conflict?.remoteRecord || null),
+    status,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function removeRecordFromState(state, path) {
+  if (!Array.isArray(path) || path.length === 0) failClosed('record path');
+  let parent = state;
+  for (const segment of path.slice(0, -1)) {
+    if (parent == null || (typeof parent !== 'object' && !Array.isArray(parent)) ||
+      !Object.hasOwn(parent, segment)) failClosed('record path');
+    parent = parent[segment];
+  }
+  const slot = path.at(-1);
+  if (Array.isArray(parent)) {
+    if (!Number.isSafeInteger(slot) || slot < 0 || slot >= parent.length) {
+      failClosed('record path');
+    }
+    parent.splice(slot, 1);
+    return;
+  }
+  if (!parent || typeof parent !== 'object' || !Object.hasOwn(parent, slot)) {
+    failClosed('record path');
+  }
+  delete parent[slot];
+}
+
+function insertRecordIntoState(state, item) {
+  const { path, data } = item;
+  if (!Array.isArray(path) || path.length === 0) failClosed('record path');
+  let parent = state;
+  for (const segment of path.slice(0, -1)) {
+    if (parent == null || (typeof parent !== 'object' && !Array.isArray(parent)) ||
+      !Object.hasOwn(parent, segment)) failClosed('record path');
+    parent = parent[segment];
+  }
+  const slot = path.at(-1);
+  if (Array.isArray(parent)) {
+    if (!Number.isSafeInteger(slot) || slot < 0 || slot > parent.length) {
+      failClosed('record path');
+    }
+    parent.splice(slot, 0, clone(data));
+    return;
+  }
+  if (!parent || typeof parent !== 'object') failClosed('record path');
+  parent[slot] = clone(data);
+}
+
+function stateWithRecord(state, previous, item) {
+  const next = clone(state);
+  if (previous) removeRecordFromState(next, previous.path);
+  if (item) insertRecordIntoState(next, item);
+  // Reject an impossible topology before it reaches IndexedDB.
+  convertBackupV12(next);
+  return next;
+}
+
 function recordMap(state) {
   const converted = convertBackupV12(state);
   const records = new Map();
@@ -178,6 +305,7 @@ export function prepareLocalCommit({
   operations = [],
   pendingOperations = [],
   entityMeta = [],
+  existingConflicts = [],
   syncMeta = null,
   verified,
   now = new Date().toISOString(),
@@ -200,9 +328,34 @@ export function prepareLocalCommit({
     }
   }
 
+  const tombstoneCandidates = [...nextRecords.entries()]
+    .filter(([entityKey]) => metaByKey.get(entityKey)?.deleted === true)
+    .sort(([leftKey, left], [rightKey, right]) => {
+      const depth = Math.max(left.path.length, right.path.length);
+      for (let index = 0; index < depth; index += 1) {
+        const leftPart = left.path[index];
+        const rightPart = right.path[index];
+        if (leftPart === rightPart) continue;
+        if (typeof leftPart === 'number' && typeof rightPart === 'number') {
+          return rightPart - leftPart;
+        }
+        return String(rightPart).localeCompare(String(leftPart));
+      }
+      return leftKey.localeCompare(rightKey);
+    });
+  const tombstonedAttempts = [];
+  const tombstonedKeys = new Set();
+  for (const [entityKey, record] of tombstoneCandidates) {
+    const meta = metaByKey.get(entityKey);
+    removeRecordFromState(sanitized.state, record.path);
+    nextRecords.delete(entityKey);
+    tombstonedKeys.add(entityKey);
+    tombstonedAttempts.push({ entityKey, record, meta });
+  }
+
   const changes = new Map();
   for (const [entityKey, record] of previousRecords) {
-    if (!nextRecords.has(entityKey)) {
+    if (!nextRecords.has(entityKey) && !tombstonedKeys.has(entityKey)) {
       changes.set(entityKey, { previous: record, next: null, action: 'delete' });
     }
   }
@@ -223,6 +376,7 @@ export function prepareLocalCommit({
   const entityMetaUpdates = new Map();
   const deletedOperationIds = [];
   const deletedEntityMetaKeys = [];
+  const conflicts = [];
   let sequence = Math.max(
     Number.isSafeInteger(syncMeta?.nextSequence) ? syncMeta.nextSequence - 1 : 0,
     ...pending.map((operation) => Number(operation.sequence) || 0),
@@ -279,6 +433,7 @@ export function prepareLocalCommit({
           entityId: template.entityId,
           collection: entityCollectionForType(template.entityType),
           path: clone(template.path),
+          baseRecord: change.previous ? clone(change.previous) : null,
           baseRevision,
           revision: baseRevision + 1,
           action: 'delete',
@@ -304,6 +459,7 @@ export function prepareLocalCommit({
           entityId: change.next.entityId,
           collection: entityCollectionForType(change.next.entityType),
           path: clone(change.next.path),
+          baseRecord: change.previous ? clone(change.previous) : null,
           baseRevision,
           revision: baseRevision + 1,
           action: 'upsert',
@@ -337,6 +493,48 @@ export function prepareLocalCommit({
     });
   }
 
+  for (const { entityKey, record, meta } of tombstonedAttempts) {
+    const open = (Array.isArray(existingConflicts) ? existingConflicts : []).some(
+      (conflict) => conflict?.entityKey === entityKey && conflict.status === 'open',
+    );
+    if (open) continue;
+    sequence += 1;
+    const opId = operationId(existingIds);
+    existingIds.add(opId);
+    const dataText = encodeRecordData(record);
+    const operation = {
+      opId,
+      uid,
+      generationId,
+      entityKey,
+      entityType: record.entityType,
+      entityId: record.entityId,
+      collection: entityCollectionForType(record.entityType),
+      path: clone(record.path),
+      baseRecord: clone(meta.lastRecord || null),
+      baseRevision: Number.isSafeInteger(meta.revision) ? meta.revision : 0,
+      revision: (Number.isSafeInteger(meta.revision) ? meta.revision : 0) + 1,
+      action: 'upsert',
+      data: clone(record.data),
+      dataText,
+      opDigest: sha256Utf8(dataText),
+      status: 'conflict',
+      attempts: 0,
+      nextAttemptAt: null,
+      lastError: 'V1_SYNC_TOMBSTONE',
+      sequence,
+      createdAt: now,
+      updatedAt: now,
+    };
+    committedOperations.push(clone(operation));
+    conflicts.push(conflictRecord(operation, {
+      code: 'tombstone',
+      remoteRevision: meta.revision,
+      remoteDeleted: true,
+      remoteRecord: meta.lastRemoteRecord || null,
+    }, { now }));
+  }
+
   return {
     stateRecord: {
       key,
@@ -350,6 +548,7 @@ export function prepareLocalCommit({
     deletedOperationIds,
     deletedEntityMetaKeys,
     entityMeta: [...entityMetaUpdates.values()],
+    conflicts,
     syncMeta: {
       key,
       uid,
@@ -746,16 +945,18 @@ export async function applyRemoteRecord({
   const metaKey = entityMetaKey(uid, generationId, entityKey);
 
   return runTransaction(
-    [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_ENTITY_META_STORE],
+    [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_ENTITY_META_STORE,
+      V1_SYNC_CONFLICT_STORE],
     'readwrite',
     (transaction, control) => {
       const stateStore = transaction.objectStore(V1_LOCAL_STATE_STORE);
       const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
       const metaStore = transaction.objectStore(V1_ENTITY_META_STORE);
+      const conflictStore = transaction.objectStore(V1_SYNC_CONFLICT_STORE);
       const reads = {};
       const done = new Set();
       const stage = () => {
-        if (done.size !== 4) return;
+        if (done.size !== 5) return;
         try {
           const pointer = readPointerRecord(reads.pointer, uid);
           if (!pointer || pointer.generationId !== generationId || pointer.status !== 'ready') {
@@ -769,22 +970,31 @@ export async function applyRemoteRecord({
           const pending = (reads.operations || []).filter((operation) =>
             operation?.uid === uid && operation?.generationId === generationId &&
             operation?.entityKey === entityKey && ['pending', 'retry'].includes(operation.status));
-          if (pending.length) {
+          const meta = reads.meta;
+          const ownTombstone = record.deleted && pending.some(
+            (operation) => operation.opId === record.opId,
+          );
+          if (meta?.deleted === true && record.deleted !== true) {
+            control.setResult({ applied: false, reason: 'tombstoned' });
+            return;
+          }
+          if (pending.length && !record.deleted) {
             control.setResult({ applied: false, reason: 'pending' });
             return;
           }
-          const meta = reads.meta;
-          if (meta && (meta.revision > record.revision ||
+          if (!record.deleted && meta && (meta.revision > record.revision ||
             (meta.revision === record.revision && meta.lastAckedOpId === record.opId))) {
             control.setResult({ applied: false, reason: 'already-current' });
             return;
           }
-          if (meta && meta.revision === record.revision &&
+          if (!record.deleted && meta && meta.revision === record.revision &&
             meta.lastAckedOpId !== record.opId) {
             failClosed('conflicting remote revision');
           }
 
           const converted = convertBackupV12(stateRecord.state);
+          const previous = converted.records[record.collection]
+            .find((candidate) => candidate.key === entityKey) || null;
           let item = null;
           if (!record.deleted) {
             item = JSON.parse(record.data);
@@ -793,11 +1003,60 @@ export async function applyRemoteRecord({
               failClosed('remote payload identity');
             }
           }
-          const records = converted.records;
-          records[record.collection] = records[record.collection]
-            .filter((candidate) => candidate.key !== entityKey);
-          if (item) records[record.collection].push(item);
-          const nextState = reconstituteBackupV12(records);
+
+          if (pending.length && record.deleted && !ownTombstone) {
+            const conflicts = [];
+            const existing = new Map((reads.conflicts || []).map(
+              (conflict) => [conflict.conflictId, conflict],
+            ));
+            for (const operation of pending) {
+              const candidate = conflictRecord(operation, {
+                code: 'tombstone',
+                remoteRevision: record.revision,
+                remoteDeleted: true,
+                remoteRecord: record,
+              }, { now });
+              conflicts.push(existing.get(operation.opId) || candidate);
+              outbox.put({
+                ...operation,
+                status: 'conflict',
+                lastError: 'V1_SYNC_TOMBSTONE',
+                updatedAt: now,
+              });
+            }
+            for (const conflict of conflicts) conflictStore.put(conflict);
+            const nextState = stateWithRecord(stateRecord.state, previous, null);
+            stateStore.put({
+              ...stateRecord,
+              state: nextState,
+              verified: true,
+              verifiedAt: stateRecord.verifiedAt || now,
+              updatedAt: now,
+            });
+            metaStore.put({
+              key: metaKey,
+              uid,
+              generationId,
+              entityKey,
+              entityType: record.entityType,
+              entityId: record.entityId,
+              collection: record.collection,
+              baseRevision: record.baseRevision,
+              revision: record.revision,
+              deleted: true,
+              lastAckedOpId: record.opId,
+              lastRecord: null,
+              lastRemoteRecord: clone(record),
+              updatedAt: now,
+            });
+            control.setResult({
+              applied: true,
+              conflict: true,
+              conflictIds: conflicts.map((conflict) => conflict.conflictId),
+            });
+            return;
+          }
+          const nextState = stateWithRecord(stateRecord.state, previous, item);
 
           stateStore.put({
             ...stateRecord,
@@ -814,10 +1073,13 @@ export async function applyRemoteRecord({
             entityType: record.entityType,
             entityId: record.entityId,
             collection: record.collection,
-            baseRevision: record.baseRevision,
+            baseRevision: record.revision,
             revision: record.revision,
+            deleted: record.deleted === true,
             pendingOpId: null,
             lastAckedOpId: record.opId,
+            lastRecord: clone(item),
+            lastRemoteRecord: clone(record),
             updatedAt: now,
           });
           control.setResult({ applied: true });
@@ -838,6 +1100,7 @@ export async function applyRemoteRecord({
       read(stateStore, stateKey, 'state');
       read(outbox, null, 'operations');
       read(metaStore, metaKey, 'meta');
+      read(conflictStore, null, 'conflicts');
     },
   );
 }
@@ -851,17 +1114,20 @@ export async function commitLocalChange({
   validateScope(uid, generationId);
   const key = scopeKey(uid, generationId);
   await runTransaction(
-    [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_ENTITY_META_STORE, V1_SYNC_META_STORE],
+    [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_ENTITY_META_STORE,
+      V1_SYNC_CONFLICT_STORE, V1_SYNC_META_STORE],
     'readwrite',
     (transaction, control) => {
       const stateStore = transaction.objectStore(V1_LOCAL_STATE_STORE);
       const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
       const entityMetaStore = transaction.objectStore(V1_ENTITY_META_STORE);
+      const conflictStore = transaction.objectStore(V1_SYNC_CONFLICT_STORE);
       const syncMetaStore = transaction.objectStore(V1_SYNC_META_STORE);
       const reads = {
         state: undefined,
         operations: undefined,
         meta: undefined,
+        conflicts: undefined,
         syncMeta: undefined,
         pointer: undefined,
       };
@@ -869,6 +1135,7 @@ export async function commitLocalChange({
         state: false,
         operations: false,
         meta: false,
+        conflicts: false,
         syncMeta: false,
         pointer: false,
       };
@@ -891,6 +1158,7 @@ export async function commitLocalChange({
             operations,
             pendingOperations: reads.operations || [],
             entityMeta: reads.meta || [],
+            existingConflicts: reads.conflicts || [],
             syncMeta: reads.syncMeta || null,
             verified: reads.state?.verified,
           });
@@ -899,6 +1167,7 @@ export async function commitLocalChange({
           for (const opId of prepared.deletedOperationIds) outbox.delete(opId);
           for (const record of prepared.entityMeta) entityMetaStore.put(record);
           for (const key of prepared.deletedEntityMetaKeys) entityMetaStore.delete(key);
+          for (const conflict of prepared.conflicts) conflictStore.put(conflict);
           syncMetaStore.put(prepared.syncMeta);
         } catch (error) {
           control.abort(error);
@@ -916,6 +1185,7 @@ export async function commitLocalChange({
       read(stateStore, key, 'state');
       read(outbox, null, 'operations');
       read(entityMetaStore, null, 'meta');
+      read(conflictStore, null, 'conflicts');
       read(syncMetaStore, key, 'syncMeta');
       read(stateStore, pointerKey(uid), 'pointer');
     },
@@ -1031,27 +1301,7 @@ export async function markLocalOperationConflict(opId, conflict, {
           control.abort(new Error('V1 operation cannot enter conflict'));
           return;
         }
-        const conflictId = operation.opId;
-        const key = conflictKey(operation.uid, operation.generationId, conflictId);
-        conflicts.put({
-          key,
-          uid: operation.uid,
-          generationId: operation.generationId,
-          conflictId,
-          opId: operation.opId,
-          entityKey: operation.entityKey,
-          entityType: operation.entityType,
-          entityId: operation.entityId,
-          collection: operation.collection,
-          base: operation.baseRevision,
-          local: operation.revision,
-          remote: Number.isSafeInteger(conflict.remoteRevision) ?
-            conflict.remoteRevision : null,
-          reason: typeof conflict.code === 'string' ? conflict.code : 'conflict',
-          remoteDeleted: conflict.remoteDeleted === true,
-          remoteRecord: conflict.remoteRecord ?? null,
-          createdAt: now,
-        });
+        conflicts.put(conflictRecord(operation, conflict, { now }));
         outbox.put({
           ...operation,
           status: 'conflict',
@@ -1062,6 +1312,362 @@ export async function markLocalOperationConflict(opId, conflict, {
       };
     },
   );
+}
+
+/** Atomically merge one advanced remote version into a pending local update.
+ * The operation keeps its opId but receives a new base/revision before retry.
+ */
+export async function mergeLocalOperationWithRemote(opId, conflict, {
+  now = new Date().toISOString(),
+} = {}) {
+  if (typeof opId !== 'string' || !TOKEN.test(opId)) failClosed('operation ID');
+  if (!conflict || typeof conflict !== 'object' || Array.isArray(conflict)) {
+    failClosed('conflict');
+  }
+  return runTransaction(
+    [V1_SYNC_OUTBOX_STORE, V1_LOCAL_STATE_STORE, V1_ENTITY_META_STORE],
+    'readwrite',
+    (transaction, control) => {
+      const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
+      const stateStore = transaction.objectStore(V1_LOCAL_STATE_STORE);
+      const metaStore = transaction.objectStore(V1_ENTITY_META_STORE);
+      const reads = {};
+      const done = new Set();
+      const stage = () => {
+        if (done.size !== 3) return;
+        try {
+          const operation = reads.operation;
+          if (!operation) failClosed('operation');
+          validateScope(operation.uid, operation.generationId);
+          if (conflict.remoteDeleted === true || conflict.remoteRecord?.deleted === true) {
+            control.setResult({ merged: false, reason: 'tombstone' });
+            return;
+          }
+          if (!['pending', 'retry'].includes(operation.status)) {
+            control.setResult({ merged: false, reason: 'operation-status' });
+            return;
+          }
+          const remoteRecord = conflict.remoteRecord;
+          if (!remoteRecord) {
+            control.setResult({ merged: false, reason: 'missing-remote' });
+            return;
+          }
+          validateRecord(remoteRecord);
+          if (remoteRecord.generationId !== operation.generationId ||
+            remoteRecord.entityType !== operation.entityType ||
+            String(remoteRecord.entityId) !== String(operation.entityId)) {
+            failClosed('remote conflict identity');
+          }
+          if (operation.action === 'delete') {
+            control.setResult({ merged: false, reason: 'delete' });
+            return;
+          }
+          if (operation.baseRevision > 0 && !operation.baseRecord) {
+            control.setResult({ merged: false, reason: 'missing-base' });
+            return;
+          }
+          const localItem = operationItem(operation);
+          const remoteItem = itemFromRemote(remoteRecord);
+          const merged = mergeIndependentRecords({
+            base: operation.baseRecord || null,
+            local: localItem,
+            remote: remoteItem,
+          });
+          if (!merged.merged) {
+            control.setResult({ ...merged, reason: 'same-field' });
+            return;
+          }
+          const stateRecord = reads.state;
+          if (!stateRecord?.state) failClosed('verified state');
+          const dataText = encodeRecordData(merged.record);
+          const baseRevision = remoteRecord.revision;
+          const revision = baseRevision + 1;
+          const updated = {
+            ...operation,
+            path: clone(merged.record.path),
+            baseRecord: clone(remoteItem),
+            baseRevision,
+            revision,
+            action: 'upsert',
+            data: clone(merged.record.data),
+            dataText,
+            opDigest: sha256Utf8(dataText),
+            status: 'pending',
+            attempts: 0,
+            nextAttemptAt: null,
+            lastError: null,
+            updatedAt: now,
+          };
+          const metaKey = entityMetaKey(operation.uid, operation.generationId,
+            operation.entityKey);
+          const previous = convertBackupV12(stateRecord.state).records[operation.collection]
+            .find((candidate) => candidate.key === operation.entityKey) || null;
+          stateStore.put({
+            ...stateRecord,
+            state: stateWithRecord(stateRecord.state, previous, merged.record),
+            verified: true,
+            verifiedAt: stateRecord.verifiedAt || now,
+            updatedAt: now,
+          });
+          outbox.put(updated);
+          metaStore.put({
+            ...(reads.meta || {}),
+            key: metaKey,
+            uid: operation.uid,
+            generationId: operation.generationId,
+            entityKey: operation.entityKey,
+            entityType: operation.entityType,
+            entityId: operation.entityId,
+            collection: operation.collection,
+            baseRevision,
+            revision,
+            deleted: false,
+            pendingOpId: operation.opId,
+            updatedAt: now,
+          });
+          control.setResult({ merged: true, operation: clone(updated), record: merged.record });
+        } catch (error) {
+          control.abort(error);
+        }
+      };
+      const read = (store, key, field) => {
+        const request = store.get(key);
+        request.onsuccess = () => {
+          reads[field] = request.result || null;
+          done.add(field);
+          stage();
+        };
+        request.onerror = () => control.abort(request.error);
+      };
+      const initial = outbox.get(opId);
+      initial.onsuccess = () => {
+        reads.operation = initial.result || null;
+        if (!reads.operation) {
+          stage();
+          return;
+        }
+        const scope = scopeKey(reads.operation.uid, reads.operation.generationId);
+        const metaKey = entityMetaKey(reads.operation.uid, reads.operation.generationId,
+          reads.operation.entityKey);
+        read(stateStore, scope, 'state');
+        read(metaStore, metaKey, 'meta');
+        done.add('operation');
+        stage();
+      };
+      initial.onerror = () => control.abort(initial.error);
+    },
+  );
+}
+
+function resolutionDigest(choice, item) {
+  const value = item ? encodeRecordData(item) : 'null';
+  return sha256Utf8(`${choice}\n${value}`);
+}
+
+/** Explicitly resolve one isolated conflict. Repeated identical calls are idempotent. */
+export async function resolveLocalConflict({
+  uid,
+  generationId,
+  conflictId,
+  choice,
+  record = null,
+  now = new Date().toISOString(),
+} = {}) {
+  validateScope(uid, generationId);
+  if (typeof conflictId !== 'string' || !TOKEN.test(conflictId)) failClosed('conflict ID');
+  if (!['local', 'remote', 'merged'].includes(choice)) failClosed('resolution choice');
+  const key = conflictKey(uid, generationId, conflictId);
+  return runTransaction(
+    [V1_SYNC_OUTBOX_STORE, V1_SYNC_CONFLICT_STORE, V1_LOCAL_STATE_STORE, V1_ENTITY_META_STORE],
+    'readwrite',
+    (transaction, control) => {
+      const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
+      const conflicts = transaction.objectStore(V1_SYNC_CONFLICT_STORE);
+      const stateStore = transaction.objectStore(V1_LOCAL_STATE_STORE);
+      const metaStore = transaction.objectStore(V1_ENTITY_META_STORE);
+      const conflictRequest = conflicts.get(key);
+      conflictRequest.onerror = () => control.abort(conflictRequest.error);
+      conflictRequest.onsuccess = () => {
+        const conflict = conflictRequest.result;
+        if (!conflict) {
+          control.abort(new Error('V1 conflict not found'));
+          return;
+        }
+        if (conflict.uid !== uid || conflict.generationId !== generationId ||
+          conflict.conflictId !== conflictId) failClosed('conflict scope');
+        const chosen = choice === 'merged' ? record : null;
+        if (choice === 'merged') {
+          if (!chosen) failClosed('merged revision');
+          checkCodecRecordForLocal(chosen);
+          if (chosen.key !== conflict.entityKey ||
+            chosen.entityType !== conflict.entityType ||
+            String(chosen.entityId) !== String(conflict.entityId)) {
+            failClosed('merged identity');
+          }
+        }
+        const digest = resolutionDigest(choice, chosen ||
+          (choice === 'local' ? conflict.localVersion?.record : null));
+        if (conflict.status === 'resolved') {
+          if (conflict.resolution?.choice !== choice ||
+            conflict.resolution?.digest !== digest) {
+            control.abort(new Error('V1 conflict already resolved differently'));
+            return;
+          }
+          control.setResult({
+            idempotent: true,
+            status: conflict.resolution.status,
+            operation: clone(conflict.resolution.operation || null),
+          });
+          return;
+        }
+        if (conflict.status !== 'open') failClosed('conflict status');
+
+        const operationRequest = outbox.get(conflict.opId);
+        operationRequest.onerror = () => control.abort(operationRequest.error);
+        operationRequest.onsuccess = () => {
+          const operation = operationRequest.result;
+          if (!operation) {
+            control.abort(new Error('V1 conflict operation not found'));
+            return;
+          }
+          const stateRequest = stateStore.get(scopeKey(uid, generationId));
+          stateRequest.onerror = () => control.abort(stateRequest.error);
+          stateRequest.onsuccess = () => {
+            const stateRecord = stateRequest.result;
+            if (!stateRecord?.state) {
+              control.abort(new Error('V1 conflict state not found'));
+              return;
+            }
+            const metaKey = entityMetaKey(uid, generationId, conflict.entityKey);
+            const metaRequest = metaStore.get(metaKey);
+            metaRequest.onerror = () => control.abort(metaRequest.error);
+            metaRequest.onsuccess = () => {
+              try {
+                const meta = metaRequest.result || null;
+                const remote = conflict.remoteVersion;
+                if (!remote || !Number.isSafeInteger(remote.revision)) {
+                  failClosed('remote conflict version');
+                }
+                const previous = convertBackupV12(stateRecord.state)
+                  .records[conflict.collection]
+                  .find((candidate) => candidate.key === conflict.entityKey) || null;
+                let resultStatus;
+                let nextOperation = null;
+                let nextState;
+                if (choice === 'remote') {
+                  nextState = stateWithRecord(stateRecord.state, previous, remote.record);
+                  outbox.put({
+                    ...operation,
+                    status: 'resolved',
+                    nextAttemptAt: null,
+                    lastError: 'V1_SYNC_RESOLVED_REMOTE',
+                    updatedAt: now,
+                  });
+                  metaStore.put({
+                    ...(meta || {}),
+                    key: metaKey,
+                    uid,
+                    generationId,
+                    entityKey: conflict.entityKey,
+                    entityType: conflict.entityType,
+                    entityId: conflict.entityId,
+                    collection: conflict.collection,
+                    baseRevision: remote.revision,
+                    revision: remote.revision,
+                    deleted: remote.deleted === true,
+                    pendingOpId: null,
+                    lastRecord: clone(remote.record),
+                    lastRemoteRecord: clone(conflict.remoteRecord),
+                    updatedAt: now,
+                  });
+                  resultStatus = 'resolved';
+                } else {
+                  if (remote.deleted === true) failClosed('tombstone wins over local resolution');
+                  let item;
+                  if (choice === 'local') {
+                    if (conflict.localVersion?.deleted === true) item = null;
+                    else item = conflict.localVersion?.record || operationItem(operation);
+                  } else {
+                    item = chosen;
+                  }
+                  if (item) checkCodecRecordForLocal(item);
+                  const baseRevision = remote.revision;
+                  const revision = baseRevision + 1;
+                  const dataText = item ? encodeRecordData(item) : 'null';
+                  nextOperation = {
+                    ...operation,
+                    path: item ? clone(item.path) : clone(operation.path),
+                    baseRecord: clone(remote.record),
+                    baseRevision,
+                    revision,
+                    action: item ? 'upsert' : 'delete',
+                    data: item ? clone(item.data) : null,
+                    dataText,
+                    opDigest: sha256Utf8(dataText),
+                    status: 'pending',
+                    attempts: 0,
+                    nextAttemptAt: null,
+                    lastError: null,
+                    updatedAt: now,
+                  };
+                  outbox.put(nextOperation);
+                  nextState = stateWithRecord(stateRecord.state, previous, item);
+                  metaStore.put({
+                    ...(meta || {}),
+                    key: metaKey,
+                    uid,
+                    generationId,
+                    entityKey: conflict.entityKey,
+                    entityType: conflict.entityType,
+                    entityId: conflict.entityId,
+                    collection: conflict.collection,
+                    baseRevision,
+                    revision,
+                    deleted: false,
+                    pendingOpId: conflict.opId,
+                    updatedAt: now,
+                  });
+                  resultStatus = 'pending';
+                }
+                stateStore.put({
+                  ...stateRecord,
+                  state: nextState,
+                  verified: true,
+                  verifiedAt: stateRecord.verifiedAt || now,
+                  updatedAt: now,
+                });
+                conflicts.put({
+                  ...conflict,
+                  status: 'resolved',
+                  resolution: {
+                    choice,
+                    digest,
+                    status: resultStatus,
+                    revision: nextOperation?.revision ?? conflict.remoteVersion?.revision ?? null,
+                    operation: nextOperation ? clone(nextOperation) : null,
+                    resolvedAt: now,
+                  },
+                  updatedAt: now,
+                });
+                control.setResult({
+                  status: resultStatus,
+                  operation: clone(nextOperation),
+                });
+              } catch (error) {
+                control.abort(error);
+              }
+            };
+          };
+        };
+      };
+    },
+  );
+}
+
+function checkCodecRecordForLocal(item) {
+  const text = encodeRecordData(item);
+  const parsed = JSON.parse(text);
+  if (!parsed || parsed.key !== item.key) failClosed('record');
 }
 
 function validateReceipt(operation, input) {
@@ -1147,8 +1753,14 @@ export async function ackLocalOperation(opId, receipt) {
             collection: operation.collection,
             baseRevision: validated.revision,
             revision: validated.revision,
+            deleted: validated.deleted,
             pendingOpId: null,
             lastAckedOpId: operation.opId,
+            lastRecord: validated.deleted ? null : operationItem(operation),
+            lastRemoteRecord: {
+              ...validated,
+              data: validated.deleted ? null : operation.dataText,
+            },
             updatedAt: now,
             ...(previous?.verified === true ? { verified: true } : {}),
           });
@@ -1217,12 +1829,13 @@ export async function getLocalSyncStatus(uid, generationId) {
   const conflicts = (result.conflicts || []).filter((conflict) =>
     conflict.uid === uid && conflict.generationId === generationId &&
     typeof conflict.key === 'string' && conflict.key.startsWith(`${key}\u0000`));
+  const openConflicts = conflicts.filter((conflict) => conflict.status !== 'resolved');
   return {
     verified: result.state?.verified === true,
     pending: operations.filter((operation) => operation.status === 'pending').length,
     retry: operations.filter((operation) => operation.status === 'retry').length,
     acked: operations.filter((operation) => operation.status === 'acked').length,
-    conflicts: conflicts.length,
+    conflicts: openConflicts.length,
     total: operations.length,
   };
 }

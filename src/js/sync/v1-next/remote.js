@@ -1,5 +1,5 @@
 import {
-  compareRevisions,
+  classifyRevisions,
   encodeDocId,
   encodeRecordData,
   entityCollectionForType,
@@ -238,6 +238,15 @@ function normalizeOperation(operation) {
       throw new TypeError('operation key');
     }
     const deleted = operation.action === 'delete';
+    let baseRecord = null;
+    if (operation.baseRecord != null) {
+      const encodedBase = encodeRecordData(operation.baseRecord);
+      baseRecord = JSON.parse(encodedBase);
+      if (baseRecord.key !== key || baseRecord.entityType !== operation.entityType ||
+        String(baseRecord.entityId) !== entityId) {
+        throw new TypeError('operation base identity');
+      }
+    }
     let dataText;
     if (deleted) {
       if (operation.baseRevision === 0 || operation.data !== null) {
@@ -278,6 +287,8 @@ function normalizeOperation(operation) {
       data: operation.data,
       dataText,
       opDigest: operation.opDigest,
+      baseRecord,
+      localRecord: deleted ? null : JSON.parse(dataText),
     };
     validateRecord(recordForOperation(normalized,
       { seconds: 1, nanoseconds: 0 }));
@@ -410,8 +421,12 @@ export async function applyRemoteOperation(operation) {
         }
       }
       const remoteRevision = remoteRecord ? remoteRecord.revision : 0;
-      const revisionComparison = compareRevisions(normalized.baseRevision, remoteRevision);
-      if (revisionComparison !== 0 || remoteRecord?.deleted) {
+      const revisionComparison = classifyRevisions(
+        normalized.baseRevision,
+        remoteRevision,
+        { remoteDeleted: remoteRecord?.deleted === true },
+      );
+      if (revisionComparison !== 'equal') {
         return {
           type: 'conflict',
           remoteRevision,
@@ -445,8 +460,8 @@ export async function applyRemoteOperation(operation) {
         const remoteRecord = entitySnapshot.exists() ? entitySnapshot.data() : null;
         if (remoteRecord) validateRecord(remoteRecord);
         const remoteRevision = remoteRecord?.revision || 0;
-        if (compareRevisions(normalized.baseRevision, remoteRevision) !== 0 ||
-          remoteRecord?.deleted) {
+        if (classifyRevisions(normalized.baseRevision, remoteRevision,
+          { remoteDeleted: remoteRecord?.deleted === true }) !== 'equal') {
           outcome = {
             type: 'conflict',
             remoteRevision,
@@ -472,7 +487,10 @@ export async function applyRemoteOperation(operation) {
       conflict: {
         code: outcome.reason === 'tombstone' ? 'tombstone' : 'revision',
         baseRevision: normalized.baseRevision,
+        localRevision: normalized.revision,
         remoteRevision: outcome.remoteRevision,
+        baseRecord: normalized.baseRecord,
+        localRecord: normalized.localRecord,
         remoteDeleted: outcome.remoteRecord?.deleted === true,
         remoteRecord: outcome.remoteRecord,
       },
