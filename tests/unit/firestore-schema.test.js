@@ -377,4 +377,41 @@ describe('firestore-schema.js operational payload budget', () => {
       expect(isFirestoreEnvelopeWithinBudget(envelope)).toBe(false);
     });
   });
+
+  it('keeps operational telemetry out of the Firestore payload', async () => {
+    const { createFirestoreSnapshotEnvelope } = await import(
+      '../../src/js/sync/firestore-schema.js'
+    );
+    const state = {
+      schemaVersion: 12,
+      eventos: [],
+      editais: [],
+      config: {
+        lastManualSyncAt: '2026-11-23T11:00:00.000Z',
+        lastManualSyncResults: { at: '2026-11-23T11:00:00.000Z' },
+        manualSyncHistory: [{ at: '2026-11-23T11:00:00.000Z' }],
+        lastEnvelopeBytes: 123456,
+        syncPerformance: { metrics: [{ name: 'localCommitMs', durationMs: 4 }] },
+        syncHealth: { failureCount: 2, events: [] },
+        cfTokenDraft: 'draft-token',
+      },
+    };
+    const envelope = createFirestoreSnapshotEnvelope(state, {
+      deviceId: 'web-test',
+    });
+
+    for (const key of [
+      'lastManualSyncAt',
+      'lastManualSyncResults',
+      'manualSyncHistory',
+      'lastEnvelopeBytes',
+      'syncPerformance',
+      'syncHealth',
+      'cfTokenDraft',
+    ]) {
+      expect(envelope.payload.config).not.toHaveProperty(key);
+    }
+    expect(state.config.lastManualSyncAt).toBe('2026-11-23T11:00:00.000Z');
+    expect(state.config.syncPerformance.metrics).toHaveLength(1);
+  });
 });

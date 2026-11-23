@@ -99,6 +99,11 @@ function stripFirestoreOperationalMetadata(payload) {
   if (payload?.config) {
     delete payload.config.manualSyncHistory;
     delete payload.config.lastManualSyncResults;
+    delete payload.config.lastManualSyncAt;
+    delete payload.config.syncPerformance;
+    delete payload.config.syncHealth;
+    delete payload.config.lastEnvelopeBytes;
+    delete payload.config.cfTokenDraft;
   }
   return payload;
 }

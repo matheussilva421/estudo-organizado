@@ -2117,6 +2117,13 @@ describe("reta-final sync engine integration", () => {
       cfRemoteUpdatedAt: "2026-10-26T20:00:00.000Z",
       cfLastSyncAt: "2026-10-26T20:00:00.000Z",
       cfSyncEnabled: true,
+      lastManualSyncAt: "2026-10-26T20:00:00.000Z",
+      lastEnvelopeBytes: 987654,
+      cfTokenDraft: "local-draft-token",
+      syncPerformance: {
+        metrics: [{ at: "2026-10-26T20:00:00.000Z", name: "localCommitMs", durationMs: 5 }],
+      },
+      syncHealth: { failureCount: 1, events: [{ at: "2026-10-26T20:00:00.000Z", cause: "local" }] },
     });
     storeModule.state.driveFileId = "drive-local";
     storeModule.state.lastSync = "2026-10-26T20:00:00.000Z";

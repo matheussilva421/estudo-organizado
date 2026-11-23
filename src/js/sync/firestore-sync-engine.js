@@ -574,6 +574,11 @@ function stripOperationalMetadata(sourceState) {
     delete snapshot.config.cfSyncEnabled;
     delete snapshot.config.manualSyncHistory;
     delete snapshot.config.lastManualSyncResults;
+    delete snapshot.config.lastManualSyncAt;
+    delete snapshot.config.syncPerformance;
+    delete snapshot.config.syncHealth;
+    delete snapshot.config.lastEnvelopeBytes;
+    delete snapshot.config.cfTokenDraft;
   }
   delete snapshot.driveFileId;
   return snapshot;
