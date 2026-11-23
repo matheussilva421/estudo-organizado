@@ -3141,7 +3141,21 @@ async function syncFirestoreNowUnlocked() {
       }
       return false;
     }
-    if (outcome.applied !== true) return emitNoopPullStatus(remote);
+    if (outcome.applied !== true) {
+      emitNoopPullStatus(remote);
+      // A manual sync that finds local and remote already equivalent is a
+      // success, not a failure: there is nothing to pull and nothing to push.
+      const planEquivalent = Boolean(
+        localPlan &&
+          remotePlan &&
+          localPlan.revision === remotePlan.revision &&
+          compareRetaFinalPlanIntent(localPlan, remotePlan).equivalent,
+      );
+      return Boolean(
+        planEquivalent &&
+          nonPlanStateDigest(state) === nonPlanStateDigest(remote?.payload),
+      );
+    }
     retaFinalPullHandled = true;
     await yieldToUIWithBudget(50, performance.now());
     if (

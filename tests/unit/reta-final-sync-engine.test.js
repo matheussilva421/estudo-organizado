@@ -2163,8 +2163,9 @@ describe("reta-final sync engine integration", () => {
       config: { ...local.config },
     }));
 
-    await engine.syncFirestoreNow();
+    const result = await engine.syncFirestoreNow();
 
+    expect(result).toBe(true);
     expect(outbox.enqueueFirestoreSnapshot).not.toHaveBeenCalled();
     expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
     expect(storeModule.state.config.manualSyncHistory).toEqual([
