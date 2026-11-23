@@ -2,6 +2,7 @@
  * Import verification tests for store/migrations.js
  * Ensures the extracted module is self-contained and re-exports work.
  */
+/* global global */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let migrations;
@@ -50,7 +51,7 @@ describe('store/migrations.js - Module integrity', () => {
   it('does NOT import from other store/ sub-modules (only external deps)', () => {
     // migrations.js should only import from external modules like ../utils.js
     // Verify there are no imports from ./ or ../ that reference store/ paths
-    const source = migrations.runMigrations.toString();
+    const _source = migrations.runMigrations.toString();
     // There should be no dynamic evidence of circular deps — the module
     // loaded successfully above, which is the primary verification.
     // The source of the module is self-contained with just uid from utils.js.
@@ -283,7 +284,7 @@ describe('Reta Final persisted migration', () => {
     const records = new Map([[sourceKey, source === 'legacy' ? input : store.createLocalStateEnvelope(input)]]);
     const database = memoryDB(records);
     await boot(database);
-    expect(store.DB_VERSION).toBe(7);
+    expect(store.DB_VERSION).toBe(8);
     const saved = records.get(store.LOCAL_STATE_CURRENT_KEY);
     const backup = records.get(store.LOCAL_STATE_PREVIOUS_KEY);
     expect(store.isLocalStateEnvelopeValid(saved)).toBe(true);

@@ -7,6 +7,19 @@ import { runMigrations as _runMigrations, DEFAULT_SCHEMA_VERSION } from './migra
 import { reconcileSequenceWithEvents } from '../logic/cycle-progress.js?v=8.37';
 import { markDerivedRecoveryPending } from './boot-recovery.js';
 import {
+  LOCAL_DB_NAME,
+  LOCAL_DB_VERSION,
+  V1_LOCAL_STATE_STORE,
+  V1_SYNC_OUTBOX_STORE,
+  V1_ENTITY_META_STORE,
+  V1_SYNC_CONFLICT_STORE,
+  V1_SYNC_META_STORE,
+  clearActiveV1Context,
+  getActiveV1Context,
+  prepareLocalCommit,
+  v1ScopeKey,
+} from '../sync/v1-next/local.js';
+import {
   createLocalStateEnvelope,
   isLocalStateEnvelopeValid,
   pickRecoverableLocalState,
@@ -59,8 +72,8 @@ export function _publishRetaFinalCommit(nextState, result) {
   );
 }
 
-export const DB_NAME = 'EstudoOrganizadoDB';
-export const DB_VERSION = 7;
+export const DB_NAME = LOCAL_DB_NAME;
+export const DB_VERSION = LOCAL_DB_VERSION;
 export const STORE_NAME = 'app_state';
 export const FIRESTORE_OUTBOX_STORE = 'firestore_outbox';
 export const FIRESTORE_META_STORE = 'firestore_meta';
@@ -69,6 +82,8 @@ export const ENTITY_META_STORE = 'entity_meta';
 export const FIRESTORE_ENTITY_OUTBOX_STORE = 'firestore_entity_outbox';
 export const RETA_FINAL_DRAFT_STORE = 'reta_final_drafts';
 export const RETA_FINAL_JOURNAL_STORE = 'reta_final_journal';
+export { V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_ENTITY_META_STORE,
+  V1_SYNC_CONFLICT_STORE, V1_SYNC_META_STORE };
 export const LOCAL_STATE_CURRENT_KEY = 'main_state_current';
 export const LOCAL_STATE_PREVIOUS_KEY = 'main_state_previous';
 export const LOCAL_STATE_LEGACY_KEY = 'main_state';
@@ -139,6 +154,21 @@ export function initDB() {
       }
       if (!db.objectStoreNames.contains(RETA_FINAL_JOURNAL_STORE)) {
         db.createObjectStore(RETA_FINAL_JOURNAL_STORE, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(V1_LOCAL_STATE_STORE)) {
+        db.createObjectStore(V1_LOCAL_STATE_STORE, { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains(V1_SYNC_OUTBOX_STORE)) {
+        db.createObjectStore(V1_SYNC_OUTBOX_STORE, { keyPath: 'opId' });
+      }
+      if (!db.objectStoreNames.contains(V1_ENTITY_META_STORE)) {
+        db.createObjectStore(V1_ENTITY_META_STORE, { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains(V1_SYNC_CONFLICT_STORE)) {
+        db.createObjectStore(V1_SYNC_CONFLICT_STORE, { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains(V1_SYNC_META_STORE)) {
+        db.createObjectStore(V1_SYNC_META_STORE, { keyPath: 'key' });
       }
     };
 
@@ -520,73 +550,173 @@ export function saveStateToDB(
     _stateRef.config.localBackupAt = new Date().toISOString();
   }
 
-  const prepare = Promise.resolve();
+  const activeContext = getActiveV1Context();
+  const v1Stores = activeContext
+    ? [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_ENTITY_META_STORE, V1_SYNC_META_STORE]
+    : [];
+  if (v1Stores.some((storeName) => !db.objectStoreNames.contains(storeName))) {
+    const error = new Error('V1 local stores are unavailable');
+    if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(error) });
+    return Promise.reject(error);
+  }
+  const stateSnapshot = activeContext ? structuredClone(_stateRef) : null;
 
-  return prepare.then(
-    () =>
-      new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        const currentRequest = store.get(LOCAL_STATE_CURRENT_KEY);
-        let settled = false;
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME, ...v1Stores], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const currentRequest = store.get(LOCAL_STATE_CURRENT_KEY);
+    const v1Reads = activeContext
+      ? {
+          scopeKey: v1ScopeKey(activeContext.uid, activeContext.generationId),
+          state: undefined,
+          operations: undefined,
+          entityMeta: undefined,
+          syncMeta: undefined,
+          done: new Set(),
+        }
+      : null;
+    let currentDone = false;
+    let settled = false;
+    let staged = false;
 
-        const rejectOnce = (err) => {
-          if (settled) return;
-          settled = true;
-          if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(err) });
-          reject(err);
-        };
-
-        transaction.oncomplete = () => {
-          if (settled) return;
-          settled = true;
-          if (!skipSyncEvent) {
-            document.dispatchEvent(
-              new CustomEvent('stateSaved', {
-                detail: {
-                  skipCloudSync,
-                  skipFirestoreSync,
-                  skipDriveSync,
-                  touchLocalBackup,
-                  metadataOnly: !touchLocalBackup,
-                },
-              })
-            );
+    const rejectOnce = (err) => {
+      if (settled) return;
+      settled = true;
+      if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(err) });
+      reject(err);
+    };
+    const trackWrite = (request) => {
+      request.onerror = (event) => rejectOnce(event?.target?.error || request.error || event);
+    };
+    const stage = () => {
+      if (staged || !currentDone ||
+        (v1Reads && v1Reads.done.size !== 4)) return;
+      staged = true;
+      let prepared = null;
+      try {
+        if (v1Reads) {
+          const record = v1Reads.state;
+          if (record && (record.key !== v1Reads.scopeKey ||
+            record.uid !== activeContext.uid ||
+            record.generationId !== activeContext.generationId ||
+            !record.state || typeof record.state !== 'object')) {
+            throw new Error('Invalid V1 local state record');
           }
-          if (emitUserSaveStatus) emitSaveStatus('saved');
-          appendSyncPerformanceMetric(_stateRef, {
-            name: 'localCommitMs',
-            durationMs: performance.now() - localCommitStart,
+          prepared = prepareLocalCommit({
+            uid: activeContext.uid,
+            generationId: activeContext.generationId,
+            previousState: record?.state || null,
+            nextState: stateSnapshot,
+            pendingOperations: v1Reads.operations || [],
+            entityMeta: v1Reads.entityMeta || [],
+            syncMeta: v1Reads.syncMeta || null,
+            verified: record?.verified,
           });
-          resolve();
-        };
+        }
+        const currentEnvelope = currentRequest.result;
+        const previousEnvelope = options.migrationBackup || currentEnvelope;
+        if (isLocalStateEnvelopeValid(previousEnvelope)) {
+          trackWrite(store.put(
+            { ...previousEnvelope, slot: 'previous' },
+            LOCAL_STATE_PREVIOUS_KEY,
+          ));
+        }
+        const persistedState = stateSnapshot || _stateRef;
+        const envelope = createLocalStateEnvelope(persistedState, { slot: 'current' });
+        trackWrite(store.put(envelope, LOCAL_STATE_CURRENT_KEY));
+        trackWrite(store.put(persistedState, LOCAL_STATE_LEGACY_KEY));
+        if (prepared) {
+          trackWrite(transaction.objectStore(V1_LOCAL_STATE_STORE).put(prepared.stateRecord));
+          const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
+          for (const operation of prepared.operations) trackWrite(outbox.put(operation));
+          const entityMeta = transaction.objectStore(V1_ENTITY_META_STORE);
+          for (const record of prepared.entityMeta) trackWrite(entityMeta.put(record));
+          trackWrite(transaction.objectStore(V1_SYNC_META_STORE).put(prepared.syncMeta));
+        }
+      } catch (error) {
+        rejectOnce(error);
+        try {
+          transaction.abort();
+        } catch {
+          // The rejection above is the user-visible failure.
+        }
+      }
+    };
 
-        transaction.onerror = () => {
-          rejectOnce(transaction.error || new Error('Transaction failed'));
-        };
+    transaction.oncomplete = () => {
+      if (settled) return;
+      settled = true;
+      if (!skipSyncEvent) {
+        document.dispatchEvent(
+          new CustomEvent('stateSaved', {
+            detail: {
+              skipCloudSync,
+              skipFirestoreSync,
+              skipDriveSync,
+              touchLocalBackup,
+              metadataOnly: !touchLocalBackup,
+            },
+          })
+        );
+      }
+      if (emitUserSaveStatus) emitSaveStatus('saved');
+      appendSyncPerformanceMetric(_stateRef, {
+        name: 'localCommitMs',
+        durationMs: performance.now() - localCommitStart,
+      });
+      resolve();
+    };
 
-        transaction.onabort = () => {
-          rejectOnce(transaction.error || new Error('Transaction aborted'));
-        };
+    transaction.onerror = () => {
+      rejectOnce(transaction.error || new Error('Transaction failed'));
+    };
 
-        currentRequest.onsuccess = () => {
-          const currentEnvelope = currentRequest.result;
-          const previousEnvelope = options.migrationBackup || currentEnvelope;
-          if (isLocalStateEnvelopeValid(previousEnvelope)) {
-            store.put({ ...previousEnvelope, slot: 'previous' }, LOCAL_STATE_PREVIOUS_KEY);
-          }
-          const envelope = createLocalStateEnvelope(_stateRef, { slot: 'current' });
-          const currentWrite = store.put(envelope, LOCAL_STATE_CURRENT_KEY);
-          const legacyWrite = store.put(_stateRef, LOCAL_STATE_LEGACY_KEY);
-          currentWrite.onerror = legacyWrite.onerror = (e) => {
-            rejectOnce(e?.target?.error || e);
-          };
-        };
-        currentRequest.onerror = (e) => {
-          rejectOnce(currentRequest.error || e?.target?.error || e);
-        };
-      })
-  );
+    transaction.onabort = () => {
+      rejectOnce(transaction.error || new Error('Transaction aborted'));
+    };
+
+    currentRequest.onsuccess = () => {
+      currentDone = true;
+      stage();
+    };
+    currentRequest.onerror = (event) => {
+      rejectOnce(currentRequest.error || event?.target?.error || event);
+    };
+
+    if (v1Reads) {
+      const v1StateRequest = transaction.objectStore(V1_LOCAL_STATE_STORE).get(v1Reads.scopeKey);
+      v1StateRequest.onsuccess = () => {
+        v1Reads.state = v1StateRequest.result;
+        v1Reads.done.add('state');
+        stage();
+      };
+      v1StateRequest.onerror = () => rejectOnce(v1StateRequest.error);
+
+      const outboxRequest = transaction.objectStore(V1_SYNC_OUTBOX_STORE).getAll();
+      outboxRequest.onsuccess = () => {
+        v1Reads.operations = outboxRequest.result || [];
+        v1Reads.done.add('operations');
+        stage();
+      };
+      outboxRequest.onerror = () => rejectOnce(outboxRequest.error);
+
+      const metaRequest = transaction.objectStore(V1_ENTITY_META_STORE).getAll();
+      metaRequest.onsuccess = () => {
+        v1Reads.entityMeta = metaRequest.result || [];
+        v1Reads.done.add('entityMeta');
+        stage();
+      };
+      metaRequest.onerror = () => rejectOnce(metaRequest.error);
+
+      const syncMetaRequest = transaction.objectStore(V1_SYNC_META_STORE).get(v1Reads.scopeKey);
+      syncMetaRequest.onsuccess = () => {
+        v1Reads.syncMeta = syncMetaRequest.result || null;
+        v1Reads.done.add('syncMeta');
+        stage();
+      };
+      syncMetaRequest.onerror = () => rejectOnce(syncMetaRequest.error);
+    }
+  });
 }
 
 /**
@@ -601,6 +731,7 @@ export function runMigrations() {
 
 // Clean up state (called by clearAllData in views.js which already double-confirms)
 export function clearData() {
+  clearActiveV1Context();
   credentialsStore.clearAllCredentials().catch((err) => {
     console.error('Erro ao limpar credenciais:', err);
   });
@@ -657,6 +788,11 @@ export function clearData() {
       FIRESTORE_CONFLICT_STORE,
       ENTITY_META_STORE,
       FIRESTORE_ENTITY_OUTBOX_STORE,
+      V1_LOCAL_STATE_STORE,
+      V1_SYNC_OUTBOX_STORE,
+      V1_ENTITY_META_STORE,
+      V1_SYNC_CONFLICT_STORE,
+      V1_SYNC_META_STORE,
     ];
     return Promise.all(
       stores.map((storeName) => {

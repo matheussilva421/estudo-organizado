@@ -2,6 +2,7 @@
  * Import verification tests for store/indexeddb.js
  * Ensures the extracted module is self-contained and re-exports work.
  */
+/* global global, process */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -54,13 +55,18 @@ describe('store/indexeddb.js - Module integrity', () => {
   it('exports expected IndexedDB symbols', () => {
     // Constants
     expect(indexeddb.DB_NAME).toBe('EstudoOrganizadoDB');
-    expect(indexeddb.DB_VERSION).toBe(7);
+    expect(indexeddb.DB_VERSION).toBe(8);
     expect(indexeddb.STORE_NAME).toBe('app_state');
     expect(indexeddb.FIRESTORE_OUTBOX_STORE).toBe('firestore_outbox');
     expect(indexeddb.FIRESTORE_META_STORE).toBe('firestore_meta');
     expect(indexeddb.FIRESTORE_CONFLICT_STORE).toBe('firestore_conflicts');
     expect(indexeddb.ENTITY_META_STORE).toBe('entity_meta');
     expect(indexeddb.FIRESTORE_ENTITY_OUTBOX_STORE).toBe('firestore_entity_outbox');
+    expect(indexeddb.V1_LOCAL_STATE_STORE).toBe('v1_local_state');
+    expect(indexeddb.V1_SYNC_OUTBOX_STORE).toBe('v1_sync_outbox');
+    expect(indexeddb.V1_ENTITY_META_STORE).toBe('v1_entity_meta');
+    expect(indexeddb.V1_SYNC_CONFLICT_STORE).toBe('v1_sync_conflicts');
+    expect(indexeddb.V1_SYNC_META_STORE).toBe('v1_sync_meta');
     expect(indexeddb.LOCAL_STATE_CURRENT_KEY).toBe('main_state_current');
     expect(indexeddb.LOCAL_STATE_PREVIOUS_KEY).toBe('main_state_previous');
     expect(indexeddb.LOCAL_STATE_LEGACY_KEY).toBe('main_state');
@@ -95,6 +101,11 @@ describe('store/indexeddb.js - Module integrity', () => {
       'FIRESTORE_CONFLICT_STORE',
       'ENTITY_META_STORE',
       'FIRESTORE_ENTITY_OUTBOX_STORE',
+      'V1_LOCAL_STATE_STORE',
+      'V1_SYNC_OUTBOX_STORE',
+      'V1_ENTITY_META_STORE',
+      'V1_SYNC_CONFLICT_STORE',
+      'V1_SYNC_META_STORE',
       'LOCAL_STATE_CURRENT_KEY',
       'LOCAL_STATE_PREVIOUS_KEY',
       'LOCAL_STATE_LEGACY_KEY',
@@ -130,6 +141,24 @@ describe('store/indexeddb.js - Module integrity', () => {
     expect(store.loadRetaFinalDraft).toBe(draftStore.loadRetaFinalDraft);
     expect(store.saveRetaFinalDraft).toBe(draftStore.saveRetaFinalDraft);
     expect(store.discardRetaFinalDraft).toBe(draftStore.discardRetaFinalDraft);
+  });
+
+  it('store.js exposes the V1 local persistence interface', () => {
+    for (const name of [
+      'setActiveV1Context',
+      'clearActiveV1Context',
+      'getActiveV1Context',
+      'readLocalGeneration',
+      'commitLocalChange',
+      'setLocalGenerationVerified',
+      'getPendingOperations',
+      'ackLocalOperation',
+      'listLocalConflicts',
+      'readLocalConflict',
+      'getLocalSyncStatus',
+    ]) {
+      expect(store[name]).toBeTypeOf('function');
+    }
   });
 
   it('store.js re-exports "db" as live binding from indexeddb.js', () => {
@@ -211,18 +240,20 @@ describe('store/indexeddb.js - Data pipeline functions work end-to-end', () => {
 });
 
 describe('store/indexeddb.js - Task 6 schema upgrade', () => {
-  it('opens an existing v6 database, upgrades it to v7, and completes initDB', async () => {
-    const v6Stores = {
+  it('opens an existing v7 database, upgrades it to v8, and preserves every legacy record', async () => {
+    const v7Stores = {
       app_state: {},
       firestore_outbox: {},
       firestore_meta: {},
       firestore_conflicts: {},
       entity_meta: {},
       firestore_entity_outbox: {},
+      reta_final_drafts: {},
+      reta_final_journal: {},
     };
     const idb = createTransactionalIdb({
-      stores: v6Stores,
-      version: 6,
+      stores: v7Stores,
+      version: 7,
       keyPaths: {
         app_state: null,
         firestore_outbox: 'id',
@@ -230,23 +261,52 @@ describe('store/indexeddb.js - Task 6 schema upgrade', () => {
         firestore_conflicts: 'id',
         entity_meta: 'key',
         firestore_entity_outbox: 'id',
+        reta_final_drafts: 'draftId',
+        reta_final_journal: 'id',
       },
     });
+    idb.setRecord('app_state', 'legacy_marker', { kept: true });
+    idb.setRecord('firestore_outbox', 'legacy_outbox', { id: 'legacy_outbox', kept: true });
+    idb.setRecord('firestore_meta', 'legacy_meta', { id: 'legacy_meta', kept: true });
+    idb.setRecord('firestore_conflicts', 'legacy_conflict', { id: 'legacy_conflict', kept: true });
+    idb.setRecord('entity_meta', 'legacy_entity', { key: 'legacy_entity', kept: true });
+    idb.setRecord('firestore_entity_outbox', 'legacy_entity_outbox', {
+      id: 'legacy_entity_outbox',
+      kept: true,
+    });
+    idb.setRecord('reta_final_drafts', 'legacy_draft', { draftId: 'legacy_draft', kept: true });
+    idb.setRecord('reta_final_journal', 'legacy_journal', { id: 'legacy_journal', kept: true });
     global.indexedDB = idb.indexedDB;
 
-    expect(idb.version).toBe(6);
+    expect(idb.version).toBe(7);
     await expect(indexeddb.initDB()).resolves.toBeUndefined();
 
-    expect(idb.openVersions).toEqual([7]);
-    expect(idb.version).toBe(7);
+    expect(idb.openVersions).toEqual([8]);
+    expect(idb.version).toBe(8);
     expect(idb.createdStores).toEqual([
-      { name: 'reta_final_drafts', keyPath: 'draftId' },
-      { name: 'reta_final_journal', keyPath: 'id' },
+      { name: 'v1_local_state', keyPath: 'key' },
+      { name: 'v1_sync_outbox', keyPath: 'opId' },
+      { name: 'v1_entity_meta', keyPath: 'key' },
+      { name: 'v1_sync_conflicts', keyPath: 'key' },
+      { name: 'v1_sync_meta', keyPath: 'key' },
     ]);
     expect(idb.keyPath('reta_final_drafts')).toBe('draftId');
     expect(idb.keyPath('reta_final_journal')).toBe('id');
     expect(indexeddb.db.objectStoreNames.contains('reta_final_drafts')).toBe(true);
     expect(indexeddb.db.objectStoreNames.contains('reta_final_journal')).toBe(true);
+    for (const storeName of ['v1_local_state', 'v1_sync_outbox', 'v1_entity_meta',
+      'v1_sync_conflicts', 'v1_sync_meta']) {
+      expect(indexeddb.db.objectStoreNames.contains(storeName)).toBe(true);
+    }
+    expect(idb.getRecord('app_state', 'legacy_marker')).toEqual({ kept: true });
+    expect(idb.getRecord('firestore_outbox', 'legacy_outbox')).toMatchObject({ kept: true });
+    expect(idb.getRecord('firestore_meta', 'legacy_meta')).toMatchObject({ kept: true });
+    expect(idb.getRecord('firestore_conflicts', 'legacy_conflict')).toMatchObject({ kept: true });
+    expect(idb.getRecord('entity_meta', 'legacy_entity')).toMatchObject({ kept: true });
+    expect(idb.getRecord('firestore_entity_outbox', 'legacy_entity_outbox'))
+      .toMatchObject({ kept: true });
+    expect(idb.getRecord('reta_final_drafts', 'legacy_draft')).toMatchObject({ kept: true });
+    expect(idb.getRecord('reta_final_journal', 'legacy_journal')).toMatchObject({ kept: true });
     expect(store.RETA_FINAL_DRAFT_STORE).toBe('reta_final_drafts');
     expect(store.RETA_FINAL_JOURNAL_STORE).toBe('reta_final_journal');
   });

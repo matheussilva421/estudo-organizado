@@ -20,6 +20,11 @@ import {
   FIRESTORE_ENTITY_OUTBOX_STORE,
   RETA_FINAL_DRAFT_STORE,
   RETA_FINAL_JOURNAL_STORE,
+  V1_LOCAL_STATE_STORE,
+  V1_SYNC_OUTBOX_STORE,
+  V1_ENTITY_META_STORE,
+  V1_SYNC_CONFLICT_STORE,
+  V1_SYNC_META_STORE,
   LOCAL_STATE_CURRENT_KEY,
   LOCAL_STATE_PREVIOUS_KEY,
   LOCAL_STATE_LEGACY_KEY,
@@ -39,6 +44,19 @@ import {
   _bindSetState,
   _publishRetaFinalCommit,
 } from './store/indexeddb.js';
+import {
+  setActiveV1Context,
+  clearActiveV1Context,
+  getActiveV1Context,
+  readLocalGeneration,
+  commitLocalChange,
+  setLocalGenerationVerified,
+  getPendingOperations,
+  ackLocalOperation,
+  listLocalConflicts,
+  readLocalConflict,
+  getLocalSyncStatus,
+} from './sync/v1-next/local.js';
 
 export { DEFAULT_SCHEMA_VERSION };
 
@@ -53,6 +71,11 @@ export {
   FIRESTORE_ENTITY_OUTBOX_STORE,
   RETA_FINAL_DRAFT_STORE,
   RETA_FINAL_JOURNAL_STORE,
+  V1_LOCAL_STATE_STORE,
+  V1_SYNC_OUTBOX_STORE,
+  V1_ENTITY_META_STORE,
+  V1_SYNC_CONFLICT_STORE,
+  V1_SYNC_META_STORE,
   LOCAL_STATE_CURRENT_KEY,
   LOCAL_STATE_PREVIOUS_KEY,
   LOCAL_STATE_LEGACY_KEY,
@@ -68,6 +91,17 @@ export {
   describeSaveFailure,
   SyncQueue,
   runMigrations,
+  setActiveV1Context,
+  clearActiveV1Context,
+  getActiveV1Context,
+  readLocalGeneration,
+  commitLocalChange,
+  setLocalGenerationVerified,
+  getPendingOperations,
+  ackLocalOperation,
+  listLocalConflicts,
+  readLocalConflict,
+  getLocalSyncStatus,
 };
 
 export {
