@@ -622,6 +622,7 @@ function renderSourceAdvancedBlock(source) {
 
 function renderQuietSyncCenterCard() {
   const model = buildCurrentSyncCenterModel();
+  const v1Status = model.v1Status || null;
   const sources = (model.sources || []).filter(
     (source) => source && source.id !== "local",
   );
@@ -630,17 +631,37 @@ function renderQuietSyncCenterCard() {
     ? `Último envio manual: ${formatBackupDateTime(lastManualSyncAt)}`
     : "Nenhuma sincronização manual ainda neste dispositivo.";
   const anyConflict = sources.some((source) => !!source.conflict);
+  const v1ToneClass = v1Status?.state === "atencao-necessaria"
+    ? " config-save-status--error"
+    : v1Status?.state === "sincronizando"
+      ? " config-save-status--saving"
+      : "";
+  const v1StatusMarkup = v1Status
+    ? `
+        <div class="v1-sync-status config-save-status${v1ToneClass} v1-sync-status--${esc(v1Status.state)}"
+          data-testid="v1-sync-status" data-state="${esc(v1Status.state)}"
+          role="status" aria-live="${esc(v1Status.ariaLive)}" aria-atomic="true">
+          <strong data-v1-sync-label>${esc(v1Status.label)}</strong>
+          <p data-v1-sync-message>${esc(v1Status.message)}</p>
+        </div>`
+    : "";
 
   return `
     <div class="card config-card" data-testid="sync-center">
       <div class="card-header"><h3><i class="fa fa-arrows-rotate"></i> Central de Sincronização</h3></div>
       <div class="card-body">
-        <div class="config-desc">Edite normalmente — suas alterações ficam salvas neste dispositivo. Use o botão abaixo para enviar para a nuvem quando quiser.</div>
+        <div class="config-desc">${v1Status
+          ? "Edite normalmente — suas alterações ficam salvas neste dispositivo e são enviadas automaticamente quando há conexão e sessão válida."
+          : "Edite normalmente — suas alterações ficam salvas neste dispositivo. Use o botão abaixo para enviar para a nuvem quando quiser."}</div>
+
+        ${v1StatusMarkup}
 
         <div class="sync-manual-primary">
-          <button type="button" class="btn btn-primary btn-lg" data-action="manual-sync-all">
+          ${v1Status
+            ? ""
+            : `<button type="button" class="btn btn-primary btn-lg" data-action="manual-sync-all">
             <i class="fa fa-arrows-rotate"></i> Sincronizar agora
-          </button>
+          </button>`}
           <button type="button" class="btn btn-outline btn-sm" data-action="download-from-source" title="Baixa dados de um canal remoto e substitui os dados locais. Use ao iniciar em um dispositivo desatualizado.">
             <i class="fa fa-cloud-arrow-down"></i> Baixar dados
           </button>
@@ -651,7 +672,7 @@ function renderQuietSyncCenterCard() {
         </div>
 
         ${
-          anyConflict
+          anyConflict && !v1Status
             ? `
         <div class="sync-conflict-callout" role="alert">
           <i class="fa fa-triangle-exclamation"></i>

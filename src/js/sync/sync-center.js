@@ -9,6 +9,7 @@ import {
 import { reconcileSequenceWithEvents } from "../logic/cycle-progress.js?v=8.37";
 import { mergeRetaFinalPlans } from "../logic/reta-final-merge.js";
 import { reconcileRetaFinalWithEvents } from "../logic/reta-final-core.js";
+import { getV1SyncStatusSnapshot } from "./v1-next/status.js";
 
 const SOURCE_ORDER = ["local", "firebase", "cloudflare", "drive"];
 
@@ -262,6 +263,22 @@ function deriveQuietSyncView({
   };
 }
 
+function deriveV1QuietView(v1Status) {
+  if (!v1Status) return null;
+  const tones = {
+    "sincronizado": "ok",
+    "sincronizando": "pending",
+    "salvo-neste-dispositivo": "idle",
+    "atencao-necessaria": "danger",
+  };
+  return {
+    title: v1Status.label,
+    detail: v1Status.message,
+    tone: tones[v1Status.state] || "idle",
+    primaryAction: null,
+  };
+}
+
 export function canAutoSyncFirestore(
   config = {},
   pending = null,
@@ -282,6 +299,7 @@ export function buildSyncCenterModel({
   state,
   firestoreStatus = {},
   getFirestoreStatus = null,
+  v1Status = getV1SyncStatusSnapshot(),
 }) {
   const config = state?.config || {};
   const offline =
@@ -430,7 +448,9 @@ export function buildSyncCenterModel({
       sources.find((source) => source.id === id),
     ),
     primarySource: "firebase",
-    quiet: deriveQuietSyncView({ syncHealth, firestore, globalSyncPaused }),
+    quiet: deriveV1QuietView(v1Status) ||
+      deriveQuietSyncView({ syncHealth, firestore, globalSyncPaused }),
+    v1Status: v1Status || null,
     health: {
       status: healthStatus,
       requiresAction: syncHealth.requiresAction,

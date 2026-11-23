@@ -24,6 +24,10 @@ import {
   isLocalStateEnvelopeValid,
   pickRecoverableLocalState,
 } from './normalize-state.js';
+import {
+  getV1SyncStatusSnapshot,
+  shouldWarnV1BeforeUnload,
+} from '../sync/v1-next/status.js';
 
 // Runtime binding: store.js sets this reference during module init.
 // Avoids ES module URL mismatch when tests use different version query strings.
@@ -434,7 +438,9 @@ window.addEventListener('pagehide', () => {
 });
 
 window.addEventListener('beforeunload', (e) => {
-  if (saveTimeout !== null) {
+  const v1Pending = shouldWarnV1BeforeUnload(getV1SyncStatusSnapshot());
+  const localSavePending = saveTimeout !== null;
+  if (localSavePending) {
     // Emergency sync save via localStorage (IndexedDB is async and may not complete)
     try {
       localStorage.setItem('estudo_state_emergency', JSON.stringify(_stateRef));
@@ -445,10 +451,15 @@ window.addEventListener('beforeunload', (e) => {
     saveStateToDB().catch((err) => {
       console.error('beforeunload IndexedDB emergency save failed:', err);
     });
-    e.preventDefault();
-    e.returnValue = 'Há alterações pendentes aguardando salvamento. Deseja sair assim mesmo?';
-    return e.returnValue;
   }
+  if (!v1Pending && !localSavePending) return;
+  // Browsers may replace this text; the confirmation itself remains native.
+  const warning = v1Pending
+    ? 'Há alterações salvas neste dispositivo aguardando confirmação do servidor.'
+    : 'Há alterações pendentes aguardando salvamento.';
+  e.preventDefault();
+  e.returnValue = warning;
+  return warning;
 });
 
 /**

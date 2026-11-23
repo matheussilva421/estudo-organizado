@@ -350,6 +350,42 @@ describe("sync-center.js", () => {
       expect(model.quiet.title).toBe("Offline, sync automático pausado");
       expect(model.quiet.primaryAction).toBeNull();
     });
+
+    it("uses the V1 receipt-aware status inside the existing quiet panel", () => {
+      const v1Status = {
+        state: "salvo-neste-dispositivo",
+        label: "Salvo neste dispositivo",
+        message: "Alterações preservadas neste dispositivo; ainda sem confirmação do servidor.",
+        ariaLive: "polite",
+      };
+      const model = buildSyncCenterModel({
+        state: { config: {} },
+        v1Status,
+      });
+
+      expect(model.v1Status).toBe(v1Status);
+      expect(model.quiet).toMatchObject({
+        title: "Salvo neste dispositivo",
+        detail: v1Status.message,
+        tone: "idle",
+        primaryAction: null,
+      });
+    });
+
+    it("maps V1 conflicts to one attention state instead of a second panel", () => {
+      const model = buildSyncCenterModel({
+        state: { config: {} },
+        v1Status: {
+          state: "atencao-necessaria",
+          label: "Atenção necessária",
+          message: "1 item precisa de revisão; os demais seguem normalmente.",
+          ariaLive: "assertive",
+        },
+      });
+
+      expect(model.quiet.title).toBe("Atenção necessária");
+      expect(model.quiet.tone).toBe("danger");
+    });
   });
 
   describe("getManualSyncStatus()", () => {
