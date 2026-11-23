@@ -3093,6 +3093,16 @@ async function syncFirestoreNowUnlocked() {
   const { db, uid } = requireSignedInServices();
   const remote = await readFirestoreSnapshot(db, uid);
   const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
+  const remoteAbsent = !remote;
+  if (remoteAbsent) {
+    // The remote snapshot was deleted (for example, the Firestore database was
+    // cleared in the console). There is no remote plan, lineage or academic
+    // payload to protect: the local state starts a fresh remote lineage
+    // instead of being trapped forever in a stale missing-remote-plan.
+    setRetaFinalBaseFromRemote(config, null, null);
+    config.remoteUpdatedAt = null;
+    await persistSyncConfig(false);
+  }
   const pending = await getPendingFirestoreSnapshot();
 
   const localPlan = getRetaFinalPayloadPlan(state);
@@ -3103,7 +3113,11 @@ async function syncFirestoreNowUnlocked() {
     remote && Object.hasOwn(remote, "retaFinalSync"),
   );
   let retaFinalPullHandled = false;
-  if ((localPlan || remotePlan || remoteHasDescriptor) && !pending) {
+  if (
+    (localPlan || remotePlan || remoteHasDescriptor) &&
+    !pending &&
+    !remoteAbsent
+  ) {
     const outcome = applyRetaFinalPull(remote, config, { force: false });
     if (!outcome.handled || outcome.conflict) {
       if (outcome.conflict) {

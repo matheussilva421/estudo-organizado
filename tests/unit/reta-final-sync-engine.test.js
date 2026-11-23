@@ -1565,6 +1565,46 @@ describe("reta-final sync engine integration", () => {
     expect(outbox.saveFirestoreConflict).not.toHaveBeenCalled();
   });
 
+  it("publishes the local plan when the remote snapshot was deleted", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const persisted = {
+      type: "reta-final-conflict",
+      cause: "missing-remote-plan",
+      detectedAt: "2026-11-23T11:13:01.735Z",
+      planId: localPlan.planId,
+      localPlan,
+      remotePlan: legacy,
+      remoteUpdatedAt: null,
+    };
+    await boot({ plan: localPlan, remote: null, conflict: persisted });
+    const sync = storeModule.state.config.firestoreSync;
+    sync.basePlan = cloneJson(localPlan);
+    sync.baseDigest = computeRetaFinalPlanDigest(localPlan);
+    sync.baseRevision = 0;
+    sync.remoteUpdatedAt = "2026-11-04T19:52:57.692Z";
+    sync.snapshotRevision = 2;
+    sync.baseSnapshotRevision = 1;
+
+    const result = await engine.syncFirestoreNow();
+
+    expect(result).toBe(true);
+    expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
+    const written = repository.writeFirestoreSnapshot.mock.calls[0][2];
+    expect(written.retaFinalSync).toMatchObject({
+      planId: "rfplan_local",
+      baseRevision: 0,
+      snapshotRevision: 1,
+      baseSnapshotRevision: 0,
+      state: "active",
+      baseRemoteUpdatedAt: null,
+    });
+    expect(written.payload.planejamento.retaFinal.blocos).toHaveLength(180);
+    expect(storeModule.state.config.firestoreSync.conflict).toBeNull();
+    expect(storeModule.state.config.firestoreSync.snapshotRevision).toBe(1);
+    expect(storeModule.state.planejamento.retaFinal.blocos).toHaveLength(180);
+  });
+
   it("keeps missing-remote-plan when the legacy document has no planning", async () => {
     const localPlan = localV2FromLegacy(legacyRfPlan());
     const remote = legacyRfEnvelope(legacyRfPlan());
