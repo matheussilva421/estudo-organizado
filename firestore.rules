@@ -569,7 +569,7 @@ service cloud.firestore {
           && freshReceipt(request.resource.data);
       }
       match /operations/{op} {
-        allow get: if owns(uid) && active();
+        allow read: if owns(uid) && active();
         allow create: if owns(uid) && active() && request.resource.data.opId == op && token(op)
           && typeMatches(request.resource.data.collection, request.resource.data.entityType)
           && entityAdvanced(request.resource.data);

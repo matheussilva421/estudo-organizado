@@ -22,6 +22,10 @@ import {
 } from '../../src/js/sync/v1-next/remote.js';
 
 const PROJECT_ID = 'demo-estudo-v1-conflicts';
+const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8085';
+const emulatorSeparator = emulatorHost.lastIndexOf(':');
+const EMULATOR = { host: emulatorHost.slice(0, emulatorSeparator),
+  port: Number(emulatorHost.slice(emulatorSeparator + 1)) };
 const UID = 'A';
 const GENERATION = 'g1';
 const ROOT = `users/${UID}/v1SyncNamespaces/${GENERATION}`;
@@ -143,8 +147,8 @@ beforeAll(async () => {
   env = await initializeTestEnvironment({
     projectId: PROJECT_ID,
     firestore: {
-      host: '127.0.0.1',
-      port: 8085,
+      host: EMULATOR.host,
+      port: EMULATOR.port,
       rules: await readFile('firestore.rules', 'utf8'),
     },
   });

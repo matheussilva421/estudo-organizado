@@ -32,6 +32,7 @@
 !/package-lock.json
 !/vitest.config.js
 !/playwright.config.js
+!/firebase.t11.json
 !/eslint.config.js
 !/tests/
 !/tests/**

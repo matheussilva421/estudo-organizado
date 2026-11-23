@@ -12,6 +12,12 @@ const root = generation => 'users/A/v1SyncNamespaces/' + generation;
 const key = 'evento:á/1';
 const target = 'eventos/' + Buffer.from(key).toString('hex');
 const sha = data => createHash('sha256').update(data ?? 'null').digest('hex');
+const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8085';
+const emulatorSeparator = emulatorHost.lastIndexOf(':');
+const EMULATOR = {
+  host: emulatorHost.slice(0, emulatorSeparator),
+  port: Number(emulatorHost.slice(emulatorSeparator + 1)),
+};
 let env, owner;
 
 function operation(revision = 1, opId = 'op1', deleted = false) {
@@ -46,7 +52,7 @@ async function activate(generationId, state = 'active') {
 }
 
 async function environment(projectId, file) {
-  return initializeTestEnvironment({ projectId, firestore: { host: '127.0.0.1', port: 8085,
+  return initializeTestEnvironment({ projectId, firestore: { host: EMULATOR.host, port: EMULATOR.port,
     rules: await readFile(file, 'utf8') } });
 }
 beforeAll(async () => { env = await environment('demo-estudo-v1-sync', 'firestore.rules'); });

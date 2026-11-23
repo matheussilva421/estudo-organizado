@@ -17,7 +17,9 @@ const counts = Object.fromEntries(['editais', 'disciplinas', 'eventos', 'habitos
 
 beforeAll(async () => {
   env = await initializeTestEnvironment({ projectId: 'demo-estudo-t8', firestore: {
-    host: '127.0.0.1', port: 8085, rules: await readFile('firestore.rules', 'utf8'),
+    host: (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8085').split(':')[0],
+    port: Number((process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8085').split(':')[1]),
+    rules: await readFile('firestore.rules', 'utf8'),
   } });
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async ctx => {

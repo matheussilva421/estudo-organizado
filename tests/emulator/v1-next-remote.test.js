@@ -30,6 +30,10 @@ import {
 } from '../../src/js/sync/v1-next/remote.js';
 
 const PROJECT_ID = 'demo-estudo-v1-remote';
+const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8085';
+const emulatorSeparator = emulatorHost.lastIndexOf(':');
+const EMULATOR = { host: emulatorHost.slice(0, emulatorSeparator),
+  port: Number(emulatorHost.slice(emulatorSeparator + 1)) };
 const UID = 'A';
 const GENERATION = 'g1';
 const ROOT = 'users/A/v1SyncNamespaces/g1';
@@ -274,8 +278,8 @@ beforeAll(async () => {
   env = await initializeTestEnvironment({
     projectId: PROJECT_ID,
     firestore: {
-      host: '127.0.0.1',
-      port: 8085,
+      host: EMULATOR.host,
+      port: EMULATOR.port,
       rules: await readFile('firestore.rules', 'utf8'),
     },
   });
@@ -493,8 +497,12 @@ describe('V1 remote baseline and listeners', () => {
     expect(result.records).toEqual([eventItem()]);
 
     await activate({ counts: { ...EMPTY_COUNTS, eventos: 2 } });
-    await expect(fetchGenerationRecords(UID, GENERATION)).rejects.toMatchObject({
-      code: 'V1_REMOTE_MANIFEST_MISMATCH',
+    // The receipt written by pair() proves this generation evolved after the
+    // immutable migration baseline. Its live records stay individually
+    // hash/revision validated; the stale baseline count is not current truth.
+    await expect(fetchGenerationRecords(UID, GENERATION)).resolves.toMatchObject({
+      evolved: true,
+      records: [eventItem()],
     });
 
     await activate({ counts: EMPTY_COUNTS, manifestPatch: { businessDigest: undefined } });

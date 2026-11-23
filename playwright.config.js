@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 18345;
+const PORT = Number(process.env.PW_PORT || 18345);
+const MOCK_PORT = Number(process.env.PW_MOCK_PORT || 18765);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
@@ -32,7 +33,7 @@ export default defineConfig({
     },
     {
       command: 'node scripts/local-mock-server.mjs',
-      url: 'http://127.0.0.1:18765',
+      url: `http://127.0.0.1:${MOCK_PORT}`,
       reuseExistingServer: true,
       timeout: 10000,
     },
@@ -48,7 +49,7 @@ export default defineConfig({
       testIgnore: ['manual/**', 'mock-environment.spec.js', 'reta-final-visual.spec.js'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://127.0.0.1:18765',
+        baseURL: `http://127.0.0.1:${MOCK_PORT}`,
         serviceWorkers: 'block',
       },
     },
