@@ -21,6 +21,8 @@ const TOKEN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const POINTER_KIND = 'v1_generation_pointer';
 const WORKER_LEASE_KIND = 'v1_worker_lease';
+const REMOTE_FRAGMENTS_KIND = 'v1_remote_fragments';
+const REMOTE_FRAGMENTS_LIMIT = 512;
 const POINTER_STATUSES = new Set(['ready', 'blocked']);
 const RECEIPT_FIELDS = [
   'schemaVersion',
@@ -60,6 +62,10 @@ function scopeKey(uid, generationId) {
 
 function entityMetaKey(uid, generationId, recordKey) {
   return `${scopeKey(uid, generationId)}\u0000${recordKey}`;
+}
+
+function remoteFragmentsKey(uid, generationId) {
+  return `${scopeKey(uid, generationId)}\u0000remote-fragments`;
 }
 
 function conflictKey(uid, generationId, id) {
@@ -254,6 +260,56 @@ function stateWithRecord(state, previous, item) {
   if (item) insertRecordIntoState(next, item);
   // Reject an impossible topology before it reaches IndexedDB.
   convertBackupV12(next);
+  return next;
+}
+
+function readRemoteFragments(record, uid, generationId, expectedKey) {
+  if (!record) return [];
+  if (record.key !== expectedKey || record.kind !== REMOTE_FRAGMENTS_KIND ||
+    record.uid !== uid || record.generationId !== generationId ||
+    !Array.isArray(record.fragments) || record.fragments.length > REMOTE_FRAGMENTS_LIMIT) {
+    failClosed('remote fragment buffer');
+  }
+  return record.fragments.map((fragment) => {
+    validateRecord(fragment);
+    if (fragment.generationId !== generationId) {
+      failClosed('remote fragment generation');
+    }
+    return clone(fragment);
+  });
+}
+
+function mergeRemoteFragment(fragments, record) {
+  const key = recordKey(record.entityType, record.entityId);
+  const index = fragments.findIndex((fragment) =>
+    recordKey(fragment.entityType, fragment.entityId) === key);
+  if (index < 0) {
+    if (fragments.length >= REMOTE_FRAGMENTS_LIMIT) failClosed('remote fragment limit');
+    fragments.push(clone(record));
+    return 'added';
+  }
+  const existing = fragments[index];
+  if (record.revision < existing.revision) return 'stale';
+  if (record.revision === existing.revision) {
+    if (record.opId !== existing.opId) failClosed('conflicting buffered remote revision');
+    return 'same';
+  }
+  fragments[index] = clone(record);
+  return 'replaced';
+}
+
+function applyRemoteFragment(records, record) {
+  const collection = entityCollectionForType(record.entityType);
+  const key = recordKey(record.entityType, record.entityId);
+  const next = Object.fromEntries(Object.entries(records).map(([name, items]) =>
+    [name, items.filter((item) => item.key !== key)]));
+  if (record.deleted) return next;
+  const item = JSON.parse(record.data);
+  if (item.key !== key || item.entityType !== record.entityType ||
+    String(item.entityId) !== record.entityId) {
+    failClosed('remote payload identity');
+  }
+  next[collection].push(item);
   return next;
 }
 
@@ -969,20 +1025,22 @@ export async function applyRemoteRecord({
   const versionKey = pointerKey(uid);
   const entityKey = recordKey(record.entityType, record.entityId);
   const metaKey = entityMetaKey(uid, generationId, entityKey);
+  const fragmentsKey = remoteFragmentsKey(uid, generationId);
 
   return runTransaction(
     [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_ENTITY_META_STORE,
-      V1_SYNC_CONFLICT_STORE],
+      V1_SYNC_CONFLICT_STORE, V1_SYNC_META_STORE],
     'readwrite',
     (transaction, control) => {
       const stateStore = transaction.objectStore(V1_LOCAL_STATE_STORE);
       const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
       const metaStore = transaction.objectStore(V1_ENTITY_META_STORE);
       const conflictStore = transaction.objectStore(V1_SYNC_CONFLICT_STORE);
+      const syncMetaStore = transaction.objectStore(V1_SYNC_META_STORE);
       const reads = {};
       const done = new Set();
       const stage = () => {
-        if (done.size !== 5) return;
+        if (done.size !== 6) return;
         try {
           const pointer = readPointerRecord(reads.pointer, uid);
           if (!pointer || pointer.generationId !== generationId || pointer.status !== 'ready') {
@@ -995,8 +1053,36 @@ export async function applyRemoteRecord({
           }
           const pending = (reads.operations || []).filter((operation) =>
             operation?.uid === uid && operation?.generationId === generationId &&
-            operation?.entityKey === entityKey && isOutstanding(operation));
-          const meta = reads.meta;
+            isOutstanding(operation));
+          const targetPending = pending.filter((operation) => operation.entityKey === entityKey);
+          const conflicts = (reads.conflicts || []).filter((conflict) =>
+            conflict?.uid === uid && conflict?.generationId === generationId);
+          const targetConflicts = conflicts.filter((conflict) =>
+            conflict.entityKey === entityKey && conflict.status === 'open');
+          const metas = new Map((reads.metas || [])
+            .filter((meta) => meta?.uid === uid && meta?.generationId === generationId)
+            .map((meta) => [meta.entityKey, meta]));
+          const meta = metas.get(entityKey) || null;
+          const fragments = readRemoteFragments(
+            reads.fragments,
+            uid,
+            generationId,
+            fragmentsKey,
+          );
+          const persistFragments = (items) => {
+            if (items.length > 0) {
+              syncMetaStore.put({
+                key: fragmentsKey,
+                kind: REMOTE_FRAGMENTS_KIND,
+                uid,
+                generationId,
+                fragments: items.map(clone),
+                updatedAt: now,
+              });
+            } else if (reads.fragments) {
+              syncMetaStore.delete(fragmentsKey);
+            }
+          };
           const ownTombstone = record.deleted && pending.some(
             (operation) => operation.opId === record.opId,
           );
@@ -1004,9 +1090,7 @@ export async function applyRemoteRecord({
             control.setResult({ applied: false, reason: 'tombstoned' });
             return;
           }
-          if (!record.deleted && (pending.length || reads.conflicts.some(conflict =>
-            conflict.uid === uid && conflict.generationId === generationId &&
-            conflict.entityKey === entityKey && conflict.status === 'open'))) {
+          if (!record.deleted && (targetPending.length || targetConflicts.length)) {
             control.setResult({ applied: false, reason: 'pending' });
             return;
           }
@@ -1023,23 +1107,14 @@ export async function applyRemoteRecord({
           const converted = convertBackupV12(stateRecord.state);
           const previous = converted.records[record.collection]
             .find((candidate) => candidate.key === entityKey) || null;
-          let item = null;
-          if (!record.deleted) {
-            item = JSON.parse(record.data);
-            if (item.key !== entityKey || item.entityType !== record.entityType ||
-              String(item.entityId) !== record.entityId) {
-              failClosed('remote payload identity');
-            }
-          }
 
           if (record.deleted) {
             if (meta?.lastRemoteRecord?.revision > record.revision) {
               control.setResult({ applied: false, reason: 'already-current' });
               return;
             }
-            for (const conflict of reads.conflicts) {
-              if (conflict.uid === uid && conflict.generationId === generationId &&
-                conflict.entityKey === entityKey && conflict.status === 'open') {
+            for (const conflict of conflicts) {
+              if (conflict.entityKey === entityKey && conflict.status === 'open') {
                 conflictStore.put({ ...conflict, reason: 'tombstone', remote: record.revision,
                   remoteDeleted: true, remoteRecord: clone(record),
                   remoteVersion: recordVersion(record.revision, null, true), updatedAt: now });
@@ -1047,19 +1122,19 @@ export async function applyRemoteRecord({
             }
           }
 
-          if (pending.length && record.deleted && !ownTombstone) {
-            const conflicts = [];
-            const existing = new Map((reads.conflicts || [])
-              .filter(conflict => conflict.uid === uid && conflict.generationId === generationId)
+          if (record.deleted && !ownTombstone &&
+            (targetPending.length || targetConflicts.length)) {
+            const pendingConflicts = [];
+            const existing = new Map(conflicts
               .map(conflict => [conflict.conflictId, conflict]));
-            for (const operation of pending) {
+            for (const operation of targetPending) {
               const candidate = conflictRecord(operation, {
                 code: 'tombstone',
                 remoteRevision: record.revision,
                 remoteDeleted: true,
                 remoteRecord: record,
               }, { now });
-              conflicts.push(existing.get(operation.opId) || candidate);
+              pendingConflicts.push(existing.get(operation.opId) || candidate);
               outbox.put({
                 ...operation,
                 status: 'conflict',
@@ -1067,7 +1142,7 @@ export async function applyRemoteRecord({
                 updatedAt: now,
               });
             }
-            for (const conflict of conflicts) conflictStore.put(conflict);
+            for (const conflict of pendingConflicts) conflictStore.put(conflict);
             const nextState = stateWithRecord(stateRecord.state, previous, null);
             stateStore.put({
               ...stateRecord,
@@ -1092,40 +1167,94 @@ export async function applyRemoteRecord({
               lastRemoteRecord: clone(record),
               updatedAt: now,
             });
+            persistFragments(fragments.filter((fragment) =>
+              recordKey(fragment.entityType, fragment.entityId) !== entityKey));
             control.setResult({
               applied: true,
               conflict: true,
-              conflictIds: conflicts.map((conflict) => conflict.conflictId),
+              conflictIds: [...new Set([
+                ...targetConflicts.map((conflict) => conflict.conflictId),
+                ...pendingConflicts.map((conflict) => conflict.conflictId),
+              ])],
             });
             return;
           }
-          const nextState = stateWithRecord(stateRecord.state, previous, item);
+          mergeRemoteFragment(fragments, record);
+
+          const held = [];
+          const eligible = [];
+          for (const fragment of fragments) {
+            const fragmentKey = recordKey(fragment.entityType, fragment.entityId);
+            const fragmentMeta = metas.get(fragmentKey) || null;
+            if (pending.some((operation) => operation.entityKey === fragmentKey) ||
+              conflicts.some((conflict) =>
+                conflict.entityKey === fragmentKey && conflict.status === 'open')) {
+              held.push(fragment);
+              continue;
+            }
+            if (fragmentMeta?.deleted === true && fragment.deleted !== true) continue;
+            if (fragmentMeta && fragmentMeta.revision > fragment.revision) continue;
+            if (fragmentMeta && fragmentMeta.revision === fragment.revision) {
+              if (fragmentMeta.lastAckedOpId === fragment.opId) continue;
+              failClosed('conflicting remote revision');
+            }
+            eligible.push(fragment);
+          }
+
+          if (eligible.length === 0) {
+            persistFragments(held);
+            control.setResult({ applied: false, reason: held.length ? 'buffered' : 'already-current' });
+            return;
+          }
+
+          let rebuilt;
+          try {
+            let records = convertBackupV12(stateRecord.state).records;
+            for (const fragment of eligible) {
+              records = applyRemoteFragment(records, fragment);
+            }
+            rebuilt = reconstituteBackupV12(records);
+          } catch {
+            persistFragments([...held, ...eligible]);
+            control.setResult({
+              applied: false,
+              buffered: true,
+              reason: 'awaiting-topology',
+              pendingFragments: held.length + eligible.length,
+            });
+            return;
+          }
 
           stateStore.put({
             ...stateRecord,
-            state: nextState,
+            state: rebuilt,
             verified: true,
             verifiedAt: stateRecord.verifiedAt || now,
             updatedAt: now,
           });
-          metaStore.put({
-            key: metaKey,
-            uid,
-            generationId,
-            entityKey,
-            entityType: record.entityType,
-            entityId: record.entityId,
-            collection: record.collection,
-            baseRevision: record.revision,
-            revision: record.revision,
-            deleted: record.deleted === true,
-            pendingOpId: null,
-            lastAckedOpId: record.opId,
-            lastRecord: clone(item),
-            lastRemoteRecord: clone(record),
-            updatedAt: now,
-          });
-          control.setResult({ applied: true });
+          for (const fragment of eligible) {
+            const fragmentMetaKey = entityMetaKey(uid, generationId,
+              recordKey(fragment.entityType, fragment.entityId));
+            metaStore.put({
+              key: fragmentMetaKey,
+              uid,
+              generationId,
+              entityKey: recordKey(fragment.entityType, fragment.entityId),
+              entityType: fragment.entityType,
+              entityId: fragment.entityId,
+              collection: fragment.collection,
+              baseRevision: fragment.revision,
+              revision: fragment.revision,
+              deleted: fragment.deleted === true,
+              pendingOpId: null,
+              lastAckedOpId: fragment.opId,
+              lastRecord: fragment.deleted ? null : JSON.parse(fragment.data),
+              lastRemoteRecord: clone(fragment),
+              updatedAt: now,
+            });
+          }
+          persistFragments(held);
+          control.setResult({ applied: true, appliedFragments: eligible.length });
         } catch (error) {
           control.abort(error);
         }
@@ -1142,8 +1271,9 @@ export async function applyRemoteRecord({
       read(stateStore, versionKey, 'pointer');
       read(stateStore, stateKey, 'state');
       read(outbox, null, 'operations');
-      read(metaStore, metaKey, 'meta');
       read(conflictStore, null, 'conflicts');
+      read(metaStore, null, 'metas');
+      read(syncMetaStore, fragmentsKey, 'fragments');
     },
   );
 }

@@ -53,7 +53,11 @@ import {
   isV1SyncEnabled,
   runV1FirstAccessLifecycle,
 } from './sync/v1-next/bootstrap.js?v=8.37';
-import { initFirebaseServices, observeFirebaseAuth } from './firebase/firebase-client.js?v=8.37';
+import {
+  initFirebaseServices,
+  observeFirebaseAuth,
+  observeFirebaseIdToken,
+} from './firebase/firebase-client.js?v=8.37';
 import { wireFirestores } from './sync/v1-next/remote.js';
 import {
   collection,
@@ -265,6 +269,14 @@ export function init(options = {}) {
     }).catch(showInitializationError);
   }
 
+  function onIdTokenChange(user, initialUid) {
+    const uid = user?.uid ?? null;
+    setV1SyncStatusAuth(user);
+    const knownUid = lastUid === undefined ? initialUid : lastUid;
+    if (!uid || uid !== knownUid) return;
+    Promise.resolve(resumeV1SyncForUser(uid)).catch(showInitializationError);
+  }
+
   function openSession(version, authUser) {
     v1GenerationBlocked = false;
     let authFailure;
@@ -278,8 +290,10 @@ export function init(options = {}) {
         wireFirestores: options.wireFirestores || wireFirestores,
         firestoreSdk: options.firestoreSdk || V1_FIRESTORE_SDK,
         observeFirebaseAuth: options.observeFirebaseAuth || observeFirebaseAuth,
+        observeFirebaseIdToken: options.observeFirebaseIdToken || observeFirebaseIdToken,
         authUser,
         onAuthChange,
+        onIdTokenChange,
         remoteApi: options.remoteApi,
         online: options.online,
         local: options.local,

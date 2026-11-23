@@ -5,6 +5,7 @@ import {
   GoogleAuthProvider,
   getRedirectResult,
   onAuthStateChanged,
+  onIdTokenChanged,
   signInWithPopup,
   signInWithRedirect,
   signOut,
@@ -82,6 +83,15 @@ export function observeFirebaseAuth(callback) {
     return () => {};
   }
   return onAuthStateChanged(auth, callback);
+}
+
+export function observeFirebaseIdToken(callback) {
+  const { configured, auth } = initFirebaseServices();
+  if (!configured || !auth) {
+    callback(null);
+    return () => {};
+  }
+  return onIdTokenChanged(auth, callback);
 }
 
 export async function signInWithGoogle() {

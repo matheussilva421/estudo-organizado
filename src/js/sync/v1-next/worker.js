@@ -196,6 +196,7 @@ async function handleDelta(entry, delta) {
 
 function pauseForAuth(entry, reason) {
   entry.authPaused = true;
+  entry.listenerGeneration += 1;
   clearTimer(entry, 'debounceTimer');
   clearTimer(entry, 'retryTimer');
   clearTimer(entry, 'listenerTimer');
@@ -204,14 +205,49 @@ function pauseForAuth(entry, reason) {
   emitStatus(entry, 'auth-required', { reason });
 }
 
+function subscribeEntry(entry) {
+  const generation = ++entry.listenerGeneration;
+  return entry.remoteApi.subscribeGeneration(entry.uid, entry.generationId, {
+    onDelta: (delta) => {
+      if (runtime === entry && entry.listenerGeneration === generation) {
+        return handleDelta(entry, delta);
+      }
+    },
+    onError: (error) => {
+      if (runtime === entry && entry.listenerGeneration === generation) {
+        handleListenerError(entry, error);
+      }
+    },
+  });
+}
+
 export function suspendV1SyncForAuth(reason) {
   if (isActive(runtime)) pauseForAuth(runtime, reason);
 }
 
 export function resumeV1SyncForUser(uid) {
   const entry = runtime;
-  if (entry?.uid === uid && entry.authPaused) {
-    return startV1Sync({ uid, generationId: entry.generationId, remoteApi: entry.remoteApi });
+  if (!entry || entry.uid !== uid || !entry.authPaused || entry.stopping) return;
+  const active = getActiveV1Context();
+  if (active?.uid !== uid || active.generationId !== entry.generationId) return;
+
+  entry.authPaused = false;
+  entry.reason = 'auth-resumed';
+  try {
+    entry.unsubscribe?.();
+    entry.unsubscribe = subscribeEntry(entry);
+    entry.initialDrain = triggerDrain(entry, 'auth-resumed');
+    return entry.initialDrain;
+  } catch (error) {
+    if (isV1AuthFailure(error?.code)) {
+      pauseForAuth(entry, error.code);
+      return;
+    }
+    emitStatus(entry, 'error', {
+      reason: error?.code || 'V1_WORKER_RESUME_FAILED',
+      error: error?.message || null,
+    });
+    throw error;
   }
 }
 
@@ -237,10 +273,7 @@ async function restartSubscription(entry) {
   entry.unsubscribe?.();
   entry.unsubscribe = null;
   try {
-    entry.unsubscribe = entry.remoteApi.subscribeGeneration(entry.uid, entry.generationId, {
-      onDelta: (delta) => handleDelta(entry, delta),
-      onError: (error) => handleListenerError(entry, error),
-    });
+    entry.unsubscribe = subscribeEntry(entry);
     await triggerDrain(entry, 'listener-recovery');
   } catch (error) {
     handleListenerError(entry, error);
@@ -494,8 +527,9 @@ function detachListeners(entry) {
 /** Start one worker for the active UID/generation. Repeated calls are idempotent. */
 export async function startV1Sync({ uid, generationId, remoteApi, authFailure } = {}) {
   const key = contextKey(uid, generationId);
-  if (runtime?.key === key && !runtime.stopping && !runtime.authPaused) {
-    return runtime.initialDrain || Promise.resolve();
+  if (runtime?.key === key && !runtime.stopping) {
+    if (!runtime.authPaused) return runtime.initialDrain || Promise.resolve();
+    if (!isV1AuthFailure(authFailure)) return resumeV1SyncForUser(uid);
   }
   stopV1Sync();
 
@@ -506,6 +540,7 @@ export async function startV1Sync({ uid, generationId, remoteApi, authFailure } 
     ownerId: ownerId(),
     stopping: false,
     unsubscribe: null,
+    listenerGeneration: 0,
     debounceTimer: null,
     retryTimer: null,
     listenerTimer: null,
@@ -525,10 +560,7 @@ export async function startV1Sync({ uid, generationId, remoteApi, authFailure } 
   }
 
   try {
-    entry.unsubscribe = entry.remoteApi.subscribeGeneration(uid, generationId, {
-      onDelta: (delta) => handleDelta(entry, delta),
-      onError: (error) => handleListenerError(entry, error),
-    });
+    entry.unsubscribe = subscribeEntry(entry);
     if (startEpoch !== epoch || !isActive(entry)) {
       entry.unsubscribe?.();
       throw new Error('V1 worker context changed during start');
@@ -560,6 +592,7 @@ export function stopV1Sync() {
   }
   epoch += 1;
   entry.stopping = true;
+  entry.listenerGeneration += 1;
   clearTimer(entry, 'listenerTimer');
   clearInterval(entry.heartbeat);
   runtime = null;

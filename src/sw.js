@@ -1,4 +1,4 @@
-const APP_VERSION = '9.95';
+const APP_VERSION = '9.96';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -133,6 +133,7 @@ const ASSET_PATHS = [
   './js/sync/v1-next/contracts.js',
   './js/sync/v1-next/local.js',
   './js/sync/v1-next/remote.js',
+  './js/sync/v1-next/reta-final.js',
   './js/sync/v1-next/sha256.js',
   './js/sync/v1-next/status.js',
   './js/sync/v1-next/worker.js',

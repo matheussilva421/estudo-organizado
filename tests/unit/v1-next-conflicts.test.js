@@ -128,11 +128,17 @@ async function seedBaseEvent(local, { id = 'ev_conflict', title = 'Base' } = {})
     state: baseline,
     manifest: manifestFor(baseline),
   });
-  await local.applyRemoteRecord({
-    uid,
-    generationId,
-    record: remoteRecord(eventItem(id, { titulo: title, notas: 'Base notes' }), 1),
+  const remoteState = createBaseState({
+    schemaVersion: 12,
+    eventos: [createEvento({ id, titulo: title, notas: 'Base notes' })],
   });
+  const { records } = convertBackupV12(remoteState);
+  const root = records.meta.find((record) => record.key === 'meta:$root');
+  const event = records.eventos.find((record) => record.entityId === id);
+  await local.applyRemoteRecord({ uid, generationId, record: remoteRecord(root, 1, {
+    collection: 'meta', opId: 'remote_root_1',
+  }) });
+  await local.applyRemoteRecord({ uid, generationId, record: remoteRecord(event, 1) });
   return { uid, generationId, state: baseline };
 }
 
@@ -201,6 +207,96 @@ describe('V1 local conflict protocol', () => {
     }
     expect((await local.readLocalGeneration(scope.uid, scope.generationId)).state)
       .toMatchObject({ editais: [{ nome: 'Changed', disciplinas: [child] }], extraRootField: 'Root delta' });
+  });
+
+  it.each(['parent-first', 'child-first'])(
+    'applies a renamed edital and new discipline atomically in %s order',
+    async (order) => {
+      createDatabase();
+      let local = await importLocal();
+      const scope = { uid: 'uid_fragments', generationId: 'gen_conflicts' };
+      const originalChild = createDisciplina({ id: 'disc_original', nome: 'Original' });
+      const baseline = createBaseState({
+        schemaVersion: 12,
+        editais: [createEdital({
+          id: 'ed_fragment', nome: 'Antes', disciplinas: [originalChild],
+        })],
+      });
+      await local.installRemoteBaseline({
+        ...scope,
+        state: baseline,
+        manifest: manifestFor(baseline),
+      });
+      const updated = structuredClone(baseline);
+      updated.editais[0].nome = 'Depois';
+      const newChild = createDisciplina({ id: 'disc_new', nome: 'Nova' });
+      updated.editais[0].disciplinas.push(newChild);
+      const { records } = convertBackupV12(updated);
+      const parent = remoteRecord(records.editais[0], 1, {
+        collection: 'editais', opId: 'remote_parent_1',
+      });
+      const child = remoteRecord(records.disciplinas.find((record) => record.entityId === 'disc_new'), 1, {
+        collection: 'disciplinas', opId: 'remote_child_1',
+      });
+      const ordered = order === 'parent-first' ? [parent, child] : [child, parent];
+
+      expect(await local.applyRemoteRecord({ ...scope, record: ordered[0] }))
+        .toMatchObject({ applied: false, buffered: true });
+      expect((await local.readLocalGeneration(scope.uid, scope.generationId)).state)
+        .toMatchObject({ editais: [{ nome: 'Antes', disciplinas: [originalChild] }] });
+
+      if (order === 'child-first') {
+        vi.resetModules();
+        local = await importLocal();
+      }
+      expect(await local.applyRemoteRecord({ ...scope, record: ordered[1] }))
+        .toMatchObject({ applied: true, appliedFragments: 2 });
+      expect((await local.readLocalGeneration(scope.uid, scope.generationId)).state)
+        .toMatchObject({
+          editais: [{
+            nome: 'Depois',
+            disciplinas: [originalChild, newChild],
+          }],
+        });
+
+      expect(await local.applyRemoteRecord({ ...scope, record: parent }))
+        .toMatchObject({ applied: false, reason: 'already-current' });
+      expect(await local.applyRemoteRecord({ ...scope, record: child }))
+        .toMatchObject({ applied: false, reason: 'already-current' });
+      expect((await local.readLocalGeneration(scope.uid, scope.generationId)).state)
+        .toMatchObject({ editais: [{ nome: 'Depois', disciplinas: [originalChild, newChild] }] });
+    },
+  );
+
+  it('applies a root fragment without exposing null meta slots', async () => {
+    createDatabase();
+    const local = await importLocal();
+    const scope = { uid: 'uid_root_fragment', generationId: 'gen_conflicts' };
+    const child = createDisciplina({ id: 'disc_root_fragment' });
+    const baseline = createBaseState({
+      schemaVersion: 12,
+      editais: [createEdital({ id: 'ed_root_fragment', disciplinas: [child] })],
+    });
+    await local.installRemoteBaseline({
+      ...scope,
+      state: baseline,
+      manifest: manifestFor(baseline),
+    });
+    const updated = structuredClone(baseline);
+    updated.extraRootField = 'Root fragment';
+    const { records } = convertBackupV12(updated);
+    const root = records.meta.find((record) => record.key === 'meta:$root');
+    const record = remoteRecord(root, 1, { collection: 'meta', opId: 'remote_root_fragment_1' });
+
+    expect(await local.applyRemoteRecord({ ...scope, record })).toMatchObject({ applied: true });
+    const state = (await local.readLocalGeneration(scope.uid, scope.generationId)).state;
+    expect(state).toMatchObject({
+      extraRootField: 'Root fragment',
+      editais: [{ id: 'ed_root_fragment', disciplinas: [child] }],
+    });
+    expect(JSON.stringify(state)).not.toContain('null,null');
+    expect(await local.applyRemoteRecord({ ...scope, record }))
+      .toMatchObject({ applied: false, reason: 'already-current' });
   });
 
   it('rebases an advanced independent edit, updates local state and ACKs the exact revision', async () => {

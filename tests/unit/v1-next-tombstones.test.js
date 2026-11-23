@@ -135,11 +135,34 @@ async function seed(local) {
       updatedAt: { seconds: 1800000000, nanoseconds: 0 },
     },
   });
+  const remoteState = createBaseState({
+    schemaVersion: 12,
+    eventos: [createEvento({ id: EVENT_ID, titulo: 'Base' })],
+    syncTombstones: baseline.syncTombstones,
+    config: baseline.config,
+  });
+  const { records } = convertBackupV12(remoteState);
+  const root = records.meta.find((record) => record.key === 'meta:$root');
+  const rootData = encodeRecordData(root);
   await local.applyRemoteRecord({
     uid: UID,
     generationId: GENERATION,
-    record: remoteUpsert(item('Base'), 1),
+    record: {
+      schemaVersion: 1,
+      generationId: GENERATION,
+      entityType: 'meta',
+      entityId: '$root',
+      collection: 'meta',
+      revision: 1,
+      baseRevision: 0,
+      opId: 'remote_root_1',
+      opDigest: sha256Utf8(rootData),
+      deleted: false,
+      data: rootData,
+      updatedAt: { seconds: 1800000000, nanoseconds: 0 },
+    },
   });
+  await local.applyRemoteRecord({ uid: UID, generationId: GENERATION, record: remoteUpsert(item('Base'), 1) });
   await local.commitLocalChange({
     uid: UID,
     generationId: GENERATION,

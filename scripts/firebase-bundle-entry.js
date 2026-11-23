@@ -4,6 +4,7 @@ export {
   GoogleAuthProvider,
   getRedirectResult,
   onAuthStateChanged,
+  onIdTokenChanged,
   signInWithPopup,
   signInWithRedirect,
   signOut

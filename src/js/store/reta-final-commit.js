@@ -592,7 +592,19 @@ export function commitRetaFinalDraft({
               );
             }
 
-            const state = recoverStateFromReads(reads);
+            const legacyState = recoverStateFromReads(reads);
+            const v1StateRecord = activeV1 ? requestResult(reads.v1State) : null;
+            if (activeV1 && (!v1StateRecord?.state ||
+              v1StateRecord.uid !== activeV1.uid ||
+              v1StateRecord.generationId !== activeV1.generationId)) {
+              throw codedError(
+                "RETA_FINAL_STALE",
+                "O cache V1 da geração atual não está disponível.",
+              );
+            }
+            // v1_local_state is the authoritative local generation when V1 is
+            // active. app_state may lag after a remote delta was applied.
+            const state = clone(v1StateRecord?.state || legacyState);
             const currentPlan = state.planejamento;
             if (!currentPlan || currentPlan.planId !== expectedPlanId) {
               throw codedError(
@@ -648,6 +660,7 @@ export function commitRetaFinalDraft({
                 entityMeta: requestResult(reads.v1EntityMeta) || [],
                 existingConflicts: requestResult(reads.v1Conflicts) || [],
                 syncMeta: requestResult(reads.v1SyncMeta) || null,
+                verified: v1StateRecord?.verified === true,
                 now: nextState.planejamento?.updatedAt,
               });
             }

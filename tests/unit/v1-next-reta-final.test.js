@@ -98,3 +98,37 @@ it('aborts draft, state and events on an outbox failure and replay enqueues exac
     [...new Set(committed.eventos.map(event => event.id))],
   );
 });
+
+it('uses the authoritative V1 cache and preserves a newer remote change outside Reta Final', async () => {
+  const baseDraft = createRetaFinalDraft(plan, { draftId: 'edit-v1-ahead', now: day });
+  const draft = appendRetaFinalDraftOperation(baseDraft, {
+    operationId: 'patch-v1-ahead', type: 'PATCH', blockIds: ['b'], patch: { minutos: 45 },
+  }, { today: day, now: day, events: [], catalog, activeTimerIds: [] }).draft;
+  const key = v1ScopeKey('A', 'g1');
+  const pk = JSON.stringify(['v1-generation-pointer', 'A']);
+  const remoteEvent = { id: 'ev-remote-ahead', titulo: 'delta remoto', data: day,
+    status: 'agendado', tempoAcumulado: 0, discId: 'd', assId: null };
+  const v1Ahead = createBaseState({ ...state, eventos: [remoteEvent] });
+  const { manifestDraft } = convertBackupV12(v1Ahead);
+  const manifest = { schemaVersion: 1, generationId: 'g1', migrationId: 'm', state: 'active', revision: 0,
+    sourceSha256: 'a'.repeat(64), businessDigest: manifestDraft.businessDigest, counts: manifestDraft.counts,
+    updatedAt: { seconds: 1, nanoseconds: 0 } };
+  const idb = createTransactionalIdb({ stores: {
+    app_state: { main_state: state }, reta_final_drafts: { 'edit-v1-ahead': draft }, reta_final_journal: {},
+    v1_local_state: {
+      [key]: { key, uid: 'A', generationId: 'g1', verified: true, state: v1Ahead },
+      [pk]: { key: pk, uid: 'A', generationId: 'g1', kind: 'v1_generation_pointer', status: 'ready',
+        verified: true, manifest },
+    },
+    v1_sync_outbox: {}, v1_entity_meta: {}, v1_sync_meta: {}, v1_sync_conflicts: {},
+  }, keyPaths: { v1_local_state: 'key', v1_sync_outbox: 'opId', v1_entity_meta: 'key',
+    v1_sync_meta: 'key', v1_sync_conflicts: 'key' } });
+  setActiveV1Context('A', 'g1');
+  await commitRetaFinalDraft({ db: idb.database, draftId: 'edit-v1-ahead', expectedPlanId: 'p',
+    expectedRevision: 4, context: { today: day, now: day, pruneAutomatic: false } });
+  expect(idb.getRecord('app_state', 'main_state').eventos)
+    .toContainEqual(remoteEvent);
+  expect(idb.getRecord('v1_local_state', key)).toMatchObject({ verified: true });
+  expect(idb.getRecord('v1_local_state', key).state.eventos)
+    .toContainEqual(remoteEvent);
+});

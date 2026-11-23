@@ -330,11 +330,14 @@ export function waitForAuthUser(observeAuth, {
   setTimeoutRef = globalThis.setTimeout,
   clearTimeoutRef = globalThis.clearTimeout,
   onAuthChange,
+  observeIdToken,
+  onIdTokenChange,
 } = {}) {
   if (typeof observeAuth !== 'function') return Promise.resolve(null);
   return new Promise((resolve) => {
     let settled = false;
     let unsubscribe = null;
+    let unsubscribeIdToken = null;
     let timer = null;
     const finish = (user) => {
       if (settled) return;
@@ -342,6 +345,7 @@ export function waitForAuthUser(observeAuth, {
       if (timer !== null) clearTimeoutRef?.(timer);
       try {
         if (!onAuthChange) unsubscribe?.();
+        if (!onIdTokenChange) unsubscribeIdToken?.();
       } catch {
         // The restored identity remains authoritative even if cleanup fails.
       }
@@ -357,12 +361,20 @@ export function waitForAuthUser(observeAuth, {
         initialUid = user?.uid ?? null;
         finish(user);
       });
+      if (settled) unsubscribe?.();
+      if (typeof observeIdToken === 'function') {
+        unsubscribeIdToken = observeIdToken((user) => {
+          if (settled) onIdTokenChange?.(user || null, initialUid);
+        });
+        if (settled) unsubscribeIdToken?.();
+      }
     } catch {
       finish(null);
       return;
     }
     if (settled) {
       if (!onAuthChange) unsubscribe?.();
+      if (!onIdTokenChange) unsubscribeIdToken?.();
       return;
     }
     timer = setTimeoutRef(() => finish(null), timeoutMs);
@@ -414,6 +426,8 @@ export async function bootstrapConfiguredV1Generation(options = {}) {
         ? options.authUser
         : await waitForAuthUser(options.observeFirebaseAuth, {
           onAuthChange: options.onAuthChange,
+          observeIdToken: options.observeFirebaseIdToken,
+          onIdTokenChange: options.onIdTokenChange,
           timeoutMs: options.authTimeoutMs,
           setTimeoutRef: options.setTimeoutRef,
           clearTimeoutRef: options.clearTimeoutRef,
