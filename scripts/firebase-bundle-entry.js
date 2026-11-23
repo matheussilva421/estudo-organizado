@@ -14,9 +14,11 @@ export {
   getDoc,
   getDocs,
   initializeFirestore,
+  connectFirestoreEmulator,
   onSnapshot,
   persistentLocalCache,
   persistentMultipleTabManager,
+  runTransaction,
   serverTimestamp,
   setDoc,
   writeBatch
