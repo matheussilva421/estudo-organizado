@@ -46,14 +46,25 @@ function operation(overrides = {}) {
   };
 }
 
+function remoteRecord(overrides = {}) {
+  return {
+    schemaVersion: 1, generationId: 'g1', collection: 'eventos', entityType: 'evento',
+    entityId: 'e1', revision: 1, baseRevision: 0, opId: 'op1', opDigest: digest(dataText),
+    deleted: false, data: dataText, updatedAt: stamp,
+    ...overrides,
+  };
+}
+
 function snapshot(value, id = '') {
   return {
     id,
-    metadata: { fromCache: false },
+    metadata: { fromCache: false, hasPendingWrites: false },
     exists: () => value !== null && value !== undefined,
     data: () => value,
   };
 }
+
+const stableMetadata = { fromCache: false, hasPendingWrites: false };
 
 function ref(path) {
   return { path };
@@ -61,6 +72,7 @@ function ref(path) {
 
 function sdkWith({
   documents = new Map(),
+  cachedPaths = new Set(),
   transaction = null,
   onSnapshot = null,
 } = {}) {
@@ -70,20 +82,28 @@ function sdkWith({
     receipt: 'users/A/v1SyncNamespaces/g1/operations/op1',
     entity: `users/A/v1SyncNamespaces/g1/eventos/${encodeDocId(item.key)}`,
   };
-  const read = async (target) => snapshot(documents.get(target.path), target.path.split('/').at(-1));
+  const read = async (target) => ({
+    ...snapshot(documents.get(target.path), target.path.split('/').at(-1)),
+    metadata: {
+      fromCache: cachedPaths.has(target.path),
+      hasPendingWrites: false,
+    },
+  });
+  const readCollection = async (collectionRef) => {
+    const prefix = collectionRef.path + '/';
+    const docs = [...documents.entries()]
+      .filter(([path]) => path.startsWith(prefix) && !path.slice(prefix.length).includes('/'))
+      .map(([path, value]) => snapshot(value, path.slice(prefix.length)));
+    return { metadata: stableMetadata, docs };
+  };
   return {
     paths,
     sdk: {
       collection: (_db, ...segments) => ref(segments.join('/')),
       doc: (_db, ...segments) => ref(segments.join('/')),
       getDoc: read,
-      getDocs: vi.fn(async (collectionRef) => {
-        const prefix = collectionRef.path + '/';
-        const docs = [...documents.entries()]
-          .filter(([path]) => path.startsWith(prefix) && !path.slice(prefix.length).includes('/'))
-          .map(([path, value]) => snapshot(value, path.slice(prefix.length)));
-        return { docs };
-      }),
+      getDocs: vi.fn(readCollection),
+      getDocsFromServer: vi.fn(readCollection),
       onSnapshot: onSnapshot || vi.fn(() => () => {}),
       runTransaction: transaction || vi.fn(async (_db, work) => work({
         get: read,
@@ -157,6 +177,30 @@ describe('V1 remote injected contract', () => {
       .rejects.toMatchObject({ code: 'V1_REMOTE_OP_CONFLICT' });
   });
 
+  it('validates the active generation before acknowledging a replay', async () => {
+    const receipt = {
+      schemaVersion: 1, generationId: 'g1', collection: 'eventos', entityType: 'evento',
+      entityId: 'e1', revision: 1, baseRevision: 0, opId: 'op1', opDigest: digest(dataText),
+      deleted: false, updatedAt: stamp,
+    };
+    const documents = new Map([
+      ['users/A/v1SyncNamespaces/g1/operations/op1', receipt],
+      ['users/A/v1SyncControl/current', { ...control, generationId: 'g2' }],
+      ['users/A/v1SyncNamespaces/g2', { ...manifest, generationId: 'g2' }],
+    ]);
+    const fake = sdkWith({
+      documents,
+      transaction: vi.fn(async (_db, work) => work({
+        get: async target => snapshot(documents.get(target.path), target.path.split('/').at(-1)),
+        set: vi.fn(),
+      })),
+    });
+    configure(fake);
+    await expect(applyRemoteOperation(operation())).rejects.toMatchObject({
+      code: 'V1_REMOTE_GENERATION_INVALID',
+    });
+  });
+
   it('surfaces timeout without a false ACK so the durable receipt can be retried', async () => {
     const timeout = Object.assign(new Error('deadline exceeded'), { code: 'deadline-exceeded' });
     const fake = sdkWith({ transaction: vi.fn(async () => { throw timeout; }) });
@@ -204,7 +248,7 @@ describe('V1 remote injected contract', () => {
 
     const eventPath = fake.sdk.collection(fake.sdk, 'users/A/v1SyncNamespaces/g1/eventos').path;
     registrations.get(eventPath)({
-      metadata: { fromCache: false },
+      metadata: stableMetadata,
       docs: [snapshot(document, encodeDocId(item.key))],
       docChanges: () => [{ type: 'added', doc: snapshot(document, encodeDocId(item.key)) }],
     });
@@ -219,6 +263,106 @@ describe('V1 remote injected contract', () => {
     stopSecond();
     expect(unsubscribers).toHaveLength(7);
     expect(unsubscribers.every(unsubscribe => unsubscribe.mock.calls.length === 1)).toBe(true);
+  });
+
+  it('ignores cache and pending snapshots until a server baseline arrives', async () => {
+    let eventNext;
+    const fake = sdkWith({ documents: new Map([
+      ['users/A/v1SyncControl/current', control],
+      ['users/A/v1SyncNamespaces/g1', manifest],
+    ]) });
+    fake.sdk.onSnapshot = vi.fn((collectionRef, next) => {
+      if (collectionRef.path.endsWith('/eventos')) eventNext = next;
+      return () => {};
+    });
+    configure(fake);
+    const handlers = { onDelta: vi.fn(), onError: vi.fn() };
+    subscribeGeneration('A', 'g1', handlers);
+    await vi.waitFor(() => expect(fake.sdk.onSnapshot).toHaveBeenCalledTimes(7));
+
+    const record = remoteRecord();
+    const doc = snapshot(record, encodeDocId(item.key));
+    const changed = () => [{ type: 'added', doc }];
+    eventNext({
+      metadata: { fromCache: true, hasPendingWrites: false },
+      docs: [doc],
+      docChanges: changed,
+    });
+    eventNext({
+      metadata: { fromCache: false, hasPendingWrites: true },
+      docs: [doc],
+      docChanges: changed,
+    });
+    expect(handlers.onDelta).not.toHaveBeenCalled();
+    expect(handlers.onError).not.toHaveBeenCalled();
+
+    eventNext({ metadata: stableMetadata, docs: [doc], docChanges: changed });
+    expect(handlers.onDelta).toHaveBeenCalledWith(expect.objectContaining({
+      entityId: 'e1', baseline: true,
+    }));
+    expect(handlers.onError).not.toHaveBeenCalled();
+  });
+
+  it('rejects a listener document from another generation', async () => {
+    let eventNext;
+    const fake = sdkWith({ documents: new Map([
+      ['users/A/v1SyncControl/current', control],
+      ['users/A/v1SyncNamespaces/g1', manifest],
+    ]) });
+    fake.sdk.onSnapshot = vi.fn((collectionRef, next) => {
+      if (collectionRef.path.endsWith('/eventos')) eventNext = next;
+      return () => {};
+    });
+    configure(fake);
+    const handlers = { onDelta: vi.fn(), onError: vi.fn() };
+    subscribeGeneration('A', 'g1', handlers);
+    await vi.waitFor(() => expect(fake.sdk.onSnapshot).toHaveBeenCalledTimes(7));
+
+    const doc = snapshot(remoteRecord({ generationId: 'g2' }), encodeDocId(item.key));
+    eventNext({ metadata: stableMetadata, docs: [], docChanges: () => [{ type: 'added', doc }] });
+    expect(handlers.onError).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'V1_REMOTE_INVALID_RECORD',
+    }));
+    expect(handlers.onDelta).not.toHaveBeenCalled();
+  });
+
+  it('deduplicates listener records by opDigest as well as opId and revision', async () => {
+    let eventNext;
+    const fake = sdkWith({ documents: new Map([
+      ['users/A/v1SyncControl/current', control],
+      ['users/A/v1SyncNamespaces/g1', manifest],
+    ]) });
+    fake.sdk.onSnapshot = vi.fn((collectionRef, next) => {
+      if (collectionRef.path.endsWith('/eventos')) eventNext = next;
+      return () => {};
+    });
+    configure(fake);
+    const handlers = { onDelta: vi.fn(), onError: vi.fn() };
+    subscribeGeneration('A', 'g1', handlers);
+    await vi.waitFor(() => expect(fake.sdk.onSnapshot).toHaveBeenCalledTimes(7));
+
+    const firstRecord = remoteRecord();
+    const firstDoc = snapshot(firstRecord, encodeDocId(item.key));
+    eventNext({
+      metadata: stableMetadata,
+      docs: [firstDoc],
+      docChanges: () => [{ type: 'added', doc: firstDoc }],
+    });
+    const nextItem = { ...item, data: { id: 'e1', titulo: 'Outro' } };
+    const nextText = encodeRecordData(nextItem);
+    const nextDoc = snapshot(remoteRecord({ data: nextText, opDigest: digest(nextText) }),
+      encodeDocId(item.key));
+    eventNext({
+      metadata: stableMetadata,
+      docs: [nextDoc],
+      docChanges: () => [{ type: 'modified', doc: nextDoc }],
+    });
+
+    expect(handlers.onDelta).toHaveBeenCalledTimes(2);
+    expect(handlers.onDelta).toHaveBeenLastCalledWith(expect.objectContaining({
+      entityId: 'e1', baseline: false, changeType: 'modified',
+      record: expect.objectContaining({ opDigest: digest(nextText) }),
+    }));
   });
 
   it('reports listener errors and fails closed on an invalid record', async () => {
@@ -236,7 +380,7 @@ describe('V1 remote injected contract', () => {
     subscribeGeneration('A', 'g1', handlers);
     await vi.waitFor(() => expect(fake.sdk.onSnapshot).toHaveBeenCalledTimes(7));
     eventNext({
-      metadata: { fromCache: false },
+      metadata: stableMetadata,
       docs: [],
       docChanges: () => [{ type: 'added', doc: snapshot({ generationId: 'wrong' }, 'bad') }],
     });
@@ -279,6 +423,8 @@ describe('V1 remote injected contract', () => {
     await expect(fetchGenerationRecords('A', 'g1')).resolves.toMatchObject({
       generationId: 'g1', records: [], manifest,
     });
+    expect(fake.sdk.getDocsFromServer).toHaveBeenCalledTimes(7);
+    expect(fake.sdk.getDocs).not.toHaveBeenCalled();
 
     const mismatched = sdkWith({ documents: new Map([
       ['users/A/v1SyncControl/current', control],
@@ -289,5 +435,35 @@ describe('V1 remote injected contract', () => {
     await expect(fetchGenerationRecords('A', 'g1')).rejects.toMatchObject({
       code: 'V1_REMOTE_MANIFEST_MISMATCH',
     });
+  });
+
+  it('rejects a fetched document from another generation', async () => {
+    const foreign = remoteRecord({ generationId: 'g2' });
+    const eventPath = `users/A/v1SyncNamespaces/g1/eventos/${encodeDocId(item.key)}`;
+    const fake = sdkWith({ documents: new Map([
+      ['users/A/v1SyncControl/current', control],
+      ['users/A/v1SyncNamespaces/g1', { ...manifest,
+        counts: { total: 1, byCollection: { ...manifest.counts.byCollection, eventos: 1 } } }],
+      [eventPath, foreign],
+    ]) });
+    configure(fake);
+    await expect(fetchGenerationRecords('A', 'g1')).rejects.toMatchObject({
+      code: 'V1_REMOTE_INVALID_RECORD',
+    });
+  });
+
+  it('rejects a cached control before reading any baseline collection', async () => {
+    const fake = sdkWith({
+      documents: new Map([
+        ['users/A/v1SyncControl/current', control],
+        ['users/A/v1SyncNamespaces/g1', manifest],
+      ]),
+      cachedPaths: new Set(['users/A/v1SyncControl/current']),
+    });
+    configure(fake);
+    await expect(fetchGenerationRecords('A', 'g1')).rejects.toMatchObject({
+      code: 'V1_REMOTE_CACHE_REJECTED',
+    });
+    expect(fake.sdk.getDocsFromServer).not.toHaveBeenCalled();
   });
 });

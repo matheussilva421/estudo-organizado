@@ -38,6 +38,7 @@ const REQUIRED_SDK = [
   'doc',
   'getDoc',
   'getDocs',
+  'getDocsFromServer',
   'onSnapshot',
   'runTransaction',
   'serverTimestamp',
@@ -318,12 +319,18 @@ function generationFromSnapshot(controlSnapshot, manifestSnapshot) {
 
 async function readCurrentGeneration(config, uid) {
   const controlSnapshot = await config.sdk.getDoc(controlRef(config, uid));
+  if (controlSnapshot.metadata?.fromCache !== false) {
+    fail('V1_REMOTE_CACHE_REJECTED', 'O controle da geração não veio do servidor.');
+  }
   if (!controlSnapshot.exists()) return null;
   const control = controlSnapshot.data();
   validateControl(control);
   const manifestSnapshot = await config.sdk.getDoc(
     manifestRef(config, uid, control.generationId),
   );
+  if (manifestSnapshot.metadata?.fromCache !== false) {
+    fail('V1_REMOTE_CACHE_REJECTED', 'O manifesto da geração não veio do servidor.');
+  }
   if (!manifestSnapshot.exists()) {
     fail('V1_REMOTE_GENERATION_INVALID', 'O manifesto da geração atual não existe.');
   }
@@ -376,6 +383,12 @@ export async function applyRemoteOperation(operation) {
   try {
     outcome = await config.sdk.runTransaction(config.db, async transaction => {
       requireAuth(config, normalized.uid);
+      await readCurrentGenerationInTransaction(
+        transaction,
+        config,
+        normalized.uid,
+        normalized.generationId,
+      );
       const receiptSnapshot = await transaction.get(
         operationRef(config, normalized.uid, normalized),
       );
@@ -384,12 +397,6 @@ export async function applyRemoteOperation(operation) {
         return { type: 'replay', receipt };
       }
 
-      await readCurrentGenerationInTransaction(
-        transaction,
-        config,
-        normalized.uid,
-        normalized.generationId,
-      );
       const entitySnapshot = await transaction.get(
         entityRef(config, normalized.uid, normalized),
       );
@@ -503,14 +510,15 @@ export async function applyRemoteOperation(operation) {
   };
 }
 
-function recordsFromSnapshot(snapshot, collectionName) {
+function recordsFromSnapshot(snapshot, collectionName, generationId) {
   const records = [];
   for (const documentSnapshot of snapshot.docs) {
     const record = documentSnapshot.data();
     try {
       validateRecord(record);
       const expectedDocId = encodeDocId(recordKey(record.entityType, record.entityId));
-      if (expectedDocId !== documentSnapshot.id || record.collection !== collectionName) {
+      if (expectedDocId !== documentSnapshot.id || record.collection !== collectionName ||
+        record.generationId !== generationId) {
         throw new TypeError('document identity');
       }
     } catch (error) {
@@ -552,7 +560,7 @@ export async function fetchGenerationRecords(uid, generationId) {
 
   const snapshots = await Promise.all(COLLECTIONS.map(async collectionName => {
     try {
-      return [collectionName, await config.sdk.getDocs(config.sdk.collection(
+      return [collectionName, await config.sdk.getDocsFromServer(config.sdk.collection(
         config.db,
         'users',
         uid,
@@ -569,12 +577,15 @@ export async function fetchGenerationRecords(uid, generationId) {
   const records = [];
   const keys = new Set();
   for (const [collectionName, snapshot] of snapshots) {
+    if (snapshot.metadata?.fromCache !== false) {
+      fail('V1_REMOTE_CACHE_REJECTED', 'A baseline remota não veio do servidor.');
+    }
     const expected = generation.manifest.counts.byCollection[collectionName];
     if (snapshot.docs.length !== expected) {
       fail('V1_REMOTE_MANIFEST_MISMATCH', 'A contagem remota não corresponde ao manifesto.');
     }
     total += snapshot.docs.length;
-    for (const item of recordsFromSnapshot(snapshot, collectionName)) {
+    for (const item of recordsFromSnapshot(snapshot, collectionName, generationId)) {
       if (keys.has(item.key)) {
         fail('V1_REMOTE_INVALID_RECORD', 'Chave lógica duplicada na baseline.');
       }
@@ -665,6 +676,8 @@ function watchCollection(entry, collectionName) {
     snapshot => {
       if (entry.stopped) return;
       try {
+        if (snapshot.metadata?.fromCache !== false ||
+          snapshot.metadata?.hasPendingWrites !== false) return;
         const baseline = !entry.initialized.has(collectionName);
         if (baseline) {
           entry.initialized.add(collectionName);
@@ -689,7 +702,8 @@ function watchCollection(entry, collectionName) {
           try {
             record = change.doc.data();
             validateRecord(record);
-            if (record.collection !== collectionName ||
+            if (record.generationId !== entry.generationId ||
+              record.collection !== collectionName ||
               encodeDocId(recordKey(record.entityType, record.entityId)) !== docId) {
               throw new TypeError('changed document identity');
             }
@@ -702,7 +716,8 @@ function watchCollection(entry, collectionName) {
           }
           const previous = cache.get(docId);
           if (!baseline && previous?.opId === record.opId &&
-            previous?.revision === record.revision) {
+            previous?.revision === record.revision &&
+            previous?.opDigest === record.opDigest) {
             continue;
           }
           cache.set(docId, record);

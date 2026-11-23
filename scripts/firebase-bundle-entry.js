@@ -13,6 +13,7 @@ export {
   doc,
   getDoc,
   getDocs,
+  getDocsFromServer,
   initializeFirestore,
   connectFirestoreEmulator,
   onSnapshot,

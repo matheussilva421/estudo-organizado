@@ -15,6 +15,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getDocsFromServer,
   onSnapshot,
   runTransaction,
   serverTimestamp,
@@ -128,6 +129,10 @@ function makeSdk(counters = { reads: 0, writes: 0 }) {
     getDocs: async ref => {
       counters.reads += 1;
       return getDocs(ref);
+    },
+    getDocsFromServer: async ref => {
+      counters.reads += 1;
+      return getDocsFromServer(ref);
     },
     onSnapshot,
     runTransaction: async (db, callback) => runTransaction(db, transaction => callback({
@@ -297,6 +302,17 @@ describe('V1 remote Firestore transactions', () => {
     expect(replay.receipt.updatedAt.toMillis()).toBe(first.receipt.updatedAt.toMillis());
   });
 
+  it('blocks a g1 replay after the active pointer moves to g2', async () => {
+    wire(ownerDb, { reads: 0, writes: 0 });
+    await applyRemoteOperation(operation());
+    await activate({ generationId: 'g2' });
+
+    await expect(applyRemoteOperation(operation())).rejects.toMatchObject({
+      code: 'V1_REMOTE_GENERATION_INVALID',
+    });
+    expect(await operationCount()).toBe(1);
+  });
+
   it('rejects opId reuse with different content', async () => {
     wire(ownerDb, { reads: 0, writes: 0 });
     await applyRemoteOperation(operation());
@@ -439,6 +455,21 @@ describe('V1 remote baseline and listeners', () => {
     });
   });
 
+  it('rejects a fetched record from another generation', async () => {
+    const op = operation();
+    await asAdmin(async db => {
+      const batch = writeBatch(db);
+      batch.set(entityRef(db, op), { ...entityRecord(op), generationId: 'g2' });
+      await batch.commit();
+    });
+    await activate({ counts: { ...EMPTY_COUNTS, eventos: 1 } });
+    wire(ownerDb, { reads: 0, writes: 0 });
+
+    await expect(fetchGenerationRecords(UID, GENERATION)).rejects.toMatchObject({
+      code: 'V1_REMOTE_INVALID_RECORD',
+    });
+  });
+
   it('delivers a validated baseline, then deltas, and stops completely on unsubscribe', async () => {
     await pair(operation({ opId: 'baseline' }));
     await activate({ counts: { ...EMPTY_COUNTS, eventos: 1 } });
@@ -464,5 +495,53 @@ describe('V1 remote baseline and listeners', () => {
       collection: 'eventos', baseline: true, changeType: 'added',
     });
     expect(errors).toEqual([]);
+  });
+
+  it('deduplicates only when opId, revision and opDigest all match', async () => {
+    await pair(operation());
+    await activate({ counts: { ...EMPTY_COUNTS, eventos: 1 } });
+    wire(ownerDb, { reads: 0, writes: 0 });
+    const deltas = [];
+    const errors = [];
+    const unsubscribe = subscribeGeneration(UID, GENERATION, {
+      onDelta: delta => deltas.push(delta),
+      onError: error => errors.push(error),
+    });
+    await waitFor(() => deltas.some(delta => delta.baseline && delta.entityId === 'e1'));
+
+    const changed = operation({ item: eventItem('e1', 'Outro') });
+    await asAdmin(async db => {
+      const batch = writeBatch(db);
+      batch.set(entityRef(db, changed), entityRecord(changed));
+      await batch.commit();
+    });
+    await waitFor(() => deltas.some(delta => !delta.baseline &&
+      delta.entityId === 'e1' && JSON.parse(delta.record.data).data.titulo === 'Outro'));
+    unsubscribe();
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects a listener record from another generation', async () => {
+    await pair(operation());
+    await activate({ counts: { ...EMPTY_COUNTS, eventos: 1 } });
+    wire(ownerDb, { reads: 0, writes: 0 });
+    const deltas = [];
+    const errors = [];
+    const unsubscribe = subscribeGeneration(UID, GENERATION, {
+      onDelta: delta => deltas.push(delta),
+      onError: error => errors.push(error),
+    });
+    await waitFor(() => deltas.some(delta => delta.baseline && delta.entityId === 'e1'));
+
+    const foreign = operation({ item: eventItem('e1', 'Outra geração') });
+    await asAdmin(async db => {
+      const batch = writeBatch(db);
+      batch.set(entityRef(db, foreign), { ...entityRecord(foreign), generationId: 'g2' });
+      await batch.commit();
+    });
+    await waitFor(() => errors.length > 0);
+    unsubscribe();
+    expect(errors[0]).toMatchObject({ code: 'V1_REMOTE_INVALID_RECORD' });
+    expect(deltas).toHaveLength(1);
   });
 });
