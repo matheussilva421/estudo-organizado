@@ -126,13 +126,14 @@ async function importModules() {
   return { local, bootstrap };
 }
 
-function fakeRemote(current, records = current.records) {
+function fakeRemote(current, records = current.records, evolved = false) {
   return {
     getCurrentGeneration: vi.fn(async () => current),
     fetchGenerationRecords: vi.fn(async () => ({
       generationId: current.generationId,
       manifest: current.manifest,
       records,
+      evolved,
     })),
   };
 }
@@ -362,6 +363,38 @@ describe('V1 next first access bootstrap', () => {
     });
   });
 
+  it('installs records that evolved after the immutable baseline manifest', async () => {
+    createDatabase();
+    const { bootstrap } = await importModules();
+    const original = academicState('Baseline imutável');
+    const evolved = { ...original, planejamentoArquivado: { arquivadoEm: '2026-11-23' } };
+    const manifest = remoteBaseline(original).manifest;
+    const records = Object.values(convertBackupV12(evolved).records).flat();
+
+    const result = await bootstrap.bootstrapV1Generation({
+      uid: 'uid_evolved',
+      online: true,
+      remoteApi: fakeRemote({ generationId: 'gen_a', manifest, records }, records, true),
+    });
+
+    expect(result).toMatchObject({ status: 'ready', source: 'network' });
+    expect(result.state.planejamentoArquivado).toEqual({ arquivadoEm: '2026-11-23' });
+  });
+
+  it('keeps the strict manifest check for migration verification', async () => {
+    createDatabase();
+    const { local } = await importModules();
+    const original = academicState('Baseline estrita');
+    const evolved = { ...original, planejamentoArquivado: { arquivadoEm: '2026-11-23' } };
+
+    await expect(local.installRemoteBaseline({
+      uid: 'uid_strict',
+      generationId: 'gen_a',
+      state: evolved,
+      manifest: remoteBaseline(original).manifest,
+    })).rejects.toThrow(/baseline digest or counts/);
+  });
+
   it('keeps legacy data and exposes no pointer after a partial baseline write fails', async () => {
     const idb = createDatabase();
     idb.setRecord('app_state', 'main_state', { eventos: [{ id: 'legacy-safe' }] });
@@ -381,13 +414,15 @@ describe('V1 next first access bootstrap', () => {
   });
 
   it.each([
-    ['business digest', { businessDigest: 'b'.repeat(64) }],
-    ['counts', { counts: { total: 99, byCollection: {
+    // Strict digests apply while the generation is still the unmodified
+    // migration baseline. Active generations legitimately evolve.
+    ['business digest', { state: 'verified', businessDigest: 'b'.repeat(64) }],
+    ['counts', { state: 'verified', counts: { total: 99, byCollection: {
       editais: 99, disciplinas: 0, eventos: 0, habitos: 0, retaFinalBlocos: 0, meta: 0,
       tombstones: 0,
     } } }],
     ['state', { state: 'staging' }],
-  ])('rejects a baseline with invalid %s', async (_name, overrides) => {
+  ])('rejects an immutable baseline with invalid %s', async (_name, overrides) => {
     createDatabase();
     const { local, bootstrap } = await importModules();
     const current = remoteBaseline(academicState(), 'gen_invalid', overrides);
@@ -524,6 +559,73 @@ describe('V1 next first access bootstrap', () => {
     expect((await local.readLocalGeneration('uid_delta', 'gen_a')).state.eventos[0].titulo)
       .toBe('Remoto');
     expect(await local.getPendingOperations('uid_delta', 'gen_a')).toEqual([]);
+  });
+
+  it('repairs a shared cache overwritten by another tab after the ACK', async () => {
+    createDatabase();
+    const { local, bootstrap } = await importModules();
+    const initial = academicState('Base');
+    await bootstrap.bootstrapV1Generation({
+      uid: 'uid_repair',
+      online: true,
+      remoteApi: fakeRemote(remoteBaseline(initial)),
+    });
+    const record = remoteRecord({ state: academicState('Confirmação remota') });
+    const delta = { collection: 'eventos', entityId: 'ev_1', record, changeType: 'modified' };
+    await bootstrap.reconcileRemoteDelta(delta);
+
+    // Another tab commits a whole stale snapshot after the ACK was durable.
+    await local.cacheLocalGenerationState({
+      uid: 'uid_repair',
+      generationId: 'gen_a',
+      state: initial,
+    });
+    expect((await local.readLocalGeneration('uid_repair', 'gen_a')).state.eventos[0].titulo)
+      .toBe('Base');
+
+    await bootstrap.reconcileRemoteDelta(delta);
+
+    expect((await local.readLocalGeneration('uid_repair', 'gen_a')).state.eventos[0].titulo)
+      .toBe('Confirmação remota');
+    expect(await local.getPendingOperations('uid_repair', 'gen_a')).toEqual([]);
+  });
+
+  it('merges this tab edit over another tab acked record in the durable cache', async () => {
+    createDatabase();
+    const { local, bootstrap } = await importModules();
+    const baselineState = academicState('Base da aba');
+    baselineState.eventos.push(createEvento({ id: 'ev_2', titulo: 'Outro evento' }));
+    await bootstrap.bootstrapV1Generation({
+      uid: 'uid_merge',
+      online: true,
+      remoteApi: fakeRemote(remoteBaseline(baselineState)),
+    });
+
+    const otherTab = academicState('Confirmado pela outra aba');
+    otherTab.eventos.push(createEvento({ id: 'ev_2', titulo: 'Outro evento' }));
+    await bootstrap.reconcileRemoteDelta({
+      collection: 'eventos',
+      entityId: 'ev_1',
+      record: remoteRecord({ state: otherTab, opId: 'op_other_tab' }),
+      changeType: 'modified',
+    });
+
+    const nextState = structuredClone(baselineState);
+    nextState.eventos[1].titulo = 'Editado nesta aba';
+    await local.commitLocalChange({
+      uid: 'uid_merge',
+      generationId: 'gen_a',
+      changeBaseState: baselineState,
+      nextState,
+    });
+
+    const cached = await local.readLocalGeneration('uid_merge', 'gen_a');
+    expect(cached.state.eventos.map(event => event.titulo)).toEqual([
+      'Confirmado pela outra aba',
+      'Editado nesta aba',
+    ]);
+    const pending = await local.getPendingOperations('uid_merge', 'gen_a');
+    expect(pending.map(operation => operation.entityId)).toEqual(['ev_2']);
   });
 
   it('preserves a pending local entity when the remote delta arrives', async () => {

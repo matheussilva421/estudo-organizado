@@ -93,13 +93,15 @@ function readPointerRecord(record, uid) {
   return clone(record);
 }
 
-function checkedBaselineSummary(state, manifest) {
+function checkedBaselineSummary(state, manifest,
+  { verifyManifestBaseline = true } = {}) {
   validateManifest(manifest);
   if (!['verified', 'active'].includes(manifest.state)) failClosed('baseline state');
   const sanitized = sanitizeState(state);
   const converted = convertBackupV12(sanitized.state);
-  if (canonical(converted.manifestDraft.counts) !== canonical(manifest.counts) ||
-    converted.manifestDraft.businessDigest !== manifest.businessDigest) {
+  if (verifyManifestBaseline &&
+    (canonical(converted.manifestDraft.counts) !== canonical(manifest.counts) ||
+    converted.manifestDraft.businessDigest !== manifest.businessDigest)) {
     failClosed('baseline digest or counts');
   }
   return sanitized.state;
@@ -375,6 +377,7 @@ export function prepareLocalCommit({
   uid,
   generationId,
   previousState = null,
+  changeBaseState = null,
   nextState,
   operations = [],
   pendingOperations = [],
@@ -388,6 +391,7 @@ export function prepareLocalCommit({
   if (!nextState || typeof nextState !== 'object') failClosed('state');
   const key = scopeKey(uid, generationId);
   const previousRecords = previousState ? recordMap(previousState).records : new Map();
+  const baseRecords = changeBaseState ? recordMap(changeBaseState).records : previousRecords;
   const sanitized = sanitizeState(nextState);
   const nextRecords = sanitized.records;
   const allPending = Array.isArray(pendingOperations) ? pendingOperations : [];
@@ -438,20 +442,20 @@ export function prepareLocalCommit({
   }
 
   const changes = new Map();
-  for (const [entityKey, record] of previousRecords) {
+  for (const [entityKey, record] of baseRecords) {
     if (!nextRecords.has(entityKey) && !tombstonedKeys.has(entityKey)) {
       changes.set(entityKey, { previous: record, next: null, action: 'delete' });
     }
   }
   for (const [entityKey, record] of nextRecords) {
-    const previous = previousRecords.get(entityKey) || null;
+    const previous = baseRecords.get(entityKey) || null;
     const before = previous ? encodeRecordData(previous) : null;
     const after = encodeRecordData(record);
     if (before !== after || previous?.path.join('/') !== record.path.join('/')) {
       changes.set(entityKey, { previous, next: record, action: 'upsert' });
     }
   }
-  for (const [entityKey, override] of normalizedOverrides(operations, previousRecords, nextRecords)) {
+  for (const [entityKey, override] of normalizedOverrides(operations, baseRecords, nextRecords)) {
     changes.set(entityKey, override);
   }
 
@@ -470,6 +474,7 @@ export function prepareLocalCommit({
   for (const [entityKey, change] of ordered) {
     const template = change.next || change.previous;
     const meta = metaByKey.get(entityKey);
+    const durable = previousRecords.get(entityKey) || null;
     const open = openByEntity.get(entityKey);
     if (open) {
       conflicts.push({ ...open, localVersion: recordVersion(open.local, change.next,
@@ -518,7 +523,7 @@ export function prepareLocalCommit({
           entityId: template.entityId,
           collection: entityCollectionForType(template.entityType),
           path: clone(template.path),
-          baseRecord: tail ? operationItem(tail) : clone(meta?.lastRecord ?? change.previous ?? null),
+          baseRecord: tail ? operationItem(tail) : clone(meta?.lastRecord ?? durable ?? change.previous ?? null),
           baseRevision,
           revision: baseRevision + 1,
           action: 'delete',
@@ -544,7 +549,7 @@ export function prepareLocalCommit({
           entityId: change.next.entityId,
           collection: entityCollectionForType(change.next.entityType),
           path: clone(change.next.path),
-          baseRecord: tail ? operationItem(tail) : clone(meta?.lastRecord ?? change.previous ?? null),
+          baseRecord: tail ? operationItem(tail) : clone(meta?.lastRecord ?? durable ?? change.previous ?? null),
           baseRevision,
           revision: baseRevision + 1,
           action: 'upsert',
@@ -617,12 +622,32 @@ export function prepareLocalCommit({
     }, { now }));
   }
 
+  let committedState = sanitized.state;
+  if (changeBaseState) {
+    // Apply only this tab's intended records over the durable snapshot so a
+    // concurrent tab edit cannot be reverted by a stale whole-state save.
+    const merged = new Map(previousRecords);
+    for (const [entityKey, change] of changes) {
+      if (change.action === 'delete') merged.delete(entityKey);
+      else merged.set(entityKey, change.next);
+    }
+    for (const entityKey of tombstonedKeys) merged.delete(entityKey);
+    const grouped = {
+      editais: [], disciplinas: [], eventos: [], habitos: [],
+      retaFinalBlocos: [], meta: [], tombstones: [],
+    };
+    for (const record of merged.values()) {
+      grouped[entityCollectionForType(record.entityType)].push(record);
+    }
+    committedState = reconstituteBackupV12(grouped);
+  }
+
   return {
     stateRecord: {
       key,
       uid,
       generationId,
-      state: sanitized.state,
+      state: committedState,
       verified: verified === true,
       updatedAt: now,
     },
@@ -872,10 +897,13 @@ export async function installRemoteBaseline({
   state,
   manifest,
   now = new Date().toISOString(),
+  verifyManifestBaseline = true,
 }) {
   validateScope(uid, generationId);
   if (manifest?.generationId !== generationId) failClosed('baseline generation');
-  const verifiedState = checkedBaselineSummary(state, manifest);
+  const verifiedState = checkedBaselineSummary(state, manifest, {
+    verifyManifestBaseline,
+  });
   const stateKey = scopeKey(uid, generationId);
   const versionKey = pointerKey(uid);
 
@@ -902,13 +930,7 @@ export async function installRemoteBaseline({
             existing.generationId !== generationId || existing.verified !== true)) {
             failClosed('existing baseline');
           }
-          if (existing) {
-            const current = convertBackupV12(existing.state);
-            if (canonical(current.manifestDraft.counts) !== canonical(manifest.counts) ||
-              current.manifestDraft.businessDigest !== manifest.businessDigest) {
-              failClosed('existing baseline differs from manifest');
-            }
-          } else {
+          if (!existing) {
             stateStore.put({
               key: stateKey,
               uid,
@@ -1086,27 +1108,58 @@ export async function applyRemoteRecord({
           const ownTombstone = record.deleted && pending.some(
             (operation) => operation.opId === record.opId,
           );
+          const converted = convertBackupV12(stateRecord.state);
+          const previous = converted.records[record.collection]
+            .find((candidate) => candidate.key === entityKey) || null;
+          let payload = null;
+          if (!record.deleted) {
+            try {
+              payload = JSON.parse(record.data);
+            } catch {
+              failClosed('remote payload');
+            }
+          }
+          const stateMatches = record.deleted
+            ? previous === null
+            : previous !== null && canonical(previous) === canonical(payload);
           if (meta?.deleted === true && record.deleted !== true) {
             control.setResult({ applied: false, reason: 'tombstoned' });
             return;
           }
           if (!record.deleted && (targetPending.length || targetConflicts.length)) {
-            control.setResult({ applied: false, reason: 'pending' });
-            return;
+            const ownEchoOnly = targetConflicts.length === 0 &&
+              targetPending.length > 0 &&
+              targetPending.every((operation) => operation.opId === record.opId);
+            if (!ownEchoOnly || stateMatches) {
+              control.setResult({ applied: false, reason: 'pending' });
+              return;
+            }
           }
           if (!record.deleted && meta && (meta.revision > record.revision ||
             (meta.revision === record.revision && meta.lastAckedOpId === record.opId))) {
-            control.setResult({ applied: false, reason: 'already-current' });
+            if (meta.revision !== record.revision || meta.lastAckedOpId !== record.opId ||
+              stateMatches) {
+              control.setResult({ applied: false, reason: 'already-current' });
+              return;
+            }
+            // A whole-state commit from another tab may have overwritten the
+            // shared cache after this revision was acknowledged. Repair it
+            // from the exact acknowledged record instead of trusting metadata.
+            const repaired = stateWithRecord(stateRecord.state, previous, payload);
+            stateStore.put({
+              ...stateRecord,
+              state: repaired,
+              verified: true,
+              verifiedAt: stateRecord.verifiedAt || now,
+              updatedAt: now,
+            });
+            control.setResult({ applied: true, repaired: true });
             return;
           }
           if (!record.deleted && meta && meta.revision === record.revision &&
             meta.lastAckedOpId !== record.opId) {
             failClosed('conflicting remote revision');
           }
-
-          const converted = convertBackupV12(stateRecord.state);
-          const previous = converted.records[record.collection]
-            .find((candidate) => candidate.key === entityKey) || null;
 
           if (record.deleted) {
             if (meta?.lastRemoteRecord?.revision > record.revision) {
@@ -1282,6 +1335,7 @@ export async function commitLocalChange({
   uid,
   generationId,
   nextState,
+  changeBaseState = null,
   operations = [],
 }) {
   validateScope(uid, generationId);
@@ -1327,6 +1381,7 @@ export async function commitLocalChange({
             uid,
             generationId,
             previousState: reads.state?.state || null,
+            changeBaseState,
             nextState,
             operations,
             pendingOperations: reads.operations || [],
@@ -1384,6 +1439,34 @@ export async function setLocalGenerationVerified(uid, generationId, verified = t
         verified,
         verifiedAt: verified ? new Date().toISOString() : null,
       });
+    };
+  });
+}
+
+/** Refresh the durable generation snapshot without inventing an outbox change. */
+export async function cacheLocalGenerationState({
+  uid,
+  generationId,
+  state: nextState,
+  verified = true,
+  now = new Date().toISOString(),
+}) {
+  const key = scopeKey(uid, generationId);
+  if (!nextState || typeof nextState !== 'object') failClosed('state');
+  const sanitized = sanitizeState(nextState).state;
+  await runTransaction([V1_LOCAL_STATE_STORE], 'readwrite', (transaction, control) => {
+    const store = transaction.objectStore(V1_LOCAL_STATE_STORE);
+    const request = store.get(key);
+    request.onerror = () => control.abort(request.error);
+    request.onsuccess = () => {
+      const record = request.result;
+      if (!record || record.key !== key || record.uid !== uid ||
+        record.generationId !== generationId) {
+        control.abort(new Error('V1 local generation not found'));
+        return;
+      }
+      store.put({ ...record, state: sanitized, verified,
+        updatedAt: now, verifiedAt: verified ? record.verifiedAt || now : null });
     };
   });
 }

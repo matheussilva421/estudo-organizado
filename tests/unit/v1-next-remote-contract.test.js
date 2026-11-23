@@ -461,7 +461,7 @@ describe('V1 remote injected contract', () => {
     await expect(fetchGenerationRecords('A', 'g1')).resolves.toMatchObject({
       generationId: 'g1', records: [], manifest,
     });
-    expect(fake.sdk.getDocsFromServer).toHaveBeenCalledTimes(7);
+    expect(fake.sdk.getDocsFromServer).toHaveBeenCalledTimes(8);
     expect(fake.sdk.getDocs).not.toHaveBeenCalled();
 
     const mismatched = sdkWith({ documents: new Map([

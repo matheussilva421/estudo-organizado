@@ -174,9 +174,10 @@ async function refreshFromCachedState(entry) {
   try {
     const cached = await readLocalGeneration(entry.uid, entry.generationId);
     if (!isActive(entry) || !cached?.state) return;
-    const { setState } = await import('../../store.js?v=8.37');
+    const { noteV1ChangeBaseline, setState, state } = await import('../../store.js?v=8.37');
     if (!isActive(entry)) return;
     setState(cached.state);
+    noteV1ChangeBaseline(state);
     if (typeof document !== 'undefined') {
       document.dispatchEvent(new CustomEvent('app:renderCurrentView'));
     }

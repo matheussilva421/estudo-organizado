@@ -34,7 +34,7 @@ import {
 
 // ── Other module imports for orchestrator functions ──────────────────
 import { renderCurrentView } from './components.js?v=8.37';
-import { ensureDB, initDB, saveStateToDB, saveTimeout, scheduleSave, setState, state } from './store.js?v=8.37';
+import { cacheLocalGenerationState, ensureDB, initDB, noteV1ChangeBaseline, saveStateToDB, saveTimeout, scheduleSave, setState, state } from './store.js?v=8.37';
 import { initGoogleAPIs, updateDriveUI } from './drive-sync.js?v=8.37';
 import { esc } from './utils.js?v=8.37';
 import { initNotifications } from './notifications.js?v=8.37';
@@ -155,8 +155,16 @@ function gateV1FirstAccess(result) {
   setV1GateLocked(true);
 }
 
-function releaseV1FirstAccess() {
+async function releaseV1FirstAccess(result) {
   if (v1GenerationBlocked) return;
+  if (result?.uid && result?.generationId) {
+    await cacheLocalGenerationState({
+      uid: result.uid,
+      generationId: result.generationId,
+      state,
+      verified: true,
+    });
+  }
   setV1GateLocked(false);
 }
 
@@ -308,8 +316,12 @@ export function init(options = {}) {
         },
       }),
       initDB: () => initDB({ loadState: false }),
-      applyState: nextState => { if (version === session) setState(nextState); },
-      release: () => { if (version === session) releaseV1FirstAccess(); },
+      applyState: nextState => {
+        if (version !== session) return;
+        setState(nextState);
+        noteV1ChangeBaseline(state);
+      },
+      release: result => { if (version === session) return releaseV1FirstAccess(result); },
     }).then(result => {
       if (result?.status !== 'ready' || version !== session || v1GenerationBlocked) return;
       return completeInitialization({

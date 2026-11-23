@@ -63,7 +63,8 @@ function onlineByDefault() {
 }
 
 /** Validate one generated baseline and reconstruct the academic T1 state. */
-export function validateV1Baseline({ generationId, manifest, records } = {}) {
+export function validateV1Baseline({ generationId, manifest, records } = {},
+  { verifyManifestBaseline = true } = {}) {
   if (typeof generationId !== 'string' || !TOKEN.test(generationId)) {
     throw new TypeError('Invalid V1 baseline generation');
   }
@@ -87,8 +88,9 @@ export function validateV1Baseline({ generationId, manifest, records } = {}) {
 
   const state = reconstituteBackupV12(grouped);
   const checked = convertBackupV12(state);
-  if (canonical(checked.manifestDraft.counts) !== canonical(manifest.counts) ||
-    checked.manifestDraft.businessDigest !== manifest.businessDigest) {
+  if (verifyManifestBaseline &&
+    (canonical(checked.manifestDraft.counts) !== canonical(manifest.counts) ||
+    checked.manifestDraft.businessDigest !== manifest.businessDigest)) {
     throw new TypeError('Invalid V1 baseline digest or counts');
   }
   return {
@@ -170,13 +172,19 @@ export async function bootstrapV1Generation({
         code: 'V1_REMOTE_GENERATION_INVALID',
       });
     }
-    const verified = validateV1Baseline(fetched);
+    // The operation receipts prove whether this generation still equals the
+    // immutable migration baseline. Baseline counts/digests are enforced until
+    // the first acknowledged mutation; afterwards each live record is checked
+    // by validateRecord before it reaches local storage.
+    const verifyManifestBaseline = fetched.evolved !== true;
+    const verified = validateV1Baseline(fetched, { verifyManifestBaseline });
     await local.installRemoteBaseline({
       uid,
       generationId: current.generationId,
       state: verified.state,
       manifest: current.manifest,
       now,
+      verifyManifestBaseline,
     });
     const installed = await local.readLocalGeneration(uid, current.generationId);
     if (installed?.verified !== true) {
@@ -478,7 +486,7 @@ export async function runV1FirstAccessLifecycle({
     }
     await initDB?.();
     applyState?.(result.state, result);
-    release?.(result);
+    await release?.(result);
     return result;
   } catch (error) {
     const result = { enabled: true, status: 'blocked', reason: safeReason(error) };

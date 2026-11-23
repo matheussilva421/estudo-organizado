@@ -614,6 +614,27 @@ export async function fetchGenerationRecords(uid, generationId) {
       throw sdkFailure(error, 'V1_REMOTE_READ_FAILED');
     }
   }));
+  let operationsSnapshot;
+  try {
+    operationsSnapshot = await config.sdk.getDocsFromServer(config.sdk.collection(
+      config.db,
+      'users',
+      uid,
+      'v1SyncNamespaces',
+      generationId,
+      'operations',
+    ));
+  } catch (error) {
+    throw sdkFailure(error, 'V1_REMOTE_READ_FAILED');
+  }
+  if (operationsSnapshot.metadata?.fromCache !== false) {
+    fail('V1_REMOTE_CACHE_REJECTED', 'O histórico remoto não veio do servidor.');
+  }
+  // Counts/digest are the immutable migration commitment. After the owner's
+  // first acknowledged operation, the live generation legitimately evolves;
+  // records remain protected by revision + sha256(opDigest), while UID/rules
+  // authority remains unchanged.
+  const evolved = operationsSnapshot.docs.length > 0;
 
   let total = 0;
   const records = [];
@@ -623,7 +644,7 @@ export async function fetchGenerationRecords(uid, generationId) {
       fail('V1_REMOTE_CACHE_REJECTED', 'A baseline remota não veio do servidor.');
     }
     const expected = generation.manifest.counts.byCollection[collectionName];
-    if (snapshot.docs.length !== expected) {
+    if (!evolved && snapshot.docs.length !== expected) {
       fail('V1_REMOTE_MANIFEST_MISMATCH', 'A contagem remota não corresponde ao manifesto.');
     }
     total += snapshot.docs.length;
@@ -635,13 +656,14 @@ export async function fetchGenerationRecords(uid, generationId) {
       records.push(item);
     }
   }
-  if (total !== generation.manifest.counts.total) {
+  if (!evolved && total !== generation.manifest.counts.total) {
     fail('V1_REMOTE_MANIFEST_MISMATCH', 'O total remoto não corresponde ao manifesto.');
   }
   return {
     generationId,
     manifest: generation.manifest,
     records,
+    evolved,
   };
 }
 

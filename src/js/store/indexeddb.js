@@ -92,6 +92,22 @@ export const LOCAL_STATE_CURRENT_KEY = 'main_state_current';
 export const LOCAL_STATE_PREVIOUS_KEY = 'main_state_previous';
 export const LOCAL_STATE_LEGACY_KEY = 'main_state';
 
+// Per-tab snapshot of the durable V1 state as this tab last observed it.
+// Saves diff against it so a stale tab cannot revert another tab's ACKed edit.
+let v1BaselineState = null;
+let v1BaselineScope = null;
+
+export function noteV1ChangeBaseline(nextState) {
+  const activeContext = getActiveV1Context();
+  if (!activeContext || !nextState || typeof nextState !== 'object') {
+    v1BaselineState = null;
+    v1BaselineScope = null;
+    return;
+  }
+  v1BaselineScope = v1ScopeKey(activeContext.uid, activeContext.generationId);
+  v1BaselineState = structuredClone(nextState);
+}
+
 export let db;
 export const DEFAULT_FIRESTORE_SYNC_CONFIG = {
   enabled: false,
@@ -599,6 +615,12 @@ export function saveStateToDB(
     return Promise.reject(error);
   }
   const stateSnapshot = activeContext ? structuredClone(_stateRef) : null;
+  const v1Scope = activeContext
+    ? v1ScopeKey(activeContext.uid, activeContext.generationId)
+    : null;
+  const changeBaseState = v1Scope && v1BaselineScope === v1Scope
+    ? v1BaselineState
+    : null;
 
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -652,6 +674,7 @@ export function saveStateToDB(
             uid: activeContext.uid,
             generationId: activeContext.generationId,
             previousState: record?.state || null,
+            changeBaseState,
             nextState: stateSnapshot,
             pendingOperations: v1Reads.operations || [],
             entityMeta: v1Reads.entityMeta || [],
@@ -699,6 +722,10 @@ export function saveStateToDB(
     transaction.oncomplete = () => {
       if (settled) return;
       settled = true;
+      if (v1Scope && stateSnapshot) {
+        v1BaselineScope = v1Scope;
+        v1BaselineState = structuredClone(stateSnapshot);
+      }
       if (!skipSyncEvent) {
         document.dispatchEvent(
           new CustomEvent('stateSaved', {
