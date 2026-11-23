@@ -18,6 +18,10 @@ let authMissing = false;
 let persistentError = null;
 let bridgeInstalled = false;
 let refreshInFlight = null;
+let queueState = { pending: 0, retry: 0, conflicts: 0, inFlight: false };
+let workerBusy = false;
+let statusVersion = 0;
+let activeScope = null;
 
 function positiveInteger(value) {
   const count = Number(value);
@@ -67,7 +71,7 @@ function normalizeOutbox(outbox) {
     const attempts = [];
     for (const operation of outbox) {
       const status = String(operation?.status || 'pending');
-      if (status === 'pending') counts.pending += 1;
+      if (status === 'pending' || status === 'in-flight') counts.pending += 1;
       else if (status === 'retry') counts.retry += 1;
       else if (status === 'conflict') counts.conflicts += 1;
       else if (status === 'acked') counts.acked += 1;
@@ -93,7 +97,7 @@ function normalizeOutbox(outbox) {
 }
 
 function normalizeConflicts(conflicts) {
-  if (Array.isArray(conflicts)) return conflicts.length;
+  if (Array.isArray(conflicts)) return conflicts.filter(conflict => conflict?.status !== 'resolved').length;
   if (Number.isFinite(Number(conflicts))) return positiveInteger(conflicts);
   if (!conflicts || typeof conflicts !== 'object') return 0;
   if (conflicts.conflict || conflicts.entityId || conflicts.conflictId) return 1;
@@ -288,9 +292,13 @@ export function getV1SyncStatusSnapshot() {
 function onPrimarySyncStatus(event) {
   const detail = event?.detail || {};
   if (detail.mode !== 'v1') return;
+  if (activeScope && detail.uid && detail.generationId &&
+    activeScope !== `${detail.uid}\u0000${detail.generationId}`) return;
+  statusVersion += 1;
   const status = detail.status;
   if (status === 'synced' && positiveInteger(detail.acked) > 0) {
     remoteAckState = { acknowledged: true, at: new Date().toISOString() };
+    authMissing = false;
     persistentError = null;
   }
   if (status === 'auth-required') authMissing = true;
@@ -298,15 +306,24 @@ function onPrimarySyncStatus(event) {
     persistentError = detail.reason || 'remote-error';
   }
   if (status === 'synced') persistentError = null;
+  workerBusy = ['queued', 'syncing', 'backoff'].includes(status);
+  // Event counters are partial hints. Only a durable read can clear known work.
+  if (detail.pending != null) {
+    queueState.pending = Math.max(queueState.pending + queueState.retry, positiveInteger(detail.pending));
+    queueState.retry = 0;
+  }
+  if (detail.conflicts != null) {
+    queueState.conflicts = Math.max(queueState.conflicts, positiveInteger(detail.conflicts));
+  }
+  queueState.inFlight = workerBusy || status === 'synced';
   const eventStatus = deriveV1SyncStatus({
     outbox: {
-      pending: positiveInteger(detail.pending),
-      conflicts: positiveInteger(detail.conflicts),
+      ...queueState,
       persistentError,
     },
     network: { online: globalThis.navigator?.onLine !== false },
     auth: !authMissing,
-    conflicts: positiveInteger(detail.conflicts),
+    conflicts: queueState.conflicts,
     remoteAck: remoteAckState,
   });
   publishStatus(eventStatus);
@@ -314,9 +331,51 @@ function onPrimarySyncStatus(event) {
 }
 
 function onStateSaved(event) {
-  if (latestStatus) remoteAckState = { acknowledged: false, at: null };
   if (event?.detail?.metadataOnly === true && latestStatus?.pendingCount === 0) return;
+  statusVersion += 1;
+  if (event?.detail?.metadataOnly !== true) {
+    remoteAckState = { acknowledged: false, at: null };
+    queueState.inFlight = true;
+    publishRuntimeStatus();
+  }
   void refreshV1SyncStatus();
+}
+
+function publishRuntimeStatus() {
+  publishStatus(deriveV1SyncStatus({
+    outbox: queueState,
+    network: { online: globalThis.navigator?.onLine !== false },
+    auth: !authMissing,
+    conflicts: queueState.conflicts,
+    remoteAck: remoteAckState,
+    persistentError,
+  }));
+}
+
+/** Called by the existing application Auth observer, including token recovery. */
+export function setV1SyncStatusAuth(user) {
+  installV1SyncStatusBridge();
+  statusVersion += 1;
+  authMissing = !user?.uid;
+  if (authMissing) remoteAckState = { acknowledged: false, at: null };
+  publishRuntimeStatus();
+  void refreshV1SyncStatus();
+}
+
+/** Hydrate the exit-warning snapshot before releasing the V1 application UI. */
+export async function initializeV1SyncStatus({ uid, generationId, authFailure } = {}) {
+  const scope = `${uid}\u0000${generationId}`;
+  if (activeScope !== scope) {
+    activeScope = scope;
+    queueState = { pending: 0, retry: 0, conflicts: 0, inFlight: false };
+    remoteAckState = { acknowledged: false, at: null };
+    persistentError = null;
+    workerBusy = false;
+  }
+  authMissing = !uid || Boolean(authFailure);
+  statusVersion += 1;
+  installV1SyncStatusBridge();
+  return refreshV1SyncStatus();
 }
 
 export function installV1SyncStatusBridge() {
@@ -332,6 +391,9 @@ export async function refreshV1SyncStatus() {
   installV1SyncStatusBridge();
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
+    let version;
+    do {
+      version = statusVersion;
     try {
       const store = await import('../../store.js?v=8.37');
       const context = store.getActiveV1Context?.();
@@ -341,6 +403,7 @@ export async function refreshV1SyncStatus() {
         store.getPendingOperations(context.uid, context.generationId),
         store.listLocalConflicts(context.uid, context.generationId),
       ]);
+      if (version !== statusVersion) continue;
       const attempts = (operations || []).reduce(
         (max, operation) => Math.max(max, Number(operation?.attempts || 0)),
         0
@@ -352,10 +415,15 @@ export async function refreshV1SyncStatus() {
       if (positiveInteger(localStatus?.acked) > 0 && !authMissing) {
         remoteAckState = { ...remoteAckState, acknowledged: true };
       }
+      queueState = {
+        pending: positiveInteger(localStatus?.pending),
+        retry: positiveInteger(localStatus?.retry),
+        conflicts: normalizeConflicts(conflicts),
+        inFlight: workerBusy,
+      };
       const status = deriveV1SyncStatus({
         outbox: {
-          pending: localStatus?.pending,
-          retry: localStatus?.retry,
+          ...queueState,
           acked: localStatus?.acked,
         },
         network: { online: globalThis.navigator?.onLine !== false },
@@ -367,18 +435,18 @@ export async function refreshV1SyncStatus() {
       publishStatus(status);
       return status;
     } catch {
+      if (version !== statusVersion) continue;
       const status = deriveV1SyncStatus({
-        outbox: { persistentError: true },
+        outbox: { ...queueState, persistentError: true },
         network: { online: globalThis.navigator?.onLine !== false },
         auth: !authMissing,
-        conflicts: [],
+        conflicts: queueState.conflicts,
         remoteAck: remoteAckState,
       });
       publishStatus(status);
       return status;
-    } finally {
-      refreshInFlight = null;
     }
-  })();
+    } while (version !== statusVersion);
+  })().finally(() => { refreshInFlight = null; });
   return refreshInFlight;
 }

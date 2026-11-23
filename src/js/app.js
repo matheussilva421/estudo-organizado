@@ -41,6 +41,7 @@ import { initNotifications } from './notifications.js?v=8.37';
 import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.37';
 import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.37';
 import { resumeV1SyncForUser, startV1Sync, stopV1Sync, suspendV1SyncForAuth } from './sync/v1-next/worker.js';
+import { initializeV1SyncStatus, setV1SyncStatusAuth } from './sync/v1-next/status.js';
 import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.37';
 import { reconcilePrincipalEdital } from './views/editais-crud.js';
 import { syncRetaFinalToEventos } from './logic/reta-final.js';
@@ -166,6 +167,7 @@ async function completeInitialization(options = {}) {
   initNotifications();
   initSyncCoordinator();
   if (options.v1Context) {
+    await initializeV1SyncStatus(options.v1Context);
     void startV1Sync({
       ...options.v1Context,
       remoteApi: options.runtimeRemoteApi,
@@ -244,6 +246,7 @@ export function init(options = {}) {
   let boot;
   function onAuthChange(user, initialUid) {
     const uid = user?.uid ?? null;
+    setV1SyncStatusAuth(user);
     if (uid === (lastUid === undefined ? initialUid : lastUid)) {
       if (uid) Promise.resolve(resumeV1SyncForUser(uid)).catch(showInitializationError);
       return;

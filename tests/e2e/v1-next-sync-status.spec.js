@@ -148,7 +148,70 @@ async function saveLocalEvent(page, id) {
   }, id);
 }
 
+async function exitWarning(page) {
+  return page.evaluate(() => {
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+}
+
 test.describe('V1 sync status UX', () => {
+  test('warns on the first exit from Home with a durable outbox, without visiting Config', async ({ page }) => {
+    await installHarness(page, { mode: 'hold' });
+    await page.goto('/');
+    await expect(page.locator('#topbar-title')).toHaveText('Página Inicial');
+    await saveLocalConfig(page, 39);
+    await expect.poll(() => page.evaluate(() => window.__V1_STATUS_TEST__.applies.length)).toBe(1);
+    await expect.poll(() => page.evaluate(async () => {
+      const store = await import('/js/store.js?v=8.37');
+      return (await store.getPendingOperations('uid_e2e_v1_status', 'gen_e2e_v1_status')).length;
+    })).toBe(1);
+    expect(await exitWarning(page)).toBe(true);
+    await page.evaluate(() => window.__V1_STATUS_RELEASE_APPLY__());
+    await expect.poll(() => exitWarning(page)).toBe(false);
+  });
+
+  test('recovers from auth-required after a successful ACK', async ({ page }) => {
+    await installHarness(page, { mode: 'hold' });
+    await page.goto('/');
+    await openConfig(page);
+    await saveLocalConfig(page, 38);
+    await expect.poll(() => page.evaluate(() => window.__V1_STATUS_TEST__.applies.length)).toBe(1);
+    await page.evaluate(() => document.dispatchEvent(new CustomEvent('app:primarySyncStatus', {
+      detail: { mode: 'v1', status: 'auth-required' },
+    })));
+    const status = page.getByTestId('v1-sync-status');
+    await expect(status).toContainText('Entre com Google');
+    await page.evaluate(() => window.__V1_STATUS_RELEASE_APPLY__());
+    await expect(status).toHaveAttribute('data-state', 'sincronizado');
+    await expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(await exitWarning(page)).toBe(false);
+  });
+
+  test('never announces synchronized for partial worker events while a write awaits ACK', async ({ page }) => {
+    await installHarness(page, { mode: 'hold' });
+    await page.goto('/');
+    await openConfig(page);
+    await saveLocalConfig(page, 37);
+    await expect.poll(() => page.evaluate(() => window.__V1_STATUS_TEST__.applies.length)).toBe(1);
+    const snapshots = await page.evaluate(async () => {
+      const status = await import('/js/sync/v1-next/status.js');
+      return ['queued', 'syncing', 'backoff'].map(phase => {
+        document.dispatchEvent(new CustomEvent('app:primarySyncStatus', {
+          detail: { mode: 'v1', status: phase },
+        }));
+        return status.getV1SyncStatusSnapshot();
+      });
+    });
+    for (const snapshot of snapshots) {
+      expect(snapshot.state).toBe('sincronizando');
+      expect(snapshot.pendingCount).toBe(1);
+    }
+    await page.evaluate(() => window.__V1_STATUS_RELEASE_APPLY__());
+    await expect(page.getByTestId('v1-sync-status')).toHaveAttribute('data-state', 'sincronizado');
+  });
+
   test('keeps T5 first-use ahead of a local-only status and never requires manual sync', async ({
     page,
   }) => {

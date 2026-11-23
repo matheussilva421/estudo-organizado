@@ -7,6 +7,7 @@ import {
   recordSyncTombstone,
 } from "../../src/js/sync/sync-center.js";
 import { computeRetaFinalPlanDigest } from "../../src/js/sync/reta-final-protocol.js";
+import { deriveV1SyncStatus } from "../../src/js/sync/v1-next/status.js";
 
 describe("sync-center.js", () => {
   describe("canAutoSyncFirestore()", () => {
@@ -385,6 +386,26 @@ describe("sync-center.js", () => {
 
       expect(model.quiet.title).toBe("Atenção necessária");
       expect(model.quiet.tone).toBe("danger");
+    });
+
+    it("clears the V1 attention panel when only resolved conflicts remain", () => {
+      const model = buildSyncCenterModel({
+        state: { config: {} },
+        v1Status: deriveV1SyncStatus({
+          conflicts: [{ conflictId: "old", status: "resolved" }],
+          remoteAck: true,
+        }),
+      });
+      expect(model.quiet).toMatchObject({ title: "Sincronizado", tone: "ok" });
+      expect(model.v1Status.pendingCount).toBe(0);
+    });
+
+    it("keeps an in-flight V1 write pending despite a previous ACK", () => {
+      const model = buildSyncCenterModel({
+        state: { config: {} },
+        v1Status: deriveV1SyncStatus({ outbox: [{ status: "in-flight" }], remoteAck: true }),
+      });
+      expect(model.quiet).toMatchObject({ title: "Sincronizando", tone: "pending" });
     });
   });
 
