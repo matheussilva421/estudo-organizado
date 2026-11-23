@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createBaseState, createDisciplina, createEdital, createEvento } from '../helpers/state-builders.js';
 import { createTransactionalIdb, namedError } from './reta-final-draft-idb-helper.js';
-import { encodeRecordData } from '../../src/js/sync/v1-next/contracts.js';
+import { encodeRecordData, validateRecord } from '../../src/js/sync/v1-next/contracts.js';
 import { sha256Utf8 } from '../../src/js/sync/v1-next/sha256.js';
 
 const STORES = [
@@ -66,6 +66,23 @@ function receiptFor(operation, overrides = {}) {
   };
 }
 
+function materializeOperation(operation) {
+  return {
+    schemaVersion: 1,
+    generationId: operation.generationId,
+    entityType: operation.entityType,
+    entityId: operation.entityId,
+    collection: operation.collection,
+    revision: operation.revision,
+    baseRevision: operation.baseRevision,
+    opId: operation.opId,
+    opDigest: operation.opDigest,
+    deleted: operation.action === 'delete',
+    data: operation.action === 'delete' ? null : operation.dataText,
+    updatedAt: { seconds: 1800000000, nanoseconds: 0 },
+  };
+}
+
 async function importLocal() {
   vi.resetModules();
   return import('../../src/js/sync/v1-next/local.js');
@@ -97,6 +114,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('v1-next local persistence', () => {
@@ -162,6 +180,125 @@ describe('v1-next local persistence', () => {
     const pending = await reloaded.getPendingOperations('uid_reload', 'gen_reload');
     expect(pending.find((operation) => operation.entityId === 'ev_reload'))
       .toMatchObject({ entityType: 'evento', entityId: 'ev_reload', status: 'pending' });
+  });
+
+  it('cancels a base-zero creation before ACK and emits a valid delete after ACK', async () => {
+    const idb = createDatabase();
+    const local = await importLocal();
+    const uid = 'uid_create_delete';
+    const generationId = 'gen_create_delete';
+    const entityId = 'ev_create_delete';
+    const initial = academicState({ eventos: [createEvento({ id: entityId, titulo: 'Novo' })] });
+
+    await local.commitLocalChange({ uid, generationId, nextState: initial });
+    const created = (await local.getPendingOperations(uid, generationId))
+      .find((operation) => operation.entityId === entityId);
+    expect(created).toMatchObject({ action: 'upsert', baseRevision: 0, revision: 1 });
+
+    await local.commitLocalChange({
+      uid,
+      generationId,
+      nextState: academicState({ eventos: [] }),
+    });
+
+    const metaKey = local.v1EntityMetaKey(uid, generationId, `evento:${entityId}`);
+    expect((await local.getPendingOperations(uid, generationId))
+      .filter((operation) => operation.entityId === entityId)).toEqual([]);
+    expect(idb.getRecord('v1_sync_outbox', created.opId)).toBeUndefined();
+    expect(idb.getRecord('v1_entity_meta', metaKey)).toBeUndefined();
+    expect((await local.readLocalGeneration(uid, generationId)).state.eventos)
+      .not.toContainEqual(expect.objectContaining({ id: entityId }));
+
+    await local.commitLocalChange({ uid, generationId, nextState: initial });
+    const recreated = (await local.getPendingOperations(uid, generationId))
+      .find((operation) => operation.entityId === entityId);
+    await local.ackLocalOperation(recreated.opId, receiptFor(recreated));
+
+    await local.commitLocalChange({
+      uid,
+      generationId,
+      nextState: academicState({ eventos: [] }),
+    });
+    const finalOperation = (await local.getPendingOperations(uid, generationId))
+      .find((operation) => operation.entityId === entityId);
+    expect(finalOperation).toMatchObject({ action: 'delete', baseRevision: 1, revision: 2 });
+    expect(validateRecord(materializeOperation(finalOperation))).toBe(true);
+    expect(idb.getRecord('v1_sync_outbox', finalOperation.opId)).toMatchObject({
+      action: 'delete',
+      baseRevision: 1,
+      revision: 2,
+    });
+  });
+
+  it('allocates opIds against the complete outbox across UIDs and generations', async () => {
+    const idb = createDatabase();
+    const local = await importLocal();
+    const eventA = 'ev_op_scope_a';
+    const eventB = 'ev_op_scope_b';
+
+    await local.commitLocalChange({
+      uid: 'uid_a',
+      generationId: 'gen_a',
+      nextState: academicState({ eventos: [createEvento({ id: eventA })] }),
+    });
+    await local.commitLocalChange({
+      uid: 'uid_b',
+      generationId: 'gen_b',
+      nextState: academicState({ eventos: [createEvento({ id: eventB })] }),
+    });
+    const operationA = (await local.getPendingOperations('uid_a', 'gen_a'))
+      .find((operation) => operation.entityId === eventA);
+    const randomUUID = vi.fn()
+      .mockReturnValueOnce(operationA.opId.slice('op_'.length))
+      .mockReturnValueOnce('uid-b-generation-fresh');
+    vi.stubGlobal('crypto', { randomUUID });
+
+    await local.commitLocalChange({
+      uid: 'uid_b',
+      generationId: 'gen_b',
+      nextState: academicState({
+        eventos: [createEvento({ id: eventB }), createEvento({ id: 'ev_op_b_new' })],
+      }),
+    });
+
+    const operationB = (await local.getPendingOperations('uid_b', 'gen_b'))
+      .find((operation) => operation.entityId === 'ev_op_b_new');
+    expect(randomUUID).toHaveBeenCalledTimes(2);
+    expect(operationB.opId).toBe('op_uid-b-generation-fresh');
+    expect(idb.getRecord('v1_sync_outbox', operationA.opId)).toMatchObject({
+      uid: 'uid_a',
+      entityId: eventA,
+    });
+    expect(idb.getRecord('v1_sync_outbox', operationB.opId)).toMatchObject({
+      uid: 'uid_b',
+      entityId: 'ev_op_b_new',
+    });
+  });
+
+  it('cancels an unacknowledged creation through the central save path', async () => {
+    const idb = createDatabase();
+    const local = await importLocal();
+    const store = await import('../../src/js/store.js?v=8.37');
+    const uid = 'uid_central_cancel';
+    const generationId = 'gen_central_cancel';
+    const entityId = 'ev_central_cancel';
+    await store.initDB();
+    store.setActiveV1Context(uid, generationId);
+
+    store.setState(academicState({ eventos: [createEvento({ id: entityId })] }));
+    await store.saveStateToDB({ skipCloudSync: true, prepareEntityMetadata: false });
+    const created = (await store.getPendingOperations(uid, generationId))
+      .find((operation) => operation.entityId === entityId);
+
+    store.setState(academicState({ eventos: [] }));
+    await store.saveStateToDB({ skipCloudSync: true, prepareEntityMetadata: false });
+
+    const metaKey = local.v1EntityMetaKey(uid, generationId, `evento:${entityId}`);
+    expect((await store.getPendingOperations(uid, generationId))
+      .filter((operation) => operation.entityId === entityId)).toEqual([]);
+    expect(idb.getRecord('v1_sync_outbox', created.opId)).toBeUndefined();
+    expect(idb.getRecord('v1_entity_meta', metaKey)).toBeUndefined();
+    expect((await store.readLocalGeneration(uid, generationId)).state.eventos).toEqual([]);
   });
 
   it('derives every academic entity family with stable T1 paths and digests', async () => {
@@ -260,6 +397,8 @@ describe('v1-next local persistence', () => {
     expect(pending.map((operation) => operation.sequence)).toEqual(
       pending.map((operation) => operation.sequence).slice().sort((a, b) => a - b),
     );
+    const coalesced = pending.find((operation) => operation.entityId === 'ev_coalesce');
+    await local.ackLocalOperation(coalesced.opId, receiptFor(coalesced));
 
     await local.commitLocalChange({
       uid: 'uid_queue',
@@ -269,7 +408,9 @@ describe('v1-next local persistence', () => {
     pending = await local.getPendingOperations('uid_queue', 'gen_queue');
     const deleted = pending.find((operation) => operation.entityId === 'ev_coalesce');
     expect(deleted.action).toBe('delete');
-    expect(deleted.opId).toBe(target.opId);
+    expect(deleted).toMatchObject({ baseRevision: 1, revision: 2 });
+    expect(deleted.opId).not.toBe(target.opId);
+    expect(validateRecord(materializeOperation(deleted))).toBe(true);
 
     await local.commitLocalChange({
       uid: 'uid_queue',

@@ -538,12 +538,17 @@ export function saveStateToDB(
     clearTimeout(saveTimeout);
     saveTimeout = null;
   }
-  if (!db) return Promise.resolve();
-  const localCommitStart = performance.now();
   const touchLocalBackup = options.touchLocalBackup !== false;
   const skipSyncEvent = options.skipSyncEvent === true;
   const emitUserSaveStatus = options.emitSaveStatus !== false && touchLocalBackup;
   if (emitUserSaveStatus) emitSaveStatus('saving');
+  if (!db) {
+    const error = new Error('IndexedDB unavailable');
+    if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(error) });
+    return Promise.reject(error);
+  }
+
+  const localCommitStart = performance.now();
 
   if (!_stateRef.config) _stateRef.config = {};
   if (touchLocalBackup) {
@@ -629,8 +634,12 @@ export function saveStateToDB(
           trackWrite(transaction.objectStore(V1_LOCAL_STATE_STORE).put(prepared.stateRecord));
           const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
           for (const operation of prepared.operations) trackWrite(outbox.put(operation));
+          for (const opId of prepared.deletedOperationIds) trackWrite(outbox.delete(opId));
           const entityMeta = transaction.objectStore(V1_ENTITY_META_STORE);
           for (const record of prepared.entityMeta) trackWrite(entityMeta.put(record));
+          for (const key of prepared.deletedEntityMetaKeys) {
+            trackWrite(entityMeta.delete(key));
+          }
           trackWrite(transaction.objectStore(V1_SYNC_META_STORE).put(prepared.syncMeta));
         }
       } catch (error) {

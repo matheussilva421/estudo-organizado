@@ -220,6 +220,34 @@ describe('store/indexeddb.js - Data pipeline functions work end-to-end', () => {
     expect(result.length).toBeGreaterThan(0);
   });
 
+  it('fails closed with an error status when IndexedDB is unavailable', async () => {
+    expect(indexeddb.db).toBeUndefined();
+
+    for (const activeContext of [
+      null,
+      { uid: 'uid_unavailable', generationId: 'gen_unavailable' },
+    ]) {
+      document.dispatchEvent.mockClear();
+      if (activeContext) {
+        store.setActiveV1Context(activeContext.uid, activeContext.generationId);
+      } else {
+        store.clearActiveV1Context();
+      }
+
+      await expect(indexeddb.saveStateToDB({
+        skipCloudSync: true,
+        prepareEntityMetadata: false,
+      })).rejects.toThrow('IndexedDB unavailable');
+
+      const statuses = document.dispatchEvent.mock.calls
+        .map(([event]) => event.detail?.status)
+        .filter(Boolean);
+      expect(statuses).toEqual(['saving', 'error']);
+      expect(document.dispatchEvent.mock.calls
+        .some(([event]) => event.type === 'stateSaved')).toBe(false);
+    }
+  });
+
   it('SyncQueue processes tasks sequentially', async () => {
     indexeddb.SyncQueue.clear();
     const order = [];

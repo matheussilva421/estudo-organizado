@@ -146,9 +146,10 @@ export function prepareLocalCommit({
   const previousRecords = previousState ? recordMap(previousState).records : new Map();
   const sanitized = sanitizeState(nextState);
   const nextRecords = sanitized.records;
-  const pending = (Array.isArray(pendingOperations) ? pendingOperations : [])
+  const allPending = Array.isArray(pendingOperations) ? pendingOperations : [];
+  const pending = allPending
     .filter((operation) => operation?.uid === uid && operation?.generationId === generationId);
-  const existingIds = new Set(pending.map((operation) => operation.opId));
+  const existingIds = new Set(allPending.map((operation) => operation.opId));
   const metaByKey = new Map();
   for (const record of Array.isArray(entityMeta) ? entityMeta : []) {
     if (record?.uid === uid && record?.generationId === generationId &&
@@ -178,6 +179,8 @@ export function prepareLocalCommit({
   const updatedPending = new Map(pending.map((operation) => [operation.opId, clone(operation)]));
   const committedOperations = [];
   const entityMetaUpdates = new Map();
+  const deletedOperationIds = [];
+  const deletedEntityMetaKeys = [];
   let sequence = Math.max(
     Number.isSafeInteger(syncMeta?.nextSequence) ? syncMeta.nextSequence - 1 : 0,
     ...pending.map((operation) => Number(operation.sequence) || 0),
@@ -195,6 +198,14 @@ export function prepareLocalCommit({
         operation.baseRevision === baseRevision)
       .sort((left, right) => right.sequence - left.sequence)[0] || null;
     let operation = candidate;
+    if (change.action === 'delete' && baseRevision === 0) {
+      if (operation) {
+        updatedPending.delete(operation.opId);
+        deletedOperationIds.push(operation.opId);
+      }
+      deletedEntityMetaKeys.push(entityMetaKey(uid, generationId, entityKey));
+      continue;
+    }
     if (operation) {
       const deleteWins = operation.action === 'delete' || change.action === 'delete';
       if (!(operation.action === 'delete' && change.action === 'upsert')) {
@@ -294,6 +305,8 @@ export function prepareLocalCommit({
       updatedAt: now,
     },
     operations: committedOperations,
+    deletedOperationIds,
+    deletedEntityMetaKeys,
     entityMeta: [...entityMetaUpdates.values()],
     syncMeta: {
       key,
@@ -429,7 +442,9 @@ export async function commitLocalChange({
           });
           stateStore.put(prepared.stateRecord);
           for (const operation of prepared.operations) outbox.put(operation);
+          for (const opId of prepared.deletedOperationIds) outbox.delete(opId);
           for (const record of prepared.entityMeta) entityMetaStore.put(record);
+          for (const key of prepared.deletedEntityMetaKeys) entityMetaStore.delete(key);
           syncMetaStore.put(prepared.syncMeta);
         } catch (error) {
           control.abort(error);
