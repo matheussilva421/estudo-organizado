@@ -2173,6 +2173,30 @@ describe("reta-final sync engine integration", () => {
     ]);
   });
 
+  it("adopts the newer remote snapshot revision on an equivalent sync", async () => {
+    const basePlan = makePlan({ revision: 1, minutos: 40 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 40 });
+    const remote = envelopeFor(remotePlan, {
+      revision: 2,
+      baseRevision: 1,
+      snapshotRevision: 2,
+      baseSnapshotRevision: 1,
+    });
+    await boot({ plan: localPlan, basePlan, remote });
+    storeModule.state.config.firestoreSync.snapshotRevision = 1;
+    storeModule.state.config.firestoreSync.baseSnapshotRevision = 0;
+
+    const result = await engine.syncFirestoreNow();
+
+    expect(result).toBe(true);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(storeModule.state.config.firestoreSync.snapshotRevision).toBe(2);
+    expect(storeModule.state.config.firestoreSync.baseRemoteUpdatedAt).toBe(
+      remote.payloadUpdatedAt,
+    );
+  });
+
   async function bootStaleAdoption({
     localEvents = [],
     remoteEvents = [],

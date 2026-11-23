@@ -3151,10 +3151,31 @@ async function syncFirestoreNowUnlocked() {
           localPlan.revision === remotePlan.revision &&
           compareRetaFinalPlanIntent(localPlan, remotePlan).equivalent,
       );
-      return Boolean(
+      const academicEquivalent =
         planEquivalent &&
-          nonPlanStateDigest(state) === nonPlanStateDigest(remote?.payload),
-      );
+        nonPlanStateDigest(state) === nonPlanStateDigest(remote?.payload);
+      if (academicEquivalent) {
+        const remoteDescriptor = readRetaFinalSyncDescriptor(remote);
+        if (
+          remoteDescriptor &&
+          remoteDescriptor.snapshotRevision > (config.snapshotRevision ?? 0)
+        ) {
+          // The content already matches the newer remote snapshot. Advance the
+          // local base so the next edit is a normal snapshotRevision+1 write,
+          // not a replay against a revision this device never adopted.
+          setRetaFinalBaseFromRemote(config, remote, remotePlan);
+          config.remoteUpdatedAt = remoteUpdatedAt;
+          config.lastPullAt = new Date().toISOString();
+          await persistSyncConfig(true);
+          await saveFirestoreMeta({
+            uid,
+            remoteUpdatedAt,
+            lastPullAt: config.lastPullAt,
+          });
+        }
+        return true;
+      }
+      return false;
     }
     retaFinalPullHandled = true;
     await yieldToUIWithBudget(50, performance.now());
