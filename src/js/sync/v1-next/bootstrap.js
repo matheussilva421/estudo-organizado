@@ -414,7 +414,14 @@ export async function bootstrapConfiguredV1Generation(options = {}) {
     now: options.now,
     onBackgroundResult: options.onBackgroundResult,
   });
-  return { enabled: true, ...result };
+  return {
+    enabled: true,
+    ...(result.status === 'ready' ? { uid } : {}),
+    ...(config?.enabled === true && config.remoteApi ? {
+      runtimeRemoteApi: config.remoteApi,
+    } : {}),
+    ...result,
+  };
 }
 
 /** Keep the gate synchronous and legacy state unloaded until a generation is ready. */

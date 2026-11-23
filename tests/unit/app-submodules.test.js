@@ -129,6 +129,10 @@ describe('app/ sub-module imports', () => {
       initSyncCoordinator: vi.fn(),
     }));
 
+    vi.doMock('../../src/js/sync/v1-next/worker.js?v=8.37', () => ({
+      startV1Sync: vi.fn(() => Promise.resolve()),
+    }));
+
     vi.doMock('../../src/js/views/ciclo-view.js?v=8.37', () => ({
       setHideConcluidosCiclo: vi.fn(),
     }));
@@ -391,6 +395,10 @@ describe('app.js re-exports', () => {
 
     vi.doMock('../../src/js/sync/sync-coordinator.js?v=8.37', () => ({
       initSyncCoordinator: vi.fn(),
+    }));
+
+    vi.doMock('../../src/js/sync/v1-next/worker.js?v=8.37', () => ({
+      startV1Sync: vi.fn(() => Promise.resolve()),
     }));
 
     vi.doMock('../../src/js/views/ciclo-view.js?v=8.37', () => ({

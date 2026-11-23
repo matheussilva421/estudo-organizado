@@ -542,6 +542,96 @@ describe('v1-next local persistence', () => {
     expect((await local.getLocalSyncStatus('uid_conflict', 'gen_conflict')).conflicts).toBe(1);
   });
 
+  it('persists retry and conflict metadata without deleting the outbox operation', async () => {
+    const idb = createDatabase();
+    const local = await importLocal();
+    await local.commitLocalChange({
+      uid: 'uid_status',
+      generationId: 'gen_status',
+      nextState: academicState({ eventos: [createEvento({ id: 'ev_status' })] }),
+    });
+    const pending = (await local.getPendingOperations('uid_status', 'gen_status'))
+      .find((operation) => operation.entityType === 'evento');
+    const nextAttemptAt = new Date(Date.now() + 2_000).toISOString();
+
+    expect(await local.markLocalOperationRetry(pending.opId, {
+      reason: 'V1_REMOTE_TIMEOUT',
+      nextAttemptAt,
+      attempts: 2,
+    })).toBe(true);
+    expect((await local.getPendingOperations('uid_status', 'gen_status'))[0]).toMatchObject({
+      opId: pending.opId,
+      status: 'retry',
+      attempts: 2,
+      nextAttemptAt,
+      lastError: 'V1_REMOTE_TIMEOUT',
+    });
+
+    expect(await local.markLocalOperationConflict(pending.opId, {
+      code: 'revision',
+      remoteRevision: 4,
+    })).toBe(true);
+    expect((await local.getPendingOperations('uid_status', 'gen_status'))
+      .some((operation) => operation.opId === pending.opId)).toBe(false);
+    expect(idb.getRecord('v1_sync_outbox', pending.opId)).toMatchObject({
+      status: 'conflict',
+      opId: pending.opId,
+    });
+    expect(await local.listLocalConflicts('uid_status', 'gen_status')).toEqual([
+      expect.objectContaining({
+        opId: pending.opId,
+        base: 0,
+        local: 1,
+        remote: 4,
+        reason: 'revision',
+      }),
+    ]);
+  });
+
+  it('serializes the IndexedDB worker lease and expires a crashed owner', async () => {
+    createDatabase();
+    const local = await importLocal();
+    const first = await local.acquireV1WorkerLease({
+      uid: 'uid_lock',
+      generationId: 'gen_lock',
+      ownerId: 'tab_a',
+      now: 1_000,
+      ttlMs: 100,
+    });
+    expect(first).toMatchObject({ ownerId: 'tab_a' });
+    await expect(local.acquireV1WorkerLease({
+      uid: 'uid_lock',
+      generationId: 'gen_lock',
+      ownerId: 'tab_b',
+      now: 1_050,
+      ttlMs: 100,
+    })).resolves.toBeNull();
+    await expect(local.renewV1WorkerLease({
+      uid: 'uid_lock',
+      generationId: 'gen_lock',
+      ownerId: 'tab_b',
+      token: first.token,
+      now: 1_050,
+      ttlMs: 100,
+    })).resolves.toBe(false);
+    await expect(local.renewV1WorkerLease({
+      uid: 'uid_lock',
+      generationId: 'gen_lock',
+      ownerId: 'tab_a',
+      token: first.token,
+      now: 1_050,
+      ttlMs: 100,
+    })).resolves.toBe(true);
+
+    await expect(local.acquireV1WorkerLease({
+      uid: 'uid_lock',
+      generationId: 'gen_lock',
+      ownerId: 'tab_b',
+      now: 1_151,
+      ttlMs: 100,
+    })).resolves.toMatchObject({ ownerId: 'tab_b' });
+  });
+
   it('keeps the legacy save path when the V1 context is inactive', async () => {
     const idb = createDatabase();
     const store = await import('../../src/js/store.js?v=8.37');

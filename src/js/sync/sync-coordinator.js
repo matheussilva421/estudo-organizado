@@ -16,6 +16,8 @@ import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.37';
 import { yieldToUI } from './sync-yield.js?v=8.37';
 import { primarySyncLock } from './sync-lock.js?v=8.37';
 import { isGlobalSyncPaused } from './sync-center.js?v=8.37';
+import { getActiveV1Context } from './v1-next/local.js';
+import { drainPendingOperations } from './v1-next/worker.js';
 
 const AUTO_SYNC_DEBOUNCE_MS = 3000;
 const CIRCUIT_BREAKER_DEGRADED = 3;
@@ -33,9 +35,24 @@ function isBlockingConflict(conflict) {
   return conflict?.type === 'entity-conflict' || conflict?.type === 'reta-final-conflict';
 }
 
-function addListener(target, event, handler) {
-  target.addEventListener(event, handler);
-  _listeners.push({ target, event, handler });
+function hasActiveV1Generation() {
+  return getActiveV1Context() !== null;
+}
+
+async function flushV1Generation(reason) {
+  lastReason = reason;
+  emitCoordinatorStatus('syncing', { reason, mode: 'v1' });
+  try {
+    const result = await drainPendingOperations();
+    return result.pending === 0 && result.conflicts === 0;
+  } catch (error) {
+    emitCoordinatorStatus('error', {
+      reason,
+      mode: 'v1',
+      error: error?.message || 'V1 drain failed',
+    });
+    return false;
+  }
 }
 
 function teardownListeners() {
@@ -110,6 +127,7 @@ function emitTerminalFlushStatus(ok, reason) {
 }
 
 export async function flushPrimarySyncWhenAllowed(reason) {
+  if (hasActiveV1Generation()) return flushV1Generation(reason);
   const pendingSnapshot = await getPendingFirestoreSnapshot();
   if (pendingSnapshot?.nextAttemptAt) {
     const delay = toDelayFromPending(pendingSnapshot);
@@ -146,6 +164,19 @@ export function getSyncCoordinatorStatus() {
 }
 
 export function schedulePrimarySync(reason = 'local-save', options = {}) {
+  if (hasActiveV1Generation()) {
+    if (isGlobalSyncPaused(state.config || {})) {
+      emitCoordinatorStatus('paused', { reason, mode: 'v1' });
+      return false;
+    }
+    lastReason = reason;
+    lastQueuedAt = new Date().toISOString();
+    emitCoordinatorStatus('queued', { reason, mode: 'v1' });
+    Promise.resolve().then(() => {
+      void flushV1Generation(reason);
+    });
+    return true;
+  }
   const status = getFirestoreSyncStatus();
   lastReason = reason;
 
@@ -180,7 +211,7 @@ export function schedulePrimarySync(reason = 'local-save', options = {}) {
 
   syncTimer = setTimeout(() => {
     syncTimer = null;
-    flushPrimarySyncNow({ reason }).catch((err) => {
+    flushPrimarySyncNow({ reason }).catch(() => {
       if (failureCount >= CIRCUIT_BREAKER_DEGRADED) {
         updateCircuitBreaker(reason, status);
       }
@@ -330,6 +361,18 @@ async function _executeFlush(options) {
 }
 
 export async function flushPrimarySyncNow(options = {}) {
+  if (hasActiveV1Generation()) {
+    if (syncTimer) {
+      clearTimeout(syncTimer);
+      syncTimer = null;
+    }
+    const reason = options.reason || (options.manual ? 'manual' : 'auto');
+    if (isGlobalSyncPaused(state.config || {}) && options.ignoreGlobalPause !== true) {
+      emitCoordinatorStatus('paused', { reason, mode: 'v1' });
+      return false;
+    }
+    return flushV1Generation(reason);
+  }
   return primarySyncLock.withLock(() => _executeFlush(options));
 }
 

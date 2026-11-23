@@ -19,6 +19,7 @@ export const V1_SYNC_META_STORE = 'v1_sync_meta';
 const TOKEN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const POINTER_KIND = 'v1_generation_pointer';
+const WORKER_LEASE_KIND = 'v1_worker_lease';
 const POINTER_STATUSES = new Set(['ready', 'blocked']);
 const RECEIPT_FIELDS = [
   'schemaVersion',
@@ -378,6 +379,132 @@ export function v1ScopeKey(uid, generationId) {
 
 export function v1EntityMetaKey(uid, generationId, recordKey) {
   return entityMetaKey(uid, generationId, recordKey);
+}
+
+function workerLeaseKey(uid, generationId) {
+  return `${scopeKey(uid, generationId)}\u0000worker-lease`;
+}
+
+function validateLease({ ownerId, token, ttlMs }) {
+  if (typeof ownerId !== 'string' || !TOKEN.test(ownerId)) failClosed('lease owner');
+  if (typeof ttlMs !== 'number' || !Number.isFinite(ttlMs) || ttlMs <= 0) {
+    failClosed('lease duration');
+  }
+  if (token !== undefined && (typeof token !== 'string' || !TOKEN.test(token))) {
+    failClosed('lease token');
+  }
+}
+
+function readWorkerLease(record, uid, generationId) {
+  if (!record) return null;
+  if (record.key !== workerLeaseKey(uid, generationId) ||
+    record.kind !== WORKER_LEASE_KIND || record.uid !== uid ||
+    record.generationId !== generationId || typeof record.ownerId !== 'string' ||
+    !TOKEN.test(record.ownerId) || typeof record.token !== 'string' ||
+    !TOKEN.test(record.token) || !Number.isFinite(record.expiresAt)) {
+    failClosed('worker lease');
+  }
+  return record;
+}
+
+/** Acquire the IndexedDB lease used when the Web Locks API is unavailable. */
+export async function acquireV1WorkerLease({
+  uid,
+  generationId,
+  ownerId,
+  now = Date.now(),
+  ttlMs = 30_000,
+}) {
+  validateScope(uid, generationId);
+  validateLease({ ownerId, ttlMs });
+  const key = workerLeaseKey(uid, generationId);
+  const token = `${ownerId}_${Math.floor(now).toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  validateLease({ ownerId, token, ttlMs });
+  return runTransaction([V1_SYNC_META_STORE], 'readwrite', (transaction, control) => {
+    const store = transaction.objectStore(V1_SYNC_META_STORE);
+    const request = store.get(key);
+    request.onerror = () => control.abort(request.error);
+    request.onsuccess = () => {
+      try {
+        const current = readWorkerLease(request.result, uid, generationId);
+        if (current && current.expiresAt > now && current.ownerId !== ownerId) {
+          control.setResult(null);
+          return;
+        }
+        const lease = {
+          key,
+          kind: WORKER_LEASE_KIND,
+          uid,
+          generationId,
+          ownerId,
+          token,
+          expiresAt: now + ttlMs,
+          updatedAt: new Date(now).toISOString(),
+        };
+        store.put(lease);
+        control.setResult(clone(lease));
+      } catch (error) {
+        control.abort(error);
+      }
+    };
+  });
+}
+
+/** Extend an owned IndexedDB lease without allowing another tab to take it. */
+export async function renewV1WorkerLease({
+  uid,
+  generationId,
+  ownerId,
+  token,
+  now = Date.now(),
+  ttlMs = 30_000,
+}) {
+  validateScope(uid, generationId);
+  validateLease({ ownerId, token, ttlMs });
+  const key = workerLeaseKey(uid, generationId);
+  return runTransaction([V1_SYNC_META_STORE], 'readwrite', (transaction, control) => {
+    const store = transaction.objectStore(V1_SYNC_META_STORE);
+    const request = store.get(key);
+    request.onerror = () => control.abort(request.error);
+    request.onsuccess = () => {
+      try {
+        const current = readWorkerLease(request.result, uid, generationId);
+        if (!current || current.ownerId !== ownerId || current.token !== token) {
+          control.setResult(false);
+          return;
+        }
+        store.put({
+          ...current,
+          expiresAt: Math.max(current.expiresAt, now + ttlMs),
+          updatedAt: new Date(now).toISOString(),
+        });
+        control.setResult(true);
+      } catch (error) {
+        control.abort(error);
+      }
+    };
+  });
+}
+
+/** Release only a lease still owned by this worker invocation. */
+export async function releaseV1WorkerLease({
+  uid,
+  generationId,
+  ownerId,
+  token,
+}) {
+  validateScope(uid, generationId);
+  validateLease({ ownerId, token, ttlMs: 1 });
+  const key = workerLeaseKey(uid, generationId);
+  return runTransaction([V1_SYNC_META_STORE], 'readwrite', (transaction, control) => {
+    const store = transaction.objectStore(V1_SYNC_META_STORE);
+    const request = store.get(key);
+    request.onerror = () => control.abort(request.error);
+    request.onsuccess = () => {
+      const current = readWorkerLease(request.result, uid, generationId);
+      if (current?.ownerId === ownerId && current.token === token) store.delete(key);
+    };
+  });
 }
 
 function openDatabase() {
@@ -830,6 +957,111 @@ export async function getPendingOperations(uid, generationId) {
       ['pending', 'retry'].includes(operation.status))
     .sort((left, right) => left.sequence - right.sequence || left.createdAt.localeCompare(right.createdAt))
     .map(clone);
+}
+
+/** Persist bounded retry metadata without changing the operation payload. */
+export async function markLocalOperationRetry(opId, {
+  reason = null,
+  nextAttemptAt,
+  attempts,
+  now = new Date().toISOString(),
+} = {}) {
+  if (typeof opId !== 'string' || !TOKEN.test(opId)) failClosed('operation ID');
+  if (nextAttemptAt !== null && nextAttemptAt !== undefined &&
+    (typeof nextAttemptAt !== 'string' || !Number.isFinite(Date.parse(nextAttemptAt)))) {
+    failClosed('retry time');
+  }
+  if (attempts !== undefined && (!Number.isSafeInteger(attempts) || attempts < 0)) {
+    failClosed('retry attempts');
+  }
+  return runTransaction([V1_SYNC_OUTBOX_STORE], 'readwrite', (transaction, control) => {
+    const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
+    const request = outbox.get(opId);
+    request.onerror = () => control.abort(request.error);
+    request.onsuccess = () => {
+      const operation = request.result;
+      if (!operation) {
+        control.abort(new Error('V1 operation not found'));
+        return;
+      }
+      if (!['pending', 'retry'].includes(operation.status)) {
+        control.setResult(false);
+        return;
+      }
+      outbox.put({
+        ...operation,
+        status: 'retry',
+        attempts: attempts ?? operation.attempts + 1,
+        nextAttemptAt: nextAttemptAt ?? null,
+        lastError: reason === null ? null : String(reason),
+        updatedAt: now,
+      });
+      control.setResult(true);
+    };
+  });
+}
+
+/** Suspend one operation in the isolated conflict store while retaining it in the outbox. */
+export async function markLocalOperationConflict(opId, conflict, {
+  now = new Date().toISOString(),
+} = {}) {
+  if (typeof opId !== 'string' || !TOKEN.test(opId)) failClosed('operation ID');
+  if (!conflict || typeof conflict !== 'object' || Array.isArray(conflict)) {
+    failClosed('conflict');
+  }
+  return runTransaction(
+    [V1_SYNC_OUTBOX_STORE, V1_SYNC_CONFLICT_STORE],
+    'readwrite',
+    (transaction, control) => {
+      const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
+      const conflicts = transaction.objectStore(V1_SYNC_CONFLICT_STORE);
+      const request = outbox.get(opId);
+      request.onerror = () => control.abort(request.error);
+      request.onsuccess = () => {
+        const operation = request.result;
+        if (!operation) {
+          control.abort(new Error('V1 operation not found'));
+          return;
+        }
+        if (operation.status === 'conflict') {
+          control.setResult(false);
+          return;
+        }
+        if (!['pending', 'retry'].includes(operation.status)) {
+          control.abort(new Error('V1 operation cannot enter conflict'));
+          return;
+        }
+        const conflictId = operation.opId;
+        const key = conflictKey(operation.uid, operation.generationId, conflictId);
+        conflicts.put({
+          key,
+          uid: operation.uid,
+          generationId: operation.generationId,
+          conflictId,
+          opId: operation.opId,
+          entityKey: operation.entityKey,
+          entityType: operation.entityType,
+          entityId: operation.entityId,
+          collection: operation.collection,
+          base: operation.baseRevision,
+          local: operation.revision,
+          remote: Number.isSafeInteger(conflict.remoteRevision) ?
+            conflict.remoteRevision : null,
+          reason: typeof conflict.code === 'string' ? conflict.code : 'conflict',
+          remoteDeleted: conflict.remoteDeleted === true,
+          remoteRecord: conflict.remoteRecord ?? null,
+          createdAt: now,
+        });
+        outbox.put({
+          ...operation,
+          status: 'conflict',
+          lastError: 'V1_SYNC_CONFLICT',
+          updatedAt: now,
+        });
+        control.setResult(true);
+      };
+    },
+  );
 }
 
 function validateReceipt(operation, input) {

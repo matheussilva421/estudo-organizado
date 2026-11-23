@@ -40,6 +40,7 @@ import { esc } from './utils.js?v=8.37';
 import { initNotifications } from './notifications.js?v=8.37';
 import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.37';
 import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.37';
+import { startV1Sync } from './sync/v1-next/worker.js?v=8.37';
 import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.37';
 import { reconcilePrincipalEdital } from './views/editais-crud.js';
 import { syncRetaFinalToEventos } from './logic/reta-final.js';
@@ -153,7 +154,7 @@ function releaseV1FirstAccess() {
 
 // ── Initialization ────────────────────────────────────────────────────
 
-async function completeInitialization() {
+async function completeInitialization(options = {}) {
   if (v1GenerationBlocked) return;
 
   // Notify modules that state is loaded from IndexedDB
@@ -161,7 +162,16 @@ async function completeInitialization() {
   applyTheme();
   initNotifications();
   initSyncCoordinator();
-  initFirestoreSync();
+  if (options.v1Context) {
+    void startV1Sync({
+      ...options.v1Context,
+      remoteApi: options.runtimeRemoteApi,
+    }).catch((error) => {
+      console.error('Falha ao iniciar worker V1:', error);
+    });
+  } else {
+    initFirestoreSync();
+  }
 
   // Restaurar estado da sidebar (collapsed/expanded)
   const sidebarCollapsed = localStorage.getItem('estudo_sidebar_collapsed') === 'true';
@@ -248,7 +258,13 @@ export function init(options = {}) {
     release: releaseV1FirstAccess,
   }).then((result) => {
     if (result?.status !== 'ready' || v1GenerationBlocked) return undefined;
-    return completeInitialization();
+    return completeInitialization({
+      v1Context: result.uid && result.generationId ? {
+        uid: result.uid,
+        generationId: result.generationId,
+      } : null,
+      runtimeRemoteApi: result.runtimeRemoteApi || options.remoteApi,
+    });
   }).catch(showInitializationError);
 }
 

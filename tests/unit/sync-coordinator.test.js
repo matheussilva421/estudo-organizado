@@ -4,6 +4,8 @@ describe('sync/sync-coordinator.js', () => {
   let storeModule;
   let firestoreSync;
   let firestoreOutbox;
+  let v1Local;
+  let v1Worker;
   let coordinator;
 
   async function flushCoordinatorPromises() {
@@ -51,10 +53,22 @@ describe('sync/sync-coordinator.js', () => {
     firestoreOutbox = {
       getPendingFirestoreSnapshot: vi.fn(() => Promise.resolve(null)),
     };
+    v1Local = {
+      getActiveV1Context: vi.fn(() => null),
+    };
+    v1Worker = {
+      drainPendingOperations: vi.fn(() => Promise.resolve({
+        acked: 0,
+        pending: 0,
+        conflicts: 0,
+      })),
+    };
 
     vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
     vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.37', () => firestoreSync);
     vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.37', () => firestoreOutbox);
+    vi.doMock('../../src/js/sync/v1-next/local.js', () => v1Local);
+    vi.doMock('../../src/js/sync/v1-next/worker.js', () => v1Worker);
     vi.doMock('../../src/js/sync/sync-health.js?v=8.37', async () => {
       const realHealth = await import('../../src/js/sync/sync-health.js?v=8.37');
       return {
@@ -200,6 +214,24 @@ describe('sync/sync-coordinator.js', () => {
   });
 
   describe('flushPrimarySyncNow()', () => {
+    it('routes an active V1 generation to the worker without legacy snapshot or pull writes', async () => {
+      v1Local.getActiveV1Context.mockReturnValue({
+        uid: 'uid_v1',
+        generationId: 'gen_v1',
+      });
+
+      const result = await coordinator.flushPrimarySyncNow({
+        manual: true,
+        reason: 'smart-sync',
+      });
+
+      expect(result).toBe(true);
+      expect(v1Worker.drainPendingOperations).toHaveBeenCalledOnce();
+      expect(firestoreSync.queueFirestoreSnapshotFromState).not.toHaveBeenCalled();
+      expect(firestoreSync.autoPullRemoteWhenNewer).not.toHaveBeenCalled();
+      expect(firestoreSync.flushFirestoreOutbox).not.toHaveBeenCalled();
+    });
+
     it('returns false when a real conflict still has a pending snapshot', async () => {
       firestoreSync.getFirestoreSyncStatus.mockReturnValue({
         configured: true,

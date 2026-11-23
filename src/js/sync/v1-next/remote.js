@@ -114,8 +114,8 @@ function checkedManifest(manifest, generationId) {
   if (manifest.generationId !== generationId) {
     fail('V1_REMOTE_GENERATION_INVALID', 'A geração do manifesto não corresponde.');
   }
-  if (manifest.state !== 'active') {
-    fail('V1_REMOTE_GENERATION_INACTIVE', 'A geração remota não está ativa.');
+  if (!['verified', 'active'].includes(manifest.state)) {
+    fail('V1_REMOTE_GENERATION_INACTIVE', 'A geração remota não está homologada.');
   }
   return manifest;
 }

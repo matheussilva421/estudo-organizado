@@ -126,7 +126,7 @@ function configure(fake, auth = { currentUser: { uid: 'A' } }, isOnline = undefi
 }
 
 describe('V1 remote injected contract', () => {
-  it('validates the active control and manifest before returning a generation', async () => {
+  it('accepts verified or active manifests and rejects staging or retired generations', async () => {
     const fake = sdkWith({ documents: new Map([
       ['users/A/v1SyncControl/current', control],
       ['users/A/v1SyncNamespaces/g1', manifest],
@@ -135,14 +135,26 @@ describe('V1 remote injected contract', () => {
     const current = await getCurrentGeneration('A');
     expect(current).toMatchObject({ uid: 'A', generationId: 'g1', control, manifest });
 
-    const inactive = sdkWith({ documents: new Map([
+    const verified = sdkWith({ documents: new Map([
       ['users/A/v1SyncControl/current', control],
       ['users/A/v1SyncNamespaces/g1', { ...manifest, state: 'verified' }],
     ]) });
-    configure(inactive);
-    await expect(getCurrentGeneration('A')).rejects.toMatchObject({
-      code: 'V1_REMOTE_GENERATION_INACTIVE',
+    configure(verified);
+    await expect(getCurrentGeneration('A')).resolves.toMatchObject({
+      generationId: 'g1',
+      manifest: { state: 'verified' },
     });
+
+    for (const state of ['staging', 'retired']) {
+      const unavailable = sdkWith({ documents: new Map([
+        ['users/A/v1SyncControl/current', control],
+        ['users/A/v1SyncNamespaces/g1', { ...manifest, state }],
+      ]) });
+      configure(unavailable);
+      await expect(getCurrentGeneration('A')).rejects.toMatchObject({
+        code: 'V1_REMOTE_GENERATION_INACTIVE',
+      });
+    }
   });
 
   it('rejects a malformed operation before opening a transaction', async () => {
