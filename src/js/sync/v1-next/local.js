@@ -1,5 +1,11 @@
 import { convertBackupV12, reconstituteBackupV12 } from './backup-codec.js';
-import { encodeRecordData, entityCollectionForType } from './contracts.js';
+import {
+  encodeRecordData,
+  entityCollectionForType,
+  recordKey,
+  validateManifest,
+  validateRecord,
+} from './contracts.js';
 import { sha256Utf8 } from './sha256.js';
 
 export const LOCAL_DB_NAME = 'EstudoOrganizadoDB';
@@ -12,6 +18,8 @@ export const V1_SYNC_META_STORE = 'v1_sync_meta';
 
 const TOKEN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
+const POINTER_KIND = 'v1_generation_pointer';
+const POINTER_STATUSES = new Set(['ready', 'blocked']);
 const RECEIPT_FIELDS = [
   'schemaVersion',
   'generationId',
@@ -54,6 +62,39 @@ function entityMetaKey(uid, generationId, recordKey) {
 
 function conflictKey(uid, generationId, id) {
   return `${scopeKey(uid, generationId)}\u0000${id}`;
+}
+
+function pointerKey(uid) {
+  if (typeof uid !== 'string' || !TOKEN.test(uid)) failClosed('UID');
+  return JSON.stringify(['v1-generation-pointer', uid]);
+}
+
+function readPointerRecord(record, uid) {
+  if (!record) return null;
+  if (record.key !== pointerKey(uid) || record.kind !== POINTER_KIND ||
+    record.uid !== uid || !POINTER_STATUSES.has(record.status) ||
+    record.verified !== (record.status === 'ready')) {
+    failClosed('generation pointer');
+  }
+  validateScope(uid, record.generationId);
+  validateManifest(record.manifest);
+  if (record.manifest.generationId !== record.generationId ||
+    !['verified', 'active'].includes(record.manifest.state)) {
+    failClosed('generation manifest');
+  }
+  return clone(record);
+}
+
+function checkedBaselineSummary(state, manifest) {
+  validateManifest(manifest);
+  if (!['verified', 'active'].includes(manifest.state)) failClosed('baseline state');
+  const sanitized = sanitizeState(state);
+  const converted = convertBackupV12(sanitized.state);
+  if (canonical(converted.manifestDraft.counts) !== canonical(manifest.counts) ||
+    converted.manifestDraft.businessDigest !== manifest.businessDigest) {
+    failClosed('baseline digest or counts');
+  }
+  return sanitized.state;
 }
 
 function isTimestamp(value) {
@@ -405,6 +446,275 @@ export async function readLocalGeneration(uid, generationId) {
   return { state: clone(record.state), verified: record.verified === true };
 }
 
+export async function readV1GenerationPointer(uid) {
+  pointerKey(uid);
+  const key = pointerKey(uid);
+  const record = await runTransaction([V1_LOCAL_STATE_STORE], 'readonly', (transaction, control) => {
+    const request = transaction.objectStore(V1_LOCAL_STATE_STORE).get(key);
+    request.onsuccess = () => control.setResult(request.result || null);
+    request.onerror = () => control.abort(request.error);
+  });
+  return readPointerRecord(record, uid);
+}
+
+/** Install one verified remote baseline and its UID pointer in one transaction. */
+export async function installRemoteBaseline({
+  uid,
+  generationId,
+  state,
+  manifest,
+  now = new Date().toISOString(),
+}) {
+  validateScope(uid, generationId);
+  if (manifest?.generationId !== generationId) failClosed('baseline generation');
+  const verifiedState = checkedBaselineSummary(state, manifest);
+  const stateKey = scopeKey(uid, generationId);
+  const versionKey = pointerKey(uid);
+
+  return runTransaction(
+    [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_SYNC_META_STORE],
+    'readwrite',
+    (transaction, control) => {
+      const stateStore = transaction.objectStore(V1_LOCAL_STATE_STORE);
+      const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
+      const syncMetaStore = transaction.objectStore(V1_SYNC_META_STORE);
+      const reads = {};
+      const done = new Set();
+      const stage = () => {
+        if (done.size !== 4) return;
+        try {
+          const pointer = readPointerRecord(reads.pointer, uid);
+          const existing = reads.state;
+          const pending = (reads.operations || []).filter((operation) =>
+            operation?.uid === uid && operation?.generationId === generationId &&
+            ['pending', 'retry'].includes(operation.status));
+          if (pending.length) failClosed('baseline with pending work');
+
+          if (existing && (existing.key !== stateKey || existing.uid !== uid ||
+            existing.generationId !== generationId || existing.verified !== true)) {
+            failClosed('existing baseline');
+          }
+          if (existing) {
+            const current = convertBackupV12(existing.state);
+            if (canonical(current.manifestDraft.counts) !== canonical(manifest.counts) ||
+              current.manifestDraft.businessDigest !== manifest.businessDigest) {
+              failClosed('existing baseline differs from manifest');
+            }
+          } else {
+            stateStore.put({
+              key: stateKey,
+              uid,
+              generationId,
+              state: verifiedState,
+              verified: true,
+              verifiedAt: now,
+              updatedAt: now,
+            });
+          }
+
+          stateStore.put({
+            key: versionKey,
+            kind: POINTER_KIND,
+            uid,
+            generationId,
+            status: 'ready',
+            verified: true,
+            manifest: clone(manifest),
+            source: 'network',
+            installedAt: pointer?.generationId === generationId ?
+              pointer.installedAt : now,
+            updatedAt: now,
+          });
+          syncMetaStore.put({
+            key: stateKey,
+            uid,
+            generationId,
+            nextSequence: Number.isSafeInteger(reads.syncMeta?.nextSequence) ?
+              reads.syncMeta.nextSequence : 1,
+            updatedAt: now,
+          });
+          control.setResult(true);
+        } catch (error) {
+          control.abort(error);
+        }
+      };
+      const read = (store, key, field) => {
+        const request = key === null ? store.getAll() : store.get(key);
+        request.onsuccess = () => {
+          reads[field] = request.result;
+          done.add(field);
+          stage();
+        };
+        request.onerror = () => control.abort(request.error);
+      };
+      read(stateStore, versionKey, 'pointer');
+      read(stateStore, stateKey, 'state');
+      read(outbox, null, 'operations');
+      read(syncMetaStore, stateKey, 'syncMeta');
+    },
+  );
+}
+
+/** Block a generation from local writes after remote revocation is observed. */
+export async function markV1GenerationBlocked(
+  uid,
+  generationId,
+  now = new Date().toISOString(),
+) {
+  validateScope(uid, generationId);
+  const key = pointerKey(uid);
+  const stateKey = scopeKey(uid, generationId);
+  await runTransaction([V1_LOCAL_STATE_STORE], 'readwrite', (transaction, control) => {
+    const store = transaction.objectStore(V1_LOCAL_STATE_STORE);
+    const pointerRequest = store.get(key);
+    const stateRequest = store.get(stateKey);
+    const reads = {};
+    const stage = () => {
+      if (!Object.hasOwn(reads, 'pointer') || !Object.hasOwn(reads, 'state')) return;
+      try {
+        const pointer = readPointerRecord(reads.pointer, uid);
+        if (!pointer || pointer.generationId !== generationId) failClosed('active pointer');
+        store.put({
+          ...pointer,
+          status: 'blocked',
+          verified: false,
+          blockedAt: now,
+          updatedAt: now,
+        });
+        if (reads.state?.key === stateKey) {
+          store.put({ ...reads.state, verified: false, updatedAt: now });
+        }
+      } catch (error) {
+        control.abort(error);
+      }
+    };
+    pointerRequest.onsuccess = () => {
+      reads.pointer = pointerRequest.result;
+      stage();
+    };
+    pointerRequest.onerror = () => control.abort(pointerRequest.error);
+    stateRequest.onsuccess = () => {
+      reads.state = stateRequest.result;
+      stage();
+    };
+    stateRequest.onerror = () => control.abort(stateRequest.error);
+  });
+  const active = getActiveV1Context();
+  if (active?.uid === uid && active.generationId === generationId) clearActiveV1Context();
+}
+
+/** Apply one validated remote record to state without creating a local operation. */
+export async function applyRemoteRecord({
+  uid,
+  generationId,
+  record,
+  now = new Date().toISOString(),
+}) {
+  validateScope(uid, generationId);
+  validateRecord(record);
+  if (record.generationId !== generationId) failClosed('remote record generation');
+  const stateKey = scopeKey(uid, generationId);
+  const versionKey = pointerKey(uid);
+  const entityKey = recordKey(record.entityType, record.entityId);
+  const metaKey = entityMetaKey(uid, generationId, entityKey);
+
+  return runTransaction(
+    [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_ENTITY_META_STORE],
+    'readwrite',
+    (transaction, control) => {
+      const stateStore = transaction.objectStore(V1_LOCAL_STATE_STORE);
+      const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
+      const metaStore = transaction.objectStore(V1_ENTITY_META_STORE);
+      const reads = {};
+      const done = new Set();
+      const stage = () => {
+        if (done.size !== 4) return;
+        try {
+          const pointer = readPointerRecord(reads.pointer, uid);
+          if (!pointer || pointer.generationId !== generationId || pointer.status !== 'ready') {
+            failClosed('blocked generation');
+          }
+          const stateRecord = reads.state;
+          if (!stateRecord || stateRecord.key !== stateKey || stateRecord.uid !== uid ||
+            stateRecord.generationId !== generationId || stateRecord.verified !== true) {
+            failClosed('verified state');
+          }
+          const pending = (reads.operations || []).filter((operation) =>
+            operation?.uid === uid && operation?.generationId === generationId &&
+            operation?.entityKey === entityKey && ['pending', 'retry'].includes(operation.status));
+          if (pending.length) {
+            control.setResult({ applied: false, reason: 'pending' });
+            return;
+          }
+          const meta = reads.meta;
+          if (meta && (meta.revision > record.revision ||
+            (meta.revision === record.revision && meta.lastAckedOpId === record.opId))) {
+            control.setResult({ applied: false, reason: 'already-current' });
+            return;
+          }
+          if (meta && meta.revision === record.revision &&
+            meta.lastAckedOpId !== record.opId) {
+            failClosed('conflicting remote revision');
+          }
+
+          const converted = convertBackupV12(stateRecord.state);
+          let item = null;
+          if (!record.deleted) {
+            item = JSON.parse(record.data);
+            if (item.key !== entityKey || item.entityType !== record.entityType ||
+              String(item.entityId) !== record.entityId) {
+              failClosed('remote payload identity');
+            }
+          }
+          const records = converted.records;
+          records[record.collection] = records[record.collection]
+            .filter((candidate) => candidate.key !== entityKey);
+          if (item) records[record.collection].push(item);
+          const nextState = reconstituteBackupV12(records);
+
+          stateStore.put({
+            ...stateRecord,
+            state: nextState,
+            verified: true,
+            verifiedAt: stateRecord.verifiedAt || now,
+            updatedAt: now,
+          });
+          metaStore.put({
+            key: metaKey,
+            uid,
+            generationId,
+            entityKey,
+            entityType: record.entityType,
+            entityId: record.entityId,
+            collection: record.collection,
+            baseRevision: record.baseRevision,
+            revision: record.revision,
+            pendingOpId: null,
+            lastAckedOpId: record.opId,
+            updatedAt: now,
+          });
+          control.setResult({ applied: true });
+        } catch (error) {
+          control.abort(error);
+        }
+      };
+      const read = (store, key, field) => {
+        const request = key === null ? store.getAll() : store.get(key);
+        request.onsuccess = () => {
+          reads[field] = request.result;
+          done.add(field);
+          stage();
+        };
+        request.onerror = () => control.abort(request.error);
+      };
+      read(stateStore, versionKey, 'pointer');
+      read(stateStore, stateKey, 'state');
+      read(outbox, null, 'operations');
+      read(metaStore, metaKey, 'meta');
+    },
+  );
+}
+
 export async function commitLocalChange({
   uid,
   generationId,
@@ -421,14 +731,31 @@ export async function commitLocalChange({
       const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
       const entityMetaStore = transaction.objectStore(V1_ENTITY_META_STORE);
       const syncMetaStore = transaction.objectStore(V1_SYNC_META_STORE);
-      const reads = { state: undefined, operations: undefined, meta: undefined, syncMeta: undefined };
-      const done = { state: false, operations: false, meta: false, syncMeta: false };
+      const reads = {
+        state: undefined,
+        operations: undefined,
+        meta: undefined,
+        syncMeta: undefined,
+        pointer: undefined,
+      };
+      const done = {
+        state: false,
+        operations: false,
+        meta: false,
+        syncMeta: false,
+        pointer: false,
+      };
       let staged = false;
 
       const stage = () => {
         if (staged || !Object.values(done).every(Boolean)) return;
         staged = true;
         try {
+          const pointer = readPointerRecord(reads.pointer, uid);
+          if (pointer && (pointer.generationId !== generationId ||
+            pointer.status !== 'ready')) {
+            failClosed('blocked generation');
+          }
           const prepared = prepareLocalCommit({
             uid,
             generationId,
@@ -463,6 +790,7 @@ export async function commitLocalChange({
       read(outbox, null, 'operations');
       read(entityMetaStore, null, 'meta');
       read(syncMetaStore, key, 'syncMeta');
+      read(stateStore, pointerKey(uid), 'pointer');
     },
   );
 }

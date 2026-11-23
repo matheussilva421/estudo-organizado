@@ -34,18 +34,21 @@ import {
 
 // ── Other module imports for orchestrator functions ──────────────────
 import { renderCurrentView } from './components.js?v=8.37';
-import { initDB, scheduleSave, state } from './store.js?v=8.37';
+import { initDB, scheduleSave, setState, state } from './store.js?v=8.37';
 import { initGoogleAPIs, updateDriveUI } from './drive-sync.js?v=8.37';
 import { esc } from './utils.js?v=8.37';
 import { initNotifications } from './notifications.js?v=8.37';
 import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.37';
 import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.37';
-import { clearActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.37';
 import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.37';
 import { reconcilePrincipalEdital } from './views/editais-crud.js';
 import { syncRetaFinalToEventos } from './logic/reta-final.js';
 import { reconcileDerivedStateOnBoot } from './app/boot-reconciliation.js';
 import { consumeDerivedRecoveryPending } from './store/boot-recovery.js';
+import {
+  bootstrapConfiguredV1Generation,
+  isV1SyncEnabled,
+} from './sync/v1-next/bootstrap.js?v=8.37';
 
 // ── Re-exports ────────────────────────────────────────────────────────
 export {
@@ -70,6 +73,34 @@ export {
   initSaveStatusIndicator,
 };
 
+function gateV1FirstAccess(result) {
+  const offline = result.status === 'requires-network';
+  const title = offline ? 'Conecte-se para preparar seus dados' : 'Preparação segura indisponível';
+  const message = offline
+    ? 'A geração verificada será baixada e validada antes de liberar a edição.'
+    : 'Não foi possível validar a geração remota. Recarregue a página para tentar novamente.';
+  const content = document.getElementById('main-content');
+  if (content) {
+    content.innerHTML = `
+      <section class="v1-first-access" data-v1-sync-gate="${result.status}"
+        style="max-width:560px;margin:72px auto;padding:28px;border:1px solid var(--border);border-radius:16px;background:var(--surface);">
+        <h2 style="margin-top:0;">${title}</h2>
+        <p style="color:var(--text-secondary);line-height:1.6;">${message}</p>
+      </section>
+    `;
+  }
+  const topbarTitle = document.getElementById('topbar-title');
+  if (topbarTitle) topbarTitle.textContent = 'Preparando dados';
+  document.getElementById('sidebar')?.setAttribute('inert', '');
+  document.body?.classList?.add('v1-sync-gated');
+}
+
+function releaseV1FirstAccess(result) {
+  setState(result.state);
+  document.getElementById('sidebar')?.removeAttribute?.('inert');
+  document.body?.classList?.remove('v1-sync-gated');
+}
+
 // ── Initialization ────────────────────────────────────────────────────
 
 /**
@@ -78,6 +109,15 @@ export {
 export function init() {
   initDB()
     .then(async () => {
+      if (isV1SyncEnabled()) {
+        const v1FirstAccess = await bootstrapConfiguredV1Generation();
+        if (v1FirstAccess.status !== 'ready') {
+          gateV1FirstAccess(v1FirstAccess);
+          return;
+        }
+        releaseV1FirstAccess(v1FirstAccess);
+      }
+
       // Notify modules that state is loaded from IndexedDB
       document.dispatchEvent(new Event('app:stateLoaded'));
       applyTheme();
