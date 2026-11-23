@@ -297,12 +297,13 @@ export async function reconcileRemoteDelta(
     delta.record.collection !== delta.collection) {
     throw new TypeError('V1 remote delta does not match the active generation');
   }
-  await local.applyRemoteRecord({
+  const outcome = await local.applyRemoteRecord({
     uid: targetUid,
     generationId: targetGeneration,
     record: delta.record,
     now,
   });
+  return outcome;
 }
 
 /** Opt-in surface used by local tests and Chromium fixtures. Production is off. */

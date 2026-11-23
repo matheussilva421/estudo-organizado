@@ -628,6 +628,49 @@ describe('V1 next first access bootstrap', () => {
     expect(pending.map(operation => operation.entityId)).toEqual(['ev_2']);
   });
 
+  it('keeps a locally normalized meta field when the remote root arrives', async () => {
+    createDatabase();
+    const { local, bootstrap } = await importModules();
+    const baselineState = academicState('Root remoto');
+    await bootstrap.bootstrapV1Generation({
+      uid: 'uid_root',
+      online: true,
+      remoteApi: fakeRemote(remoteBaseline(baselineState)),
+    });
+    const normalized = { ...baselineState, planejamentoArquivado: { arquivadoEm: '2026-11-23' } };
+    await local.cacheLocalGenerationState({
+      uid: 'uid_root',
+      generationId: 'gen_a',
+      state: normalized,
+    });
+
+    const rootItem = convertBackupV12(baselineState).records.meta
+      .find(item => item.key === 'meta:$root');
+    const data = encodeRecordData(rootItem);
+    const outcome = await local.applyRemoteRecord({
+      uid: 'uid_root',
+      generationId: 'gen_a',
+      record: {
+        schemaVersion: 1,
+        generationId: 'gen_a',
+        entityType: 'meta',
+        entityId: '$root',
+        collection: 'meta',
+        baseRevision: 0,
+        revision: 1,
+        opId: 'op_root_baseline',
+        opDigest: sha256Utf8(data),
+        deleted: false,
+        data,
+        updatedAt: { seconds: 1800000000, nanoseconds: 0 },
+      },
+    });
+
+    expect(outcome, JSON.stringify(outcome)).toMatchObject({ applied: true });
+    const cached = await local.readLocalGeneration('uid_root', 'gen_a');
+    expect(cached.state.planejamentoArquivado).toEqual({ arquivadoEm: '2026-11-23' });
+  });
+
   it('preserves a pending local entity when the remote delta arrives', async () => {
     createDatabase();
     const { local, bootstrap } = await importModules();

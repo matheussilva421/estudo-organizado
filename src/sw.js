@@ -1,4 +1,4 @@
-const APP_VERSION = '9.97';
+const APP_VERSION = '9.98';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [

@@ -311,6 +311,22 @@ function applyRemoteFragment(records, record) {
     String(item.entityId) !== record.entityId) {
     failClosed('remote payload identity');
   }
+  if (record.entityType === 'meta' && record.entityId !== '$root') {
+    const root = next.meta.find(candidate => candidate.key === 'meta:$root');
+    if (root && !Object.hasOwn(root.data, record.entityId)) {
+      root.data[record.entityId] = null;
+    }
+  }
+  if (record.entityType === 'meta' && record.entityId === '$root') {
+    // Local normalization may add meta fields absent from the migration
+    // baseline. Keep their null slots so the rebuilt root stays a valid
+    // topology instead of buffering every subsequent delta.
+    for (const candidate of next.meta) {
+      if (candidate.path.length !== 1) continue;
+      const [slot] = candidate.path;
+      if (!Object.hasOwn(item.data, slot)) item.data[slot] = null;
+    }
+  }
   next[collection].push(item);
   return next;
 }
@@ -1236,6 +1252,7 @@ export async function applyRemoteRecord({
 
           const held = [];
           const eligible = [];
+          const currentRecords = convertBackupV12(stateRecord.state).records;
           for (const fragment of fragments) {
             const fragmentKey = recordKey(fragment.entityType, fragment.entityId);
             const fragmentMeta = metas.get(fragmentKey) || null;
@@ -1250,6 +1267,17 @@ export async function applyRemoteRecord({
             if (fragmentMeta && fragmentMeta.revision === fragment.revision) {
               if (fragmentMeta.lastAckedOpId === fragment.opId) continue;
               failClosed('conflicting remote revision');
+            }
+            const current = currentRecords[fragment.collection]
+              .find(candidate => candidate.key === fragmentKey);
+            if (current) {
+              const item = JSON.parse(fragment.data);
+              if (canonical(current.data) === canonical(item.data) &&
+                canonical(current.path) === canonical(item.path)) {
+                // The initial listener baseline re-delivers records already
+                // installed by bootstrap. They are current, not pending deltas.
+                continue;
+              }
             }
             eligible.push(fragment);
           }
