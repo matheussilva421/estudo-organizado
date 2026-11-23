@@ -2,7 +2,7 @@
  * Import verification tests for store/indexeddb.js
  * Ensures the extracted module is self-contained and re-exports work.
  */
-/* global global, process */
+/* global global, process, setImmediate */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -199,6 +199,73 @@ describe('store/indexeddb.js - Module integrity', () => {
     const source = read('src/js/store/indexeddb.js');
     expect(source).not.toContain('import(');
     expect(source).not.toMatch(/import\s*\(/);
+  });
+});
+
+describe('store/indexeddb.js - falhas durante unload', () => {
+  function getWindowHandler(type) {
+    return global.window.addEventListener.mock.calls.filter(([event]) => event === type).at(-1)?.[1];
+  }
+
+  it('pagehide preserva o backup emergencial e consome a rejeicao do IndexedDB', async () => {
+    vi.useRealTimers();
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const unhandled = [];
+    const listener = (reason) => unhandled.push(reason);
+    process.on('unhandledRejection', listener);
+    try {
+      indexeddb.scheduleSave();
+      const handler = getWindowHandler('pagehide');
+
+      expect(handler).toBeTypeOf('function');
+      expect(() => handler()).not.toThrow();
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(global.localStorage.setItem).toHaveBeenCalledWith(
+        'estudo_state_emergency',
+        expect.any(String)
+      );
+      expect(consoleError).toHaveBeenCalledWith(
+        'pagehide IndexedDB emergency save failed:',
+        expect.any(Error)
+      );
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', listener);
+    }
+  });
+
+  it('beforeunload consome a rejeicao e mantem o fluxo sincrono de aviso', async () => {
+    vi.useRealTimers();
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const unhandled = [];
+    const listener = (reason) => unhandled.push(reason);
+    process.on('unhandledRejection', listener);
+    try {
+      indexeddb.scheduleSave();
+      expect(indexeddb.saveTimeout).not.toBeNull();
+      const handler = getWindowHandler('beforeunload');
+      const event = { preventDefault: vi.fn(), returnValue: undefined };
+
+      expect(handler).toBeTypeOf('function');
+      const result = handler(event);
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
+      expect(result).toBe(event.returnValue);
+      expect(result).toContain('alterações pendentes');
+      expect(global.localStorage.setItem).toHaveBeenCalledWith(
+        'estudo_state_emergency',
+        expect.any(String)
+      );
+      expect(consoleError).toHaveBeenCalledWith(
+        'beforeunload IndexedDB emergency save failed:',
+        expect.any(Error)
+      );
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', listener);
+    }
   });
 });
 

@@ -1,10 +1,12 @@
+/* global queueMicrotask, DOMException */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-function createIndexedDBMock({ putError = null } = {}) {
+function createIndexedDBMock({ putError = null, transactionError = null } = {}) {
   const fakeDb = {
     objectStoreNames: { contains: () => true },
     createObjectStore: vi.fn(),
-    transaction: vi.fn(() => {
+    transaction: vi.fn((_stores, mode = 'readonly') => {
+      if (transactionError && mode === 'readwrite') throw transactionError;
       let pendingWrites = 0;
       const tx = {
         objectStore: () => ({
@@ -103,6 +105,23 @@ describe('save status indicator contract', () => {
     });
     expect(events.at(-1).detail).toContain('Espaço de armazenamento insuficiente');
     expect(events.at(-1).detail).toContain('QuotaExceededError');
+  });
+
+  it('emits error without saved or stateSaved when transaction creation throws', async () => {
+    const invalidState = new DOMException('The database connection is closing', 'InvalidStateError');
+    const store = await importStoreWithDB({ transactionError: invalidState });
+    const dispatched = [];
+    document.addEventListener('app:saveStatus', (event) => dispatched.push(event));
+    document.addEventListener('stateSaved', (event) => dispatched.push(event));
+
+    await expect(store.saveStateToDB()).rejects.toBe(invalidState);
+
+    const statuses = dispatched
+      .filter((event) => event.type === 'app:saveStatus')
+      .map((event) => event.detail.status);
+    expect(statuses).toEqual(['saving', 'error']);
+    expect(dispatched.some((event) => event.type === 'stateSaved')).toBe(false);
+    expect(dispatched.at(-1).detail.detail).toContain('IndexedDB indisponível');
   });
 
   it('shows the save failure reason inside settings when config status exists', async () => {

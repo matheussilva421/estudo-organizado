@@ -409,7 +409,9 @@ window.addEventListener('pagehide', () => {
       console.error('pagehide emergency localStorage save failed:', err);
     }
     // Também tenta IndexedDB (pode não completar em fechamentos bruscos)
-    saveStateToDB();
+    saveStateToDB().catch((err) => {
+      console.error('pagehide IndexedDB emergency save failed:', err);
+    });
   }
 });
 
@@ -422,7 +424,9 @@ window.addEventListener('beforeunload', (e) => {
       console.error('Emergency localStorage save failed:', err);
     }
     // Also attempt IndexedDB save (may or may not complete)
-    saveStateToDB();
+    saveStateToDB().catch((err) => {
+      console.error('beforeunload IndexedDB emergency save failed:', err);
+    });
     e.preventDefault();
     e.returnValue = 'Há alterações pendentes aguardando salvamento. Deseja sair assim mesmo?';
     return e.returnValue;
@@ -567,7 +571,21 @@ export function saveStateToDB(
   const stateSnapshot = activeContext ? structuredClone(_stateRef) : null;
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME, ...v1Stores], 'readwrite');
+    let settled = false;
+    const rejectOnce = (err) => {
+      if (settled) return;
+      settled = true;
+      if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(err) });
+      reject(err);
+    };
+
+    let transaction;
+    try {
+      transaction = db.transaction([STORE_NAME, ...v1Stores], 'readwrite');
+    } catch (error) {
+      rejectOnce(error);
+      return;
+    }
     const store = transaction.objectStore(STORE_NAME);
     const currentRequest = store.get(LOCAL_STATE_CURRENT_KEY);
     const v1Reads = activeContext
@@ -581,15 +599,7 @@ export function saveStateToDB(
         }
       : null;
     let currentDone = false;
-    let settled = false;
     let staged = false;
-
-    const rejectOnce = (err) => {
-      if (settled) return;
-      settled = true;
-      if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(err) });
-      reject(err);
-    };
     const trackWrite = (request) => {
       request.onerror = (event) => rejectOnce(event?.target?.error || request.error || event);
     };

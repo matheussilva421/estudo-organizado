@@ -1,3 +1,4 @@
+/* global process */
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -59,7 +60,7 @@ function collectActionRegistryEntries() {
           entries.get(key).push(file);
         }
       }
-    } catch (e) {
+    } catch {
       // File may not exist, skip
     }
   }
@@ -377,7 +378,7 @@ describe('data-action contracts', () => {
     expect(saveModuleSource).toMatch(
       /import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\.\/store\.js\?v=8\.37['"]/s
     );
-    expect(saveModuleSource).toContain('saveStateToDB().then');
+    expect(saveModuleSource).toMatch(/saveStateToDB\(\)\s*\.then/);
   });
 
   it('renders revision action buttons as non-submit controls', () => {

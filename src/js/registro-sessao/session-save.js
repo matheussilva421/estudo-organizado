@@ -3,7 +3,7 @@
 // Data extraction, validation, and persistence logic
 // =============================================
 
-import { state, saveStateToDB } from '../store.js?v=8.37';
+import { state, saveStateToDB, describeSaveFailure } from '../store.js?v=8.37';
 import {
   getDisc,
   syncCicloToEventos,
@@ -200,10 +200,15 @@ function reconcilePlanningAfterSave(ev) {
     () => {
       markPlanningSequenceCompleted(seq);
       syncCicloToEventos();
-      saveStateToDB().then(() => {
-        renderCurrentView();
-        showToast('Etapa concluÃ­da manualmente.', 'success');
-      });
+      saveStateToDB()
+        .then(() => {
+          renderCurrentView();
+          showToast('Etapa concluÃ­da manualmente.', 'success');
+        })
+        .catch((err) => {
+          const detail = describeSaveFailure(err);
+          showToast(`Não foi possível concluir a etapa: ${detail}. Tente novamente.`, 'error');
+        });
     },
     { title: 'SessÃ£o parcial', label: 'Concluir mesmo assim' }
   );
@@ -576,17 +581,22 @@ export function performSave({
   invalidatePendingRevCache();
 
   // FLUSH IMEDIATO para operações críticas - registro de sessão é dado importante
-  saveStateToDB().then(() => {
-    closeModal('modal-registro-sessao');
+  saveStateToDB()
+    .then(() => {
+      closeModal('modal-registro-sessao');
 
-    // Bug 1 Fix: Explicitly flush UI updates after save completes
-    setTimeout(() => {
-      document.dispatchEvent(new Event('app:refreshMEDSections'));
-      updateBadges();
-      renderCurrentView();
-      showToast('Sessão registrada com sucesso! ✅', 'success');
-    }, 50);
-  });
+      // Bug 1 Fix: Explicitly flush UI updates after save completes
+      setTimeout(() => {
+        document.dispatchEvent(new Event('app:refreshMEDSections'));
+        updateBadges();
+        renderCurrentView();
+        showToast('Sessão registrada com sucesso! ✅', 'success');
+      }, 50);
+    })
+    .catch((err) => {
+      const detail = describeSaveFailure(err);
+      showToast(`Não foi possível salvar a sessão: ${detail}. Tente novamente.`, 'error');
+    });
 
   return true;
 }
