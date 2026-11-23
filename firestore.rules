@@ -495,6 +495,87 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // V1 namespace root is the Admin migration manifest. Only Admin writes the
+    // pointer or manifest. An operation receipt mirrors the entity minus data.
+    match /users/{uid}/v1SyncControl/current {
+      allow get: if owns(uid);
+    }
+
+    match /users/{uid}/v1SyncNamespaces/{generation} {
+      function active() {
+        let control = get(/databases/$(database)/documents/users/$(uid)/v1SyncControl/current).data;
+        let manifest = get(/databases/$(database)/documents/users/$(uid)/v1SyncNamespaces/$(generation)).data;
+        return control.schemaVersion == 1 && control.generationId == generation
+          && manifest.schemaVersion == 1 && manifest.generationId == generation && manifest.state == 'active';
+      }
+      function knownCollection(c) {
+        return c in ['editais', 'disciplinas', 'eventos', 'habitos', 'retaFinalBlocos', 'meta', 'tombstones'];
+      }
+      function typeMatches(c, t) {
+        return t is string && t.toUtf8().size() <= 128 && (
+          (c == 'editais' && t == 'edital') || (c == 'disciplinas' && t == 'disciplina')
+          || (c == 'eventos' && t == 'evento') || (c == 'retaFinalBlocos' && t == 'retaFinalBloco')
+          || (c == 'meta' && t == 'meta') || (c == 'habitos' && t.matches('habito[.][^:]+'))
+          || (c == 'tombstones' && t.matches('tombstone[.](syncTombstones|config[.]entityTombstones)[.][^:]+')));
+      }
+      function token(s) {
+        return s is string && s.matches('[A-Za-z0-9][A-Za-z0-9_-]{0,127}');
+      }
+      function documentId(d) {
+        return (d.entityType + ':' + d.entityId).toUtf8().toHexString().lower();
+      }
+      function validEntity(d, c, id) {
+        return d.keys().hasOnly(['schemaVersion', 'generationId', 'collection', 'entityType', 'entityId',
+          'baseRevision', 'revision', 'opId', 'opDigest', 'deleted', 'data', 'updatedAt'])
+          && d.schemaVersion is int && d.schemaVersion == 1 && d.generationId == generation && token(generation)
+          && d.collection == c && typeMatches(c, d.entityType) && d.entityId is string
+          && d.entityId.size() > 0 && d.entityId.size() <= 750 && documentId(d) == id
+          && d.baseRevision is int && d.baseRevision >= 0 && d.revision is int
+          && d.revision <= 9007199254740991 && d.revision == d.baseRevision + 1
+          && token(d.opId) && d.updatedAt == request.time && d.deleted is bool
+          && (d.deleted ? d.data == null && d.baseRevision > 0 :
+            d.data is string && d.data.size() > 0 && d.data.toUtf8().size() <= 921600)
+          && d.opDigest == hashing.sha256(d.deleted ? 'null' : d.data).toHexString().lower();
+      }
+      function receiptPath(op) {
+        return /databases/$(database)/documents/users/$(uid)/v1SyncNamespaces/$(generation)/operations/$(op);
+      }
+      function mirrors(entity, receipt) {
+        return !receipt.keys().hasAny(['data']) && entity.diff(receipt).affectedKeys().hasOnly(['data']);
+      }
+      function freshReceipt(d) {
+        let path = receiptPath(d.opId);
+        return !exists(path) && mirrors(d, getAfter(path).data);
+      }
+      function entityAdvanced(r) {
+        let c = r.collection;
+        let id = documentId(r);
+        let path = /databases/$(database)/documents/users/$(uid)/v1SyncNamespaces/$(generation)/$(c)/$(id);
+        return (exists(path) ? get(path).data.revision == r.baseRevision : r.baseRevision == 0)
+          && r.revision == r.baseRevision + 1 && mirrors(getAfter(path).data, r);
+      }
+
+      allow get: if owns(uid) && active();
+      match /{c}/{id} {
+        allow read: if owns(uid) && knownCollection(c) && active();
+        allow create: if owns(uid) && knownCollection(c) && active()
+          && validEntity(request.resource.data, c, id) && request.resource.data.baseRevision == 0
+          && freshReceipt(request.resource.data);
+        allow update: if owns(uid) && knownCollection(c) && active()
+          && validEntity(request.resource.data, c, id) && resource.data.deleted == false
+          && request.resource.data.baseRevision == resource.data.revision
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+            ['schemaVersion', 'generationId', 'collection', 'entityType', 'entityId'])
+          && freshReceipt(request.resource.data);
+      }
+      match /operations/{op} {
+        allow get: if owns(uid) && active();
+        allow create: if owns(uid) && active() && request.resource.data.opId == op && token(op)
+          && typeMatches(request.resource.data.collection, request.resource.data.entityType)
+          && entityAdvanced(request.resource.data);
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
