@@ -1,4 +1,4 @@
-const APP_VERSION = '9.88';
+const APP_VERSION = '9.89';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -38,6 +38,7 @@ const ASSET_PATHS = [
   './css/views/reta-final.css',
   './css/views/reta-final-editor.css',
   './css/views/edital-import.css',
+  './css/views/pontos-fracos.css',
   './css/views/config/config-view.css',
   './css/views/wizard.css',
   './css/views/sessions.css',
@@ -85,6 +86,8 @@ const ASSET_PATHS = [
   './js/logic/revisions.js',
   './js/logic/timer.js',
   './js/logic/progress.js',
+  './js/logic/weak-points.js',
+  './js/logic/weak-points-memo.js',
   './js/main.js',
   './js/notifications.js',
   './js/planejamento/step-renderers.js',
@@ -125,7 +128,14 @@ const ASSET_PATHS = [
   './js/sync/manual-sync.js',
   './js/sync/sync-history.js',
   './js/sync/sync-diagnostic.js',
+  './js/sync/v1-next/backup-codec.js',
+  './js/sync/v1-next/bootstrap.js',
+  './js/sync/v1-next/contracts.js',
+  './js/sync/v1-next/local.js',
+  './js/sync/v1-next/remote.js',
+  './js/sync/v1-next/sha256.js',
   './js/utils.js',
+  './js/ui-state.js',
   './js/views.js',
   './js/ui/actions/config.js',
   './js/ui/actions/dispatcher.js',
@@ -185,6 +195,7 @@ const ASSET_PATHS = [
   './js/views/reta-final-history-ui.js',
   './js/views/edital-import.js',
   './js/views/reta-final-view.js',
+  './js/views/pontos-fracos-view.js',
   './js/views/revisao-view.js',
   './js/views/skeleton-view.js',
   './js/views/state/disc-manager-state.js',

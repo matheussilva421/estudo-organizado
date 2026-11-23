@@ -113,20 +113,12 @@ function readEmergencyState() {
   return null;
 }
 
-/**
- * Inicializa banco de dados IndexedDB e carrega estado
- * @returns {Promise<void>}
- */
-export function initDB() {
-  return new Promise((resolve, _reject) => {
+function openDatabaseSchema() {
+  return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = (event) => {
-      console.error('IndexedDB Error:', event.target.error);
-      Promise.resolve(loadLegacyState()).then(resolve, (err) => {
-        console.error('Legacy fallback failed:', err);
-        resolve();
-      });
+      reject(event.target.error);
     };
 
     request.onupgradeneeded = (event) => {
@@ -174,11 +166,37 @@ export function initDB() {
 
     request.onsuccess = (event) => {
       db = event.target.result;
-      loadStateFromDB().then(() => {
-        resolve();
-      });
+      resolve(db);
     };
   });
+}
+
+/** Open and upgrade the schema without reading or migrating academic state. */
+export function ensureDB() {
+  if (db) return Promise.resolve(db);
+  return openDatabaseSchema();
+}
+
+/**
+ * Inicializa banco de dados IndexedDB e carrega estado
+ * @returns {Promise<void>}
+ */
+async function loadOrMigrateDatabase({ loadState = true } = {}) {
+  try {
+    await ensureDB();
+    if (loadState) await loadStateFromDB();
+  } catch (event) {
+    console.error('IndexedDB Error:', event?.target?.error || event);
+    try {
+      await loadLegacyState();
+    } catch (err) {
+      console.error('Legacy fallback failed:', err);
+    }
+  }
+}
+
+export function initDB(options = {}) {
+  return loadOrMigrateDatabase(options);
 }
 
 // Reuse the checksum envelopes and atomic previous/current/legacy save. Boot

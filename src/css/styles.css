@@ -2606,3 +2606,16 @@ button.cal-event-chip:focus-visible {
     min-height: 48px;
   }
 }
+/* V1 first-access gate: native inert is primary; CSS keeps blocked chrome
+   non-interactive in browsers that have not applied inert yet. */
+body.v1-sync-gated #sidebar,
+body.v1-sync-gated .topbar,
+body.v1-sync-gated .modal-overlay,
+body.v1-sync-gated .skip-link {
+  pointer-events: none !important;
+  user-select: none;
+}
+
+body.v1-sync-gated #main-content {
+  pointer-events: auto;
+}

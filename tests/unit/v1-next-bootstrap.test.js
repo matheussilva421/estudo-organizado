@@ -157,6 +157,84 @@ afterEach(() => {
 });
 
 describe('V1 next first access bootstrap', () => {
+  it('initializes Firebase and T4 before waiting for the restored Auth identity', async () => {
+    createDatabase();
+    const { local, bootstrap } = await importModules();
+    const events = [];
+    const remote = fakeRemote(remoteBaseline(academicState('Auth restaurada')));
+    const getCurrentGeneration = remote.getCurrentGeneration;
+    remote.getCurrentGeneration = vi.fn(async (uid) => {
+      events.push(`generation:${uid}`);
+      return getCurrentGeneration(uid);
+    });
+    const storage = {
+      getItem: vi.fn((key) => key === 'estudo_v1_sync_enabled' ? 'true' :
+        key === 'estudo_v1_sync_uid' ? 'uid_from_storage' : null),
+    };
+
+    const result = await bootstrap.bootstrapConfiguredV1Generation({
+      windowRef: {},
+      storage,
+      initFirebaseServices: vi.fn(() => {
+        events.push('services');
+        return { configured: true, db: { name: 'db' }, auth: { currentUser: null } };
+      }),
+      wireFirestores: vi.fn(() => {
+        events.push('wire');
+      }),
+      firestoreSdk: {},
+      observeFirebaseAuth: vi.fn((callback) => {
+        events.push('observe');
+        globalThis.queueMicrotask(() => callback({ uid: 'uid_restored' }));
+        return vi.fn();
+      }),
+      remoteApi: remote,
+      online: true,
+      local,
+    });
+
+    expect(result).toMatchObject({ enabled: true, status: 'ready', source: 'network' });
+    expect(events).toEqual([
+      'services',
+      'wire',
+      'observe',
+      'generation:uid_restored',
+    ]);
+    expect(remote.getCurrentGeneration).not.toHaveBeenCalledWith('uid_from_storage');
+  });
+
+  it('blocks instead of falling back to a storage UID when Auth has no user', async () => {
+    const { bootstrap } = await importModules();
+    const observeFirebaseAuth = vi.fn((callback) => {
+      globalThis.queueMicrotask(() => callback(null));
+      return vi.fn();
+    });
+
+    const result = await bootstrap.bootstrapConfiguredV1Generation({
+      windowRef: {},
+      storage: {
+        getItem: vi.fn((key) => key === 'estudo_v1_sync_enabled' ? 'true' :
+          key === 'estudo_v1_sync_uid' ? 'uid_from_storage' : null),
+      },
+      initFirebaseServices: vi.fn(() => ({
+        configured: true,
+        db: { name: 'db' },
+        auth: { currentUser: null },
+      })),
+      wireFirestores: vi.fn(),
+      firestoreSdk: {},
+      observeFirebaseAuth,
+      online: true,
+    });
+
+    expect(result).toEqual({
+      enabled: true,
+      status: 'blocked',
+      reason: 'V1_AUTH_REQUIRED',
+    });
+    expect(observeFirebaseAuth).toHaveBeenCalledOnce();
+  });
+
   it('opens a verified UID generation from cache without touching the network', async () => {
     createDatabase();
     const { local, bootstrap } = await importModules();
@@ -246,6 +324,28 @@ describe('V1 next first access bootstrap', () => {
     });
   });
 
+  it('accepts a verified manifest while first installing a generation', async () => {
+    createDatabase();
+    const { bootstrap } = await importModules();
+    const current = remoteBaseline(
+      academicState('Manifesto verificado'),
+      'gen_verified',
+      { state: 'verified' },
+    );
+
+    const result = await bootstrap.bootstrapV1Generation({
+      uid: 'uid_verified',
+      online: true,
+      remoteApi: fakeRemote(current),
+    });
+
+    expect(result).toMatchObject({
+      status: 'ready',
+      generationId: 'gen_verified',
+      source: 'network',
+    });
+  });
+
   it('keeps legacy data and exposes no pointer after a partial baseline write fails', async () => {
     const idb = createDatabase();
     idb.setRecord('app_state', 'main_state', { eventos: [{ id: 'legacy-safe' }] });
@@ -326,6 +426,69 @@ describe('V1 next first access bootstrap', () => {
     expect(await local.getPendingOperations('uid_revoked', 'gen_a')).toEqual(pendingBefore);
   });
 
+  it('revalidates an online cache in the background without delaying the cached open', async () => {
+    createDatabase();
+    const { bootstrap } = await importModules();
+    const current = remoteBaseline(academicState('Cache revalidada'));
+    await bootstrap.bootstrapV1Generation({
+      uid: 'uid_background',
+      online: true,
+      remoteApi: fakeRemote(current),
+    });
+    const remote = fakeRemote(current);
+    const onBackgroundResult = vi.fn();
+
+    const cached = await bootstrap.bootstrapV1Generation({
+      uid: 'uid_background',
+      online: true,
+      remoteApi: remote,
+      onBackgroundResult,
+    });
+
+    expect(cached).toMatchObject({ status: 'ready', source: 'cache' });
+    expect(remote.getCurrentGeneration).not.toHaveBeenCalled();
+    await expect(cached.backgroundValidation).resolves.toMatchObject({ status: 'ready' });
+    expect(remote.getCurrentGeneration).toHaveBeenCalledWith('uid_background');
+    expect(onBackgroundResult).toHaveBeenCalledWith({ status: 'ready', generationId: 'gen_a' });
+  });
+
+  it('surfaces a generation revoked during background revalidation', async () => {
+    createDatabase();
+    const { local, bootstrap } = await importModules();
+    const current = remoteBaseline(academicState('Será revogada'));
+    await bootstrap.bootstrapV1Generation({
+      uid: 'uid_background_revoked',
+      online: true,
+      remoteApi: fakeRemote(current),
+    });
+    const onBackgroundResult = vi.fn();
+    const revoked = {
+      getCurrentGeneration: vi.fn(async () => {
+        throw Object.assign(new Error('inactive'), {
+          code: 'V1_REMOTE_GENERATION_INACTIVE',
+        });
+      }),
+    };
+
+    const cached = await bootstrap.bootstrapV1Generation({
+      uid: 'uid_background_revoked',
+      online: true,
+      remoteApi: revoked,
+      onBackgroundResult,
+    });
+
+    expect(cached).toMatchObject({ status: 'ready', source: 'cache' });
+    await expect(cached.backgroundValidation).resolves.toMatchObject({
+      status: 'blocked',
+      reason: 'V1_REMOTE_GENERATION_INACTIVE',
+    });
+    expect(onBackgroundResult).toHaveBeenCalledWith({
+      status: 'blocked',
+      reason: 'V1_REMOTE_GENERATION_INACTIVE',
+    });
+    expect((await local.readV1GenerationPointer('uid_background_revoked')).status).toBe('blocked');
+  });
+
   it('applies a validated delta idempotently without creating outbox work', async () => {
     createDatabase();
     const { local, bootstrap } = await importModules();
@@ -375,6 +538,83 @@ describe('V1 next first access bootstrap', () => {
     expect((await local.readLocalGeneration('uid_pending', 'gen_a')).state.eventos[0].titulo)
       .toBe('Edição local pendente');
     expect(await local.getPendingOperations('uid_pending', 'gen_a')).toEqual(pendingBefore);
+  });
+
+  it('does not treat a removed document as generation revocation', async () => {
+    createDatabase();
+    const { local, bootstrap } = await importModules();
+    const initial = academicState('Remoção isolada');
+    await bootstrap.bootstrapV1Generation({
+      uid: 'uid_removed',
+      online: true,
+      remoteApi: fakeRemote(remoteBaseline(initial)),
+    });
+    const before = await local.readLocalGeneration('uid_removed', 'gen_a');
+    const pointerBefore = await local.readV1GenerationPointer('uid_removed');
+
+    await bootstrap.reconcileRemoteDelta({
+      collection: 'eventos',
+      entityId: 'ev_1',
+      record: null,
+      changeType: 'removed',
+    });
+
+    expect(await local.readV1GenerationPointer('uid_removed')).toEqual(pointerBefore);
+    expect(await local.readLocalGeneration('uid_removed', 'gen_a')).toEqual(before);
+    expect(local.getActiveV1Context()).toEqual({ uid: 'uid_removed', generationId: 'gen_a' });
+  });
+
+  it('runs the gate before storage schema work and never loads legacy before readiness', async () => {
+    const { bootstrap } = await importModules();
+    const events = [];
+
+    const result = await bootstrap.runV1FirstAccessLifecycle({
+      gate: vi.fn((status) => events.push(`gate:${status.status}`)),
+      openStorage: vi.fn(async () => events.push('storage')),
+      prepare: vi.fn(async () => {
+        events.push('prepare');
+        return { enabled: true, status: 'requires-network' };
+      }),
+      initDB: vi.fn(async () => events.push('initDB')),
+      applyState: vi.fn(() => events.push('apply')),
+      release: vi.fn(() => events.push('release')),
+    });
+
+    expect(result).toMatchObject({ status: 'requires-network' });
+    expect(events).toEqual([
+      'gate:preparing',
+      'storage',
+      'prepare',
+      'gate:requires-network',
+    ]);
+  });
+
+  it('loads IndexedDB only after a ready generation and applies the verified state', async () => {
+    const { bootstrap } = await importModules();
+    const events = [];
+    const readyState = academicState('Pronto');
+
+    const result = await bootstrap.runV1FirstAccessLifecycle({
+      gate: vi.fn((status) => events.push(`gate:${status.status}`)),
+      openStorage: vi.fn(async () => events.push('storage')),
+      prepare: vi.fn(async () => {
+        events.push('prepare');
+        return { enabled: true, status: 'ready', generationId: 'gen_a', state: readyState };
+      }),
+      initDB: vi.fn(async () => events.push('initDB')),
+      applyState: vi.fn(() => events.push('apply')),
+      release: vi.fn(() => events.push('release')),
+    });
+
+    expect(result).toMatchObject({ status: 'ready', generationId: 'gen_a' });
+    expect(events).toEqual([
+      'gate:preparing',
+      'storage',
+      'prepare',
+      'initDB',
+      'apply',
+      'release',
+    ]);
   });
 
   it('accepts only an explicit test flag and never enables production by default', async () => {

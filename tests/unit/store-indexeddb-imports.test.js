@@ -169,6 +169,55 @@ describe('store/indexeddb.js - Module integrity', () => {
     expect(store.db).toBe(indexeddb.db);
   });
 
+  it('opens the storage schema without loading or migrating legacy state', async () => {
+    const database = {
+      objectStoreNames: { contains: () => true },
+    };
+    global.indexedDB = {
+      open: vi.fn(() => {
+        const request = {};
+        globalThis.queueMicrotask(() => request.onsuccess({ target: { result: database } }));
+        return request;
+      }),
+    };
+    const legacy = { eventos: [{ id: 'legacy-not-loaded' }] };
+    global.localStorage.getItem = vi.fn((key) =>
+      key === 'estudo_state' ? JSON.stringify(legacy) : null);
+    global.localStorage.removeItem = vi.fn();
+
+    expect(indexeddb.ensureDB).toBeTypeOf('function');
+    await expect(indexeddb.ensureDB()).resolves.toBe(database);
+
+    expect(global.indexedDB.open).toHaveBeenCalledWith('EstudoOrganizadoDB', 8);
+    expect(global.localStorage.removeItem).not.toHaveBeenCalled();
+    expect(store.state.eventos).not.toContainEqual(expect.objectContaining({
+      id: 'legacy-not-loaded',
+    }));
+  });
+
+  it('can initialize IndexedDB after the V1 gate without loading legacy state', async () => {
+    const database = {
+      objectStoreNames: { contains: () => true },
+      transaction: vi.fn(),
+    };
+    global.indexedDB = {
+      open: vi.fn(() => {
+        const request = {};
+        globalThis.queueMicrotask(() => request.onsuccess({ target: { result: database } }));
+        return request;
+      }),
+    };
+    global.localStorage.getItem = vi.fn((key) =>
+      key === 'estudo_state' ? JSON.stringify({ eventos: [{ id: 'must-stay-unloaded' }] }) : null);
+    global.localStorage.removeItem = vi.fn();
+
+    await expect(indexeddb.initDB({ loadState: false })).resolves.toBeUndefined();
+
+    expect(global.indexedDB.open).toHaveBeenCalledWith('EstudoOrganizadoDB', 8);
+    expect(database.transaction).not.toHaveBeenCalled();
+    expect(global.localStorage.removeItem).not.toHaveBeenCalled();
+  });
+
   it('store.js re-exports saveTimeout as live binding', () => {
     expect(store.saveTimeout).toBeNull();
     expect(store.saveTimeout).toBe(indexeddb.saveTimeout);

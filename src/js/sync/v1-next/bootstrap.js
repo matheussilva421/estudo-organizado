@@ -25,8 +25,8 @@ const DEFAULT_REMOTE = Object.freeze({
   fetchGenerationRecords,
 });
 const V1_FLAG_KEY = 'estudo_v1_sync_enabled';
-const V1_UID_KEY = 'estudo_v1_sync_uid';
 const TEST_CONFIG_KEY = '__ESTUDO_V1_SYNC_TEST__';
+const AUTH_TIMEOUT_MS = 10_000;
 
 function clone(value) {
   return value === undefined ? undefined : structuredClone(value);
@@ -101,7 +101,7 @@ function checkedCurrentGeneration(current, uid) {
     });
   }
   validateManifest(current.manifest);
-  if (current.manifest.state !== 'active') {
+  if (!['verified', 'active'].includes(current.manifest.state)) {
     throw Object.assign(new Error('V1 generation is inactive'), {
       code: 'V1_REMOTE_GENERATION_INACTIVE',
     });
@@ -119,6 +119,7 @@ export async function bootstrapV1Generation({
   remoteApi = DEFAULT_REMOTE,
   local = localModule,
   now,
+  onBackgroundResult,
 } = {}) {
   local.clearActiveV1Context?.();
   if (typeof uid !== 'string' || !TOKEN.test(uid)) {
@@ -136,6 +137,15 @@ export async function bootstrapV1Generation({
           generationId: pointer.generationId,
           state: clone(cached.state),
           source: 'cache',
+          backgroundValidation: online
+            ? runBackgroundValidation({
+              uid,
+              generationId: pointer.generationId,
+              remoteApi,
+              local,
+              onBackgroundResult,
+            })
+            : null,
         };
       }
       if (!online) return { status: 'requires-network' };
@@ -182,6 +192,33 @@ export async function bootstrapV1Generation({
       reason: safeReason(error),
     };
   }
+}
+
+function runBackgroundValidation({
+  uid,
+  remoteApi,
+  local,
+  onBackgroundResult,
+}) {
+  return Promise.resolve()
+    .then(() => revalidateV1Generation({ uid, online: true, remoteApi, local }))
+    .then((result) => {
+      try {
+        onBackgroundResult?.(result);
+      } catch {
+        // A UI callback must not turn a completed validation into a rejected boot.
+      }
+      return result;
+    })
+    .catch(() => {
+      const result = { status: 'blocked', reason: 'V1_BOOTSTRAP_FAILED' };
+      try {
+        onBackgroundResult?.(result);
+      } catch {
+        // Preserve the fixed failure result.
+      }
+      return result;
+    });
 }
 
 /** Revalidate the active pointer before upload or after a listener failure. */
@@ -239,7 +276,8 @@ export async function reconcileRemoteDelta(
     throw new TypeError('Invalid V1 remote delta');
   }
   if (delta.record === null) {
-    await local.markV1GenerationBlocked(targetUid, targetGeneration, now);
+    // A removed collection document is local entity state. Only the remote
+    // control/manifest can revoke a generation; tombstones belong to T7.
     return;
   }
   validateRecord(delta.record);
@@ -268,36 +306,143 @@ export function isV1SyncEnabled({
   }
 }
 
-function configuredV1(windowRef, storage) {
+function configuredV1(windowRef) {
   try {
     const explicit = windowRef?.[TEST_CONFIG_KEY];
     if (explicit?.enabled === true) return explicit;
-    if (storage?.getItem(V1_FLAG_KEY) === 'true') {
-      return { enabled: true, uid: storage.getItem(V1_UID_KEY) };
-    }
   } catch {
-    // Storage denial leaves the engine disabled.
+    // An invalid test injection leaves the production Auth path intact.
   }
   return null;
 }
 
-/** Minimal app seam. It never reports success when Auth or a verified cache is absent. */
+/** Wait for Firebase's initial persisted-session callback before trusting a UID. */
+export function waitForAuthUser(observeAuth, {
+  timeoutMs = AUTH_TIMEOUT_MS,
+  setTimeoutRef = globalThis.setTimeout,
+  clearTimeoutRef = globalThis.clearTimeout,
+} = {}) {
+  if (typeof observeAuth !== 'function') return Promise.resolve(null);
+  return new Promise((resolve) => {
+    let settled = false;
+    let unsubscribe = null;
+    let timer = null;
+    const finish = (user) => {
+      if (settled) return;
+      settled = true;
+      if (timer !== null) clearTimeoutRef?.(timer);
+      try {
+        unsubscribe?.();
+      } catch {
+        // The restored identity remains authoritative even if cleanup fails.
+      }
+      resolve(user || null);
+    };
+    try {
+      unsubscribe = observeAuth((user) => finish(user));
+    } catch {
+      finish(null);
+      return;
+    }
+    if (settled) return;
+    timer = setTimeoutRef(() => finish(null), timeoutMs);
+  });
+}
+
+function blockedBoot(reason) {
+  return { enabled: true, status: 'blocked', reason };
+}
+
+function authenticatedBootInput(options, online) {
+  if (typeof options.initFirebaseServices !== 'function') {
+    throw Object.assign(new Error('Firebase services unavailable'), {
+      code: 'V1_FIREBASE_NOT_CONFIGURED',
+    });
+  }
+  const services = options.initFirebaseServices();
+  if (!services?.configured || !services.db || !services.auth) {
+    throw Object.assign(new Error('Firebase services unavailable'), {
+      code: 'V1_FIREBASE_NOT_CONFIGURED',
+    });
+  }
+  if (typeof options.wireFirestores !== 'function') {
+    throw Object.assign(new Error('V1 remote wiring unavailable'), {
+      code: 'V1_REMOTE_NOT_CONFIGURED',
+    });
+  }
+  options.wireFirestores({
+    db: services.db,
+    auth: services.auth,
+    firestore: options.firestoreSdk,
+    isOnline: () => online,
+  });
+  return services;
+}
+
+/** Resolve Firebase/Auth before any production bootstrap or cache authority. */
 export async function bootstrapConfiguredV1Generation(options = {}) {
   const windowRef = options.windowRef || globalThis.window;
   const storage = options.storage || globalThis.localStorage;
   if (!isV1SyncEnabled({ windowRef, storage })) return { enabled: false };
-  const config = options.config || configuredV1(windowRef, storage);
-  if (typeof config?.uid !== 'string' || !TOKEN.test(config.uid)) {
+  const config = options.config || configuredV1(windowRef);
+  const online = options.online ?? config?.online ?? onlineByDefault();
+  let uid = config?.enabled === true ? config.uid : options.uid;
+  try {
+    if (config?.enabled !== true) {
+      authenticatedBootInput(options, online);
+      const user = options.authUser !== undefined
+        ? options.authUser
+        : await waitForAuthUser(options.observeFirebaseAuth, {
+          timeoutMs: options.authTimeoutMs,
+          setTimeoutRef: options.setTimeoutRef,
+          clearTimeoutRef: options.clearTimeoutRef,
+        });
+      if (!user) return blockedBoot('V1_AUTH_REQUIRED');
+      uid = user.uid;
+    }
+  } catch (error) {
+    return blockedBoot(safeReason(error));
+  }
+  if (typeof uid !== 'string' || !TOKEN.test(uid)) {
     return { enabled: true, status: 'blocked', reason: 'V1_BOOTSTRAP_INVALID_UID' };
   }
   const result = await bootstrapV1Generation({
-    uid: config.uid,
-    online: options.online ?? config.online,
+    uid,
+    online,
     remoteApi: options.remoteApi || config.remoteApi || DEFAULT_REMOTE,
     local: options.local || localModule,
     now: options.now,
+    onBackgroundResult: options.onBackgroundResult,
   });
   return { enabled: true, ...result };
+}
+
+/** Keep the gate synchronous and legacy state unloaded until a generation is ready. */
+export async function runV1FirstAccessLifecycle({
+  gate,
+  openStorage,
+  prepare,
+  initDB,
+  applyState,
+  release,
+} = {}) {
+  gate?.({ status: 'preparing' });
+  try {
+    await openStorage?.();
+    const result = await prepare?.();
+    if (result?.status !== 'ready') {
+      gate?.(result);
+      return result;
+    }
+    await initDB?.();
+    applyState?.(result.state, result);
+    release?.(result);
+    return result;
+  } catch (error) {
+    const result = { enabled: true, status: 'blocked', reason: safeReason(error) };
+    gate?.(result);
+    return result;
+  }
 }
 
 export const V1_BOOTSTRAP_TEST_CONFIG = TEST_CONFIG_KEY;
