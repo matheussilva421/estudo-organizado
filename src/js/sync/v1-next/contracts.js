@@ -1,3 +1,5 @@
+import { sha256Utf8 } from './sha256.js';
+
 // Wire schema 1, independent of the academic backup's schemaVersion 12.
 // All validators throw without including private values. See the schemas below.
 const COLLECTIONS = { edital: 'editais', disciplina: 'disciplinas', evento: 'eventos',
@@ -144,7 +146,7 @@ function timestamp(value) {
 }
 
 /** Validate a materialized entity. opDigest is lowercase SHA-256 of UTF-8 data
- * (literal "null" for delete). Rules verify the hash against the committed bytes.
+ * (literal "null" for delete). This contract and Rules both recalculate it.
  * The immutable receipt contains exactly these fields except data. Its path is operations/{opId}.
  */
 export function validateRecord(record) {
@@ -158,7 +160,10 @@ export function validateRecord(record) {
     'wire identity');
   const key = recordKey(record.entityType, record.entityId);
   check(typeof record.deleted === 'boolean', 'deleted flag');
-  if (record.deleted) check(record.data === null && record.baseRevision > 0, 'terminal delete');
+  if (record.deleted) {
+    check(record.data === null && record.baseRevision > 0, 'terminal delete');
+    check(record.opDigest === sha256Utf8('null'), 'payload digest');
+  }
   else {
     check(typeof record.data === 'string', 'wire data');
     checkSize(record.data);
@@ -166,6 +171,7 @@ export function validateRecord(record) {
     try { item = JSON.parse(record.data); } catch { throw new TypeError('Invalid V1 sync JSON'); }
     checkCodecRecord(item);
     check(item.key === key, 'payload identity');
+    check(record.opDigest === sha256Utf8(record.data), 'payload digest');
   }
   return true;
 }

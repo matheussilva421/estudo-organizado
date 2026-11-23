@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { convertBackupV12 } from '../../src/js/sync/v1-next/backup-codec.js';
 import {
@@ -9,9 +10,11 @@ import {
 const stamp = { seconds: 1, nanoseconds: 0 };
 const payload = { key: 'evento:1', entityType: 'evento', entityId: 1,
   path: ['eventos', 0], data: { id: 1 } };
+const sha = text => createHash('sha256').update(text ?? 'null').digest('hex');
+const data = JSON.stringify(payload);
 const envelope = { schemaVersion: 1, generationId: 'g1', collection: 'eventos',
   entityType: 'evento', entityId: '1', revision: 1, baseRevision: 0, opId: 'o1',
-  opDigest: 'a'.repeat(64), deleted: false, data: JSON.stringify(payload), updatedAt: stamp };
+  opDigest: sha(data), deleted: false, data, updatedAt: stamp };
 const counts = { editais: 0, disciplinas: 0, eventos: 0, habitos: 0, meta: 1,
   tombstones: 0, retaFinalBlocos: 0 };
 const manifest = { schemaVersion: 1, generationId: 'g1', migrationId: 'm1',
@@ -36,10 +39,10 @@ describe('V1 remote contract', () => {
     for (const [collection, items] of Object.entries(records)) {
       for (const item of items) {
         expect(entityCollectionForType(item.entityType)).toBe(collection);
-        const data = encodeRecordData(item);
-        expect(JSON.parse(data)).toStrictEqual(item);
+        const recordData = encodeRecordData(item);
+        expect(JSON.parse(recordData)).toStrictEqual(item);
         expect(validateRecord({ ...envelope, collection, entityId: String(item.entityId),
-          entityType: item.entityType, data })).toBe(true);
+          entityType: item.entityType, opDigest: sha(recordData), data: recordData })).toBe(true);
       }
     }
   });
@@ -70,12 +73,24 @@ describe('V1 remote contract', () => {
   });
 
   it('validates a terminal delete and exact Admin manifest with baseline counts', () => {
-    expect(validateRecord({ ...envelope, revision: 2, baseRevision: 1, deleted: true, data: null })).toBe(true);
+    expect(validateRecord({ ...envelope, revision: 2, baseRevision: 1, deleted: true,
+      opDigest: sha(null), data: null })).toBe(true);
     expect(validateManifest(manifest)).toBe(true);
     for (const patch of [{ state: 'ready' }, { revision: -1 }, { counts: { total: 2, byCollection: counts } },
       { counts: {} }, { migrationId: '' }, { sourceSha256: null }, { admin: true }]) {
       expect(() => validateManifest({ ...manifest, ...patch })).toThrow();
     }
+  });
+
+  it('rejects a well-formed digest that does not match live data', () => {
+    const tampered = '0'.repeat(64);
+    expect(() => validateRecord({ ...envelope, opDigest: tampered })).toThrow(/digest/);
+  });
+
+  it('rejects a well-formed digest that does not match a deletion', () => {
+    const tampered = '0'.repeat(64);
+    expect(() => validateRecord({ ...envelope, revision: 2, baseRevision: 1,
+      opDigest: tampered, data: null, deleted: true })).toThrow(/digest/);
   });
 
   it('orders safe nonnegative revisions without coercion', () => {
