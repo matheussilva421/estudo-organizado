@@ -232,7 +232,7 @@ describe('V1 next backup codec', () => {
     const audit = auditBusinessEquivalence(fixture(), restored);
     expect(audit.ok).toBe(false);
     expect(audit.differences.map(d => d.path)).toEqual(expect.arrayContaining([
-      '/planejamento/retaFinal/blocos/0/notas', '/eventos/0/notas', '/extensao/lista/0',
+      '/planejamento/retaFinal/blocos/0/notas', '/eventos/0/notas', '/',
     ]));
     expect(JSON.stringify(audit)).not.toMatch(/SYNTHETIC_CHANGED_CONTENT|Nota inventada/);
   });
@@ -281,5 +281,110 @@ describe('V1 next backup codec', () => {
     const result = convertBackupV12(raw);
     expect(result.manifestDraft.historicalUnresolvedReferences.aulaId).toBeNull();
     expect(reconstituteBackupV12(result.records)).toStrictEqual(raw);
+  });
+
+  it('fix round 1: excludes Cloudflare last error by exact path', () => {
+    const raw = business();
+    raw.config.cfLastError = 'SYNTHETIC_CF_ERROR_ONLY';
+    const result = convertBackupV12(raw);
+    expect(result.exclusions.includes('/config/cfLastError')).toBe(true);
+    expect(JSON.stringify(result.records).includes(raw.config.cfLastError)).toBe(false);
+    expect(reconstituteBackupV12(result.records)).toStrictEqual(business());
+  });
+
+  it('fix round 1: uses legacy entityType/entityId tombstone identity regardless of array order', () => {
+    const raw = business();
+    raw.config.entityTombstones = [
+      { entityType: 'evento', entityId: 'synthetic-deleted-a', deletedAt: null },
+      { entityType: 'evento', entityId: 'synthetic-deleted-b', deletedAt: null },
+    ];
+    const keysById = result => new Map(result.records.tombstones
+      .filter(record => record.data.entityId)
+      .map(record => [record.data.entityId, record.key]));
+    const before = keysById(convertBackupV12(raw));
+    raw.config.entityTombstones.reverse();
+    const after = keysById(convertBackupV12(raw));
+    expect([...before].every(([id, key]) => after.get(id) === key)).toBe(true);
+    expect(reconstituteBackupV12(convertBackupV12(raw).records)).toStrictEqual(raw);
+  });
+
+  it('fix round 1: derives map tombstone identity from its legacy key', () => {
+    const raw = business();
+    raw.config.entityTombstones = { 'eventos:synthetic-deleted': { deletedAt: null } };
+    const result = convertBackupV12(raw);
+    const record = result.records.tombstones.find(item => item.path[0] === 'config');
+    expect(record.entityType === 'tombstone.config.entityTombstones.eventos').toBe(true);
+    expect(record.entityId === 'synthetic-deleted').toBe(true);
+    expect(reconstituteBackupV12(result.records)).toStrictEqual(raw);
+  });
+
+  it('fix round 1: rejects tombstones without recoverable identity rather than using their index', () => {
+    for (const tombstone of [{ deletedAt: null }, { col: 'eventos' }, {}, null, 123,
+      { col: 'eventos', id: '' }, { entityType: 'evento', entityId: {} }]) {
+      const raw = business();
+      raw.config.entityTombstones = [tombstone];
+      expect(() => convertBackupV12(raw)).toThrow(/tombstone identity/);
+    }
+  });
+
+  it('fix round 1: distinguishes legacy tombstone types sharing an ID and preserves zero IDs', () => {
+    const raw = business();
+    raw.config.entityTombstones = [
+      { entityType: 'evento', entityId: 0 }, { entityType: 'disciplina', entityId: 0 },
+      { col: 'eventos', id: 'same' }, { col: 'disciplinas', id: 'same' },
+    ];
+    const before = convertBackupV12(raw).records.tombstones.map(record => record.key).sort();
+    raw.config.entityTombstones.reverse();
+    expect(convertBackupV12(raw).records.tombstones.map(record => record.key).sort()).toEqual(before);
+    expect(reconstituteBackupV12(convertBackupV12(raw).records)).toStrictEqual(raw);
+  });
+
+  it('fix round 1: collapses dynamic mapping paths for additions, removals and changed values', () => {
+    const privateKey = 'SYNTHETIC_DYNAMIC_KEY_ONLY';
+    for (const map of ['userMappings', 'lessonMappings']) {
+      for (const change of ['remove', 'add', 'value']) {
+        const raw = business();
+        raw.bancaRelevance[map] = { [privateKey]: { valor: 1 } };
+        const restored = structuredClone(raw);
+        if (change === 'remove') delete restored.bancaRelevance[map][privateKey];
+        else if (change === 'add') delete raw.bancaRelevance[map][privateKey];
+        else restored.bancaRelevance[map][privateKey].valor = 2;
+        const result = auditBusinessEquivalence(raw, restored);
+        expect(result.ok).toBe(false);
+        expect(JSON.stringify(result).includes(privateKey)).toBe(false);
+        expect(result.differences).toEqual([
+          { path: `/bancaRelevance/${map}`, kind: change === 'value' ? 'value' : 'presence' },
+        ]);
+      }
+    }
+  });
+
+  it('fix round 1: never includes arbitrary input keys in audit or validation errors', () => {
+    const privateKey = 'SYNTHETIC_DYNAMIC_KEY_ONLY';
+    const captureError = raw => {
+      try { convertBackupV12(raw); } catch (error) { return error.message; }
+      throw new Error('Expected validation failure');
+    };
+    const raw = business();
+    raw.bancaRelevance.userMappings = { [privateKey]: undefined };
+    const message = captureError(raw);
+    expect(message.includes(privateKey)).toBe(false);
+    expect(message.includes('/bancaRelevance/userMappings')).toBe(true);
+    raw.bancaRelevance.userMappings = {};
+    raw[privateKey] = NaN;
+    expect(captureError(raw).includes(privateKey)).toBe(false);
+    delete raw[privateKey];
+    raw.habitos[privateKey] = {};
+    expect(captureError(raw).includes(privateKey)).toBe(false);
+    delete raw.habitos[privateKey];
+    raw.config.entityTombstones = { [privateKey]: undefined };
+    expect(captureError(raw).includes(privateKey)).toBe(false);
+    delete raw.config.entityTombstones;
+    raw.extensao = { [privateKey]: { notas: null } };
+    const restored = structuredClone(raw);
+    delete restored.extensao[privateKey];
+    const audit = auditBusinessEquivalence(raw, restored);
+    expect(audit.ok).toBe(false);
+    expect(JSON.stringify(audit).includes(privateKey)).toBe(false);
   });
 });

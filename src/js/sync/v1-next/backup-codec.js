@@ -5,7 +5,7 @@ import { validateBackupPayload } from '../../backup-restore.js';
 const ROOT_OPERATIONAL = new Set(['driveFileId', 'lastSync']);
 const CONFIG_OPERATIONAL = new Set([
   'localBackupAt', 'cfUrl', 'cfToken', 'cfTokenDraft', 'cfTokenSaved', 'cfConflict',
-  'cfRemoteUpdatedAt', 'cfLastSyncAt', '_lastUpdated', 'syncMergeConflicts',
+  'cfRemoteUpdatedAt', 'cfLastSyncAt', 'cfLastError', '_lastUpdated', 'syncMergeConflicts',
   'cfSyncEnabled', 'firestoreSync', 'entitySync', 'globalSyncPaused',
   'manualSyncHistory', 'lastManualSyncResults', 'lastManualSyncAt',
   'syncPerformance', 'syncHealth', 'lastEnvelopeBytes',
@@ -16,9 +16,58 @@ const pointer = path => '/' + path.map(x => String(x).replace(/~/g, '~0').replac
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const own = (value, key) => Object.hasOwn(value, key);
 
+// Public diagnostics follow only schema-owned fields. A null leaf also marks
+// a dynamic map: keep comparing its original keys internally, never emit them.
+const ENTITY_FIELDS = { id: null, nome: null, notas: null };
+const HABIT_TYPES = ['questoes', 'revisao', 'discursiva', 'simulado', 'leitura',
+  'informativo', 'sumula', 'videoaula', 'paginas'];
+const PUBLIC_PATH_SCHEMA = {
+  schemaVersion: null,
+  editais: [{ ...ENTITY_FIELDS, disciplinas: [{ ...ENTITY_FIELDS,
+    aulas: [ENTITY_FIELDS], assuntos: [ENTITY_FIELDS] }] }],
+  eventos: [{ ...ENTITY_FIELDS, aulaId: null, rfBlocoId: null }],
+  habitos: Object.fromEntries(HABIT_TYPES.map(type => [type, [ENTITY_FIELDS]])),
+  config: { entityTombstones: null },
+  planejamento: { retaFinal: { blocos: [ENTITY_FIELDS] } },
+  planejamentoArquivado: null, ciclo: null, cronoLivre: { tempoAcumulado: null },
+  bancaRelevance: { userMappings: null, lessonMappings: null },
+  syncTombstones: null, arquivo: null, revisoes: null,
+};
+
+function publicPointer(path) {
+  const safe = [];
+  let schema = PUBLIC_PATH_SCHEMA;
+  for (const segment of path) {
+    if (Array.isArray(schema) && Number.isInteger(segment) && segment >= 0) schema = schema[0];
+    else if (schema && !Array.isArray(schema) && own(schema, segment)) schema = schema[segment];
+    else break;
+    safe.push(segment);
+  }
+  return pointer(safe);
+}
+
 function fail(path, reason) {
   // Deliberately omit values/IDs, including from validation errors.
-  throw new Error(`Invalid V1 backup at ${pointer(path)}: ${reason}`);
+  throw new Error(`Invalid V1 backup at ${publicPointer(path)}: ${reason}`);
+}
+
+function tombstoneIdentity(data, slot, isArray, path) {
+  const validId = value => (typeof value === 'string' && value.length > 0) ||
+    (typeof value === 'number' && Number.isFinite(value));
+  const validType = value => typeof value === 'string' && value.length > 0;
+  // Legacy root shape {col,id}; legacy config shape {entityType,entityId}.
+  if (isObject(data)) {
+    if (validType(data.col) && validId(data.id)) return [data.col, data.id];
+    if (validType(data.entityType) && validId(data.entityId)) return [data.entityType, data.entityId];
+  }
+  // Legacy map keys encode type:id; split only the first colon, preserving IDs.
+  if (!isArray) {
+    const separator = slot.indexOf(':');
+    if (separator > 0 && separator < slot.length - 1) {
+      return [slot.slice(0, separator), slot.slice(separator + 1)];
+    }
+  }
+  fail(path, 'missing recoverable tombstone identity');
 }
 
 function operational(path) {
@@ -238,8 +287,8 @@ export function convertBackupV12(raw) {
     const entries = Array.isArray(items) ? items.map((item, i) => [i, item]) : Object.entries(items);
     for (const [slot, data] of entries) {
       // Origin/collection disambiguate evidence; array order is never identity.
-      const identity = isObject(data) && data.id !== undefined ? data.id : String(slot);
-      const type = `tombstone.${path.join('.')}.${isObject(data) ? data.col || 'entity' : 'key'}`;
+      const [collection, identity] = tombstoneIdentity(data, slot, Array.isArray(items), [...path, slot]);
+      const type = `tombstone.${path.join('.')}.${collection}`;
       add('tombstones', type, identity, [...path, slot], data);
       items[slot] = null;
       businessCounts.tombstones++;
@@ -308,15 +357,15 @@ export function auditBusinessEquivalence(raw, restored) {
     if (Object.is(a, b)) return;
     if (Array.isArray(a) && Array.isArray(b)) {
       for (let i = 0; i < Math.max(a.length, b.length); i++) {
-        if (i >= a.length || i >= b.length) differences.push({ path: pointer([...path, i]), kind: 'presence' });
+        if (i >= a.length || i >= b.length) differences.push({ path: publicPointer([...path, i]), kind: 'presence' });
         else compare(a[i], b[i], [...path, i]);
       }
     } else if (isObject(a) && isObject(b)) {
       for (const key of [...new Set([...Object.keys(a), ...Object.keys(b)])].sort()) {
-        if (!own(a, key) || !own(b, key)) differences.push({ path: pointer([...path, key]), kind: 'presence' });
+        if (!own(a, key) || !own(b, key)) differences.push({ path: publicPointer([...path, key]), kind: 'presence' });
         else compare(a[key], b[key], [...path, key]);
       }
-    } else differences.push({ path: pointer(path), kind: 'value' });
+    } else differences.push({ path: publicPointer(path), kind: 'value' });
   }
   compare(left, right, []);
   return { ok: differences.length === 0, differences };
