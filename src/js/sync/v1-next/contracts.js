@@ -7,6 +7,7 @@ const COLLECTIONS = { edital: 'editais', disciplina: 'disciplinas', evento: 'eve
 const ALL_COLLECTIONS = [...Object.values(COLLECTIONS), 'habitos', 'tombstones'];
 const META_IDS = ['$root', 'config', 'planejamento', 'planejamentoArquivado', 'ciclo',
   'cronoLivre', 'bancaRelevance'];
+const RETA_FINAL_REVISION_ID = /^retaFinalRevision(?::batch:[a-f0-9]{32,64})?$/;
 const MAX_BYTES = 900 * 1024;
 const TOKEN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -186,7 +187,8 @@ function checkCodecRecord(item) {
   check(Array.isArray(path) && path.length <= 4, 'codec path');
   checkJson(item);
   if (collection === 'meta') {
-    check(META_IDS.includes(id) && (id === '$root' ? path.length === 0 :
+    check((META_IDS.includes(id) || RETA_FINAL_REVISION_ID.test(id)) &&
+      (id === '$root' ? path.length === 0 :
       path.length === 1 && path[0] === id), 'meta path');
     check(isMap(data) || (data === null && !['$root', 'config'].includes(id)), 'meta shape');
     if (id === 'planejamento' && data?.retaFinal != null) {

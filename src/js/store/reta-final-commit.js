@@ -34,6 +34,16 @@ import {
   collectRetaFinalConflicts,
   removeRetaFinalConflict,
 } from "../views/reta-final-conflicts.js";
+import {
+  V1_ENTITY_META_STORE,
+  V1_LOCAL_STATE_STORE,
+  V1_SYNC_CONFLICT_STORE,
+  V1_SYNC_META_STORE,
+  V1_SYNC_OUTBOX_STORE,
+  getActiveV1Context,
+  prepareLocalCommit,
+  v1ScopeKey,
+} from "../sync/v1-next/local.js";
 
 const clone = (value) => structuredClone(value);
 const DANGEROUS_PATH_SEGMENTS = new Set([
@@ -59,6 +69,23 @@ function requestError(request) {
   return (
     request?.error || new Error("Falha ao ler estado local da Reta Final.")
   );
+}
+
+function retaFinalV1PointerKey(uid) {
+  return JSON.stringify(["v1-generation-pointer", uid]);
+}
+
+function checkedV1Pointer(record, uid, generationId) {
+  if (!record || record.key !== retaFinalV1PointerKey(uid) ||
+    record.kind !== "v1_generation_pointer" || record.uid !== uid ||
+    record.status !== "ready" || record.verified !== true ||
+    record.generationId !== generationId) {
+    return codedError(
+      "RETA_FINAL_UNAVAILABLE",
+      "A geração V1 ativa não está pronta para persistir a Reta Final.",
+    );
+  }
+  return record;
 }
 
 function uniqueOperationIds(operations) {
@@ -393,6 +420,22 @@ export function commitRetaFinalDraft({
     );
   }
 
+  const activeV1 = getActiveV1Context();
+  if (activeV1) {
+    const v1Stores = [
+      V1_LOCAL_STATE_STORE,
+      V1_SYNC_OUTBOX_STORE,
+      V1_ENTITY_META_STORE,
+      V1_SYNC_CONFLICT_STORE,
+      V1_SYNC_META_STORE,
+    ];
+    if (v1Stores.some((name) => !db.objectStoreNames.contains(name))) {
+      return Promise.reject(
+        new TypeError("Stores locais da sincronização V1 indisponíveis."),
+      );
+    }
+  }
+
   return new Promise((resolve, reject) => {
     let transaction;
     let plannedError = null;
@@ -405,8 +448,22 @@ export function commitRetaFinalDraft({
       reject(error || new Error("Transação local da Reta Final falhou."));
     };
     try {
+      const v1Stores = activeV1
+        ? [
+            V1_LOCAL_STATE_STORE,
+            V1_SYNC_OUTBOX_STORE,
+            V1_ENTITY_META_STORE,
+            V1_SYNC_CONFLICT_STORE,
+            V1_SYNC_META_STORE,
+          ]
+        : [];
       transaction = db.transaction(
-        [STORE_NAME, RETA_FINAL_DRAFT_STORE, RETA_FINAL_JOURNAL_STORE],
+        [
+          STORE_NAME,
+          RETA_FINAL_DRAFT_STORE,
+          RETA_FINAL_JOURNAL_STORE,
+          ...v1Stores,
+        ],
         "readwrite",
       );
       transaction.oncomplete = () => {
@@ -459,6 +516,19 @@ export function commitRetaFinalDraft({
         draft: draftStore.get(draftId),
         journal: journalStore.getAll(),
       };
+      if (activeV1) {
+        const scopeKey = v1ScopeKey(activeV1.uid, activeV1.generationId);
+        Object.assign(reads, {
+          v1State: transaction.objectStore(V1_LOCAL_STATE_STORE).get(scopeKey),
+          v1Pointer: transaction
+            .objectStore(V1_LOCAL_STATE_STORE)
+            .get(retaFinalV1PointerKey(activeV1.uid)),
+          v1Operations: transaction.objectStore(V1_SYNC_OUTBOX_STORE).getAll(),
+          v1EntityMeta: transaction.objectStore(V1_ENTITY_META_STORE).getAll(),
+          v1Conflicts: transaction.objectStore(V1_SYNC_CONFLICT_STORE).getAll(),
+          v1SyncMeta: transaction.objectStore(V1_SYNC_META_STORE).get(scopeKey),
+        });
+      }
       const completedReads = new Set();
       const abortForError = (error) => {
         plannedError = error;
@@ -562,6 +632,25 @@ export function commitRetaFinalDraft({
               operationIds,
             );
             nextState = buildCommittedSnapshot(state, draft, context);
+            let preparedV1 = null;
+            if (activeV1) {
+              checkedV1Pointer(
+                requestResult(reads.v1Pointer),
+                activeV1.uid,
+                activeV1.generationId,
+              );
+              preparedV1 = prepareLocalCommit({
+                uid: activeV1.uid,
+                generationId: activeV1.generationId,
+                previousState: state,
+                nextState,
+                pendingOperations: requestResult(reads.v1Operations) || [],
+                entityMeta: requestResult(reads.v1EntityMeta) || [],
+                existingConflicts: requestResult(reads.v1Conflicts) || [],
+                syncMeta: requestResult(reads.v1SyncMeta) || null,
+                now: nextState.planejamento?.updatedAt,
+              });
+            }
             const committedPlan = nextState.planejamento;
             commitResult = resultFor(committedPlan, draftId);
             const oldCurrent = requestResult(reads.current);
@@ -613,6 +702,26 @@ export function commitRetaFinalDraft({
             draftStore.put(appliedDraft);
             journalStore.put(checkpoint);
             journalStore.put(syncIntent);
+            if (preparedV1) {
+              transaction
+                .objectStore(V1_LOCAL_STATE_STORE)
+                .put(preparedV1.stateRecord);
+              const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
+              for (const operation of preparedV1.operations) {
+                outbox.put(operation);
+              }
+              for (const opId of preparedV1.deletedOperationIds) {
+                outbox.delete(opId);
+              }
+              const entityMeta = transaction.objectStore(V1_ENTITY_META_STORE);
+              for (const record of preparedV1.entityMeta) entityMeta.put(record);
+              for (const key of preparedV1.deletedEntityMetaKeys) {
+                entityMeta.delete(key);
+              }
+              const conflicts = transaction.objectStore(V1_SYNC_CONFLICT_STORE);
+              for (const conflict of preparedV1.conflicts) conflicts.put(conflict);
+              transaction.objectStore(V1_SYNC_META_STORE).put(preparedV1.syncMeta);
+            }
           } catch (error) {
             abortForError(error);
           }

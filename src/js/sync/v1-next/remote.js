@@ -161,6 +161,30 @@ function requireOnline(config) {
   }
 }
 
+/** Run a generation-bound Firestore transaction through the configured transport. */
+export async function runV1RemoteTransaction({ uid, generationId } = {}, work) {
+  validateUid(uid);
+  validateGenerationId(generationId);
+  if (typeof work !== 'function') {
+    fail('V1_REMOTE_INVALID_TRANSACTION', 'Trabalho transacional remoto inválido.');
+  }
+  const config = requireConfig();
+  requireAuth(config, uid);
+  requireOnline(config);
+  try {
+    return await config.sdk.runTransaction(config.db, async (transaction) => {
+      requireAuth(config, uid);
+      await readCurrentGenerationInTransaction(transaction, config, uid, generationId);
+      return work({ transaction, sdk: config.sdk, db: config.db, uid, generationId });
+    });
+  } catch (error) {
+    if (typeof error?.code === 'string' && error.code.startsWith('RETA_FINAL_')) {
+      throw error;
+    }
+    throw sdkFailure(error, 'V1_REMOTE_TRANSACTION_FAILED');
+  }
+}
+
 function controlRef(config, uid) {
   return config.sdk.doc(config.db, 'users', uid, 'v1SyncControl', 'current');
 }
