@@ -405,3 +405,13 @@ autorização explícita para restaurar o backup de 30/10 como nova linha de bas
 com prévia em perfil isolado, exportação do estado atual, uma sincronização
 normal, read-back, reload e segunda sincronização idempotente. Não escrever em
 produção antes disso.
+
+## 23/11/2026 — banco recriado e recuperação dos 360 eventos
+
+- O banco foi excluído no console; o backup de 23/11 foi restaurado.
+- Correções publicadas: `fc8a1d67` (remoto ausente), `4d0ffc75` (guard
+  codificado), `632f7990` (telemetria fora do payload/digest), `fe1aac54`
+  (no-op = sucesso) e `f210264b` (adoção da base remota).
+- Read-back: 360 eventos/4 editais, `snapshotRevision=7`, plano ativo da mesma
+  linhagem; sync normal “Tudo sincronizado” e no-op **ok** sem nova escrita.
+- Testes: 2987 unitários, 81 versão/SW, 9 E2E; lint 0 erros; cache 9.84.

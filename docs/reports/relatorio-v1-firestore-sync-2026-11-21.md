@@ -140,3 +140,27 @@ Para concluir a issue #107 é preciso um destes caminhos, com decisão explícit
 2. Autorizar a restauração do backup de 30/10 como nova linha de base, ciente do intervalo de aproximadamente três semanas, executada primeiro em perfil isolado, com prévia, exportação do estado atual, uma sincronização normal, read-back, reload e segunda sincronização idempotente. O tamanho é viável: a envelope real cabe no limite com ~146 KB de folga codificada.
 
 Sem esse estado, o máximo verificável é: código publicado, testes locais aprovados e sessão atual vazia e sem pendências.
+
+## 11. Incidente de 23/11/2026 — Firestore recriado
+
+O proprietário excluiu o banco pelo console e restaurou o backup de 23/11. A
+sessão ficou presa em `missing-remote-plan`; após destravar o conflito, o guard
+de tamanho ainda recusou a envelope real de **1.050.561 bytes JSON**, embora o
+documento codificado medisse **982.114 bytes** (abaixo do limite).
+
+Correções publicadas em `main`:
+
+- `fc8a1d67`: snapshot remoto ausente inicia uma linhagem nova a partir do
+  estado local, em vez de repetir o conflito;
+- `4d0ffc75`: o guard mede o documento codificado do Firestore (com margem de
+  16 KiB), não o JSON;
+- `632f7990`: telemetria operacional (`lastManualSyncAt`, `syncPerformance`,
+  `syncHealth`, `cfTokenDraft`) fica fora do payload e do digest;
+- `fe1aac54`: sincronização manual já equivalente retorna sucesso, não erro;
+- `f210264b`: a base local adota a revisão remota mais nova num no-op.
+
+Resultado verificado nesta sessão: 360 eventos e 4 editais preservados;
+documento remoto ativo com `snapshotRevision=7`, `state=active` e plano da
+mesma linhagem; sincronização normal mostrou **“Tudo sincronizado”** e o no-op
+seguinte retornou **ok** sem nova escrita. Testes: 2987 unitários, 81 de
+versão/SW e 9 E2E; lint 0 erros; cache 9.84.
