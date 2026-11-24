@@ -57,6 +57,7 @@ async function loadWorker() {
     clearActiveV1Context: vi.fn(() => { local.active = null; }),
     getActiveV1Context: vi.fn(() => local.active),
     getPendingOperations: vi.fn(async () => []),
+    isRemoteRecordCurrent: vi.fn(async () => false),
     claimLocalOperation: vi.fn(async op => ({ ...op, status: 'in-flight' })),
     ackLocalOperation: vi.fn(async () => {}),
     completePlanPublish: vi.fn(async () => true),
@@ -186,6 +187,46 @@ describe('V1 sync worker', () => {
     });
     expect(remote.applyRemoteOperation).not.toHaveBeenCalled();
     expect(local.markLocalOperationConflict).not.toHaveBeenCalled();
+  });
+
+  it('skips an unchanged baseline record without rewriting local state', async () => {
+    local.getPendingOperations.mockResolvedValue([]);
+    local.isRemoteRecordCurrent.mockResolvedValue(true);
+    await worker.startV1Sync({ uid: UID, generationId: GENERATION });
+    const delta = {
+      collection: 'eventos',
+      entityId: 'ev_baseline',
+      baseline: true,
+      record: { opId: 'op_baseline' },
+    };
+
+    await subscribed.handlers.onDelta(delta);
+
+    expect(local.isRemoteRecordCurrent).toHaveBeenCalledWith({
+      uid: UID,
+      generationId: GENERATION,
+      record: delta.record,
+    });
+    expect(bootstrap.reconcileRemoteDelta).not.toHaveBeenCalled();
+  });
+
+  it('applies a baseline record that is missing or outdated locally', async () => {
+    local.getPendingOperations.mockResolvedValue([]);
+    local.isRemoteRecordCurrent.mockResolvedValue(false);
+    await worker.startV1Sync({ uid: UID, generationId: GENERATION });
+    const delta = {
+      collection: 'eventos',
+      entityId: 'ev_baseline',
+      baseline: true,
+      record: { opId: 'op_baseline' },
+    };
+
+    await subscribed.handlers.onDelta(delta);
+
+    expect(bootstrap.reconcileRemoteDelta).toHaveBeenCalledWith(delta, {
+      uid: UID,
+      generationId: GENERATION,
+    });
   });
 
   it('publishes a queued Reta Final revision through the logical publisher', async () => {

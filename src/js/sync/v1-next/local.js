@@ -951,6 +951,28 @@ export async function readV1GenerationPointer(uid) {
   return readPointerRecord(record, uid);
 }
 
+/** Cheap check used by the listener baseline to avoid rewriting unchanged records. */
+export async function isRemoteRecordCurrent({ uid, generationId, record }) {
+  validateScope(uid, generationId);
+  validateRecord(record);
+  if (record.generationId !== generationId) failClosed('remote record generation');
+  const entityKey = recordKey(record.entityType, record.entityId);
+  const metaKey = entityMetaKey(uid, generationId, entityKey);
+  const meta = await runTransaction([V1_ENTITY_META_STORE], 'readonly', (transaction, control) => {
+    const request = transaction.objectStore(V1_ENTITY_META_STORE).get(metaKey);
+    request.onsuccess = () => control.setResult(request.result || null);
+    request.onerror = () => control.abort(request.error);
+  });
+  if (!meta || meta.uid !== uid || meta.generationId !== generationId) return false;
+  if (meta.revision !== record.revision ||
+    Boolean(meta.deleted) !== Boolean(record.deleted) ||
+    meta.lastAckedOpId !== record.opId) return false;
+  const last = meta.lastRemoteRecord;
+  return Boolean(last) && last.revision === record.revision &&
+    Boolean(last.deleted) === Boolean(record.deleted) &&
+    last.opDigest === record.opDigest;
+}
+
 /** Install one verified remote baseline and its UID pointer in one transaction. */
 export async function installRemoteBaseline({
   uid,

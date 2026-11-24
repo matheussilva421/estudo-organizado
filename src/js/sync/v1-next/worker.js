@@ -7,6 +7,7 @@ import {
   completePlanPublish,
   getActiveV1Context,
   getPendingOperations,
+  isRemoteRecordCurrent,
   markLocalOperationConflict,
   markLocalOperationRetry,
   mergeLocalOperationWithRemote,
@@ -228,6 +229,11 @@ async function handleDelta(entry, delta) {
     }
     return;
   }
+  if (delta.baseline && delta.record && await isRemoteRecordCurrent({
+    uid: entry.uid,
+    generationId: entry.generationId,
+    record: delta.record,
+  })) return;
   if (!delta.baseline) {
     let pendingSave = false;
     let flushSave = null;

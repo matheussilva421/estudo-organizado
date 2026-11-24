@@ -55,6 +55,37 @@ test.afterEach(async () => {
 });
 
 test.describe('V1 NEXT multidispositivo', () => {
+  test('reconhece a baseline verificada como já atual sem reescrever o estado', async ({ browser }) => {
+    const ids = nextIds('baseline-current');
+    await harness.seedUser({
+      ...ids,
+      state: createSingleEventState('Baseline atual'),
+    });
+    const opened = await openPage(browser, ids);
+    const record = await harness.readEntity(
+      ids.uid, ids.generationId, 'eventos', 'evento', 'ev_t11',
+    );
+    const result = await opened.page.evaluate(async ({ uid, generationId, currentRecord }) => {
+      const local = await import('/js/sync/v1-next/local.js');
+      const current = await local.isRemoteRecordCurrent({
+        uid, generationId, record: currentRecord,
+      });
+      const changed = await local.isRemoteRecordCurrent({
+        uid,
+        generationId,
+        record: {
+          ...currentRecord,
+          baseRevision: currentRecord.revision,
+          revision: currentRecord.revision + 1,
+          opId: 'op_changed',
+        },
+      });
+      return { current, changed };
+    }, { uid: ids.uid, generationId: ids.generationId, currentRecord: record });
+    expect(result).toEqual({ current: true, changed: false });
+    await opened.context.close();
+  });
+
   test('A edita e confirma; B recebe no primeiro acesso; B altera; A reabre e sobrevive a reload', async ({
     browser,
   }) => {
