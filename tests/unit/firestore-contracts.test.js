@@ -88,7 +88,7 @@ describe('Firestore integration contracts', () => {
     expect(syncCenterSource).toContain('data-action="cloud-merge-remote"');
     expect(syncCenterSource).toContain('data-action="merge-from-drive"');
     expect(configViewSource).toContain("from './config/sync-center.js");
-    expect(actionsSource).toContain("registerAction('manual-sync-all'");
+    expect(actionsSource).toContain("registerLegacySyncAction('manual-sync-all'");
   });
 
   it('coalesces Firestore status renders on the config screen', () => {
@@ -169,7 +169,7 @@ describe('Firestore integration contracts', () => {
   it('routes smart sync through Firestore primary instead of parallel secondary stores', () => {
     const actionsSource = read('src/js/ui/actions/config.js');
     const smartSyncBody =
-      actionsSource.match(/registerAction\('sync-center-smart-sync'[\s\S]*?\}\);/)?.[0] || '';
+      actionsSource.match(/registerLegacySyncAction\('sync-center-smart-sync'[\s\S]*?\}\);/)?.[0] || '';
 
     expect(smartSyncBody).toContain('flushPrimarySyncNow');
     expect(smartSyncBody).not.toContain('Promise.allSettled');

@@ -355,6 +355,9 @@ export function renderCronometro(el) {
  * Renderiza a view atual e faz cleanup de timers/charts
  */
 export function renderCurrentView() {
+  // While the V1 first-access gate is active, no view may replace the gate.
+  if (document.body?.classList?.contains('v1-sync-gated')) return;
+
   // Bug 7: clean up cronometro interval when switching views
   if (currentView !== 'cronometro' && getCronoInterval()) {
     clearInterval(getCronoInterval());
@@ -449,6 +452,8 @@ export function renderCurrentView() {
 
     // Micro-delay to allow skeleton to render before heavy computation
     setTimeout(() => {
+      // The gate may have appeared while the skeleton was on screen.
+      if (document.body?.classList?.contains('v1-sync-gated')) return;
       if (currentView === 'home') renderHome(el);
       else if (currentView === 'dashboard') renderDashboard(el);
       else if (currentView === 'editais') {

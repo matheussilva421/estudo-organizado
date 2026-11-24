@@ -38,6 +38,17 @@ describe('store.js', () => {
 
       expect(store.state.syncTombstones).toEqual([]);
     });
+
+    it('preserva o formato de mapa aceito pelo codec do backup', () => {
+      const incoming = createBaseState();
+      incoming.syncTombstones = {
+        'eventos:ev_map': { col: 'eventos', id: 'ev_map', deletedAt: '2026-06-10T12:00:00.000Z' },
+      };
+
+      store.setState(incoming);
+
+      expect(store.state.syncTombstones).toEqual(incoming.syncTombstones);
+    });
   });
 
   it('wraps local state in a checksum envelope for double-buffer recovery', () => {

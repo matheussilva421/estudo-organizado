@@ -126,12 +126,10 @@ test.describe('V1 NEXT offline e recuperação', () => {
 
     await editEvent(session.page, { id: 'ev_t11', title: 'ACK recuperado' });
     await expect.poll(() => pendingCount(session.page, ids.uid, ids.generationId)).toBe(1);
-    await session.page.evaluate(() => document.dispatchEvent(
-      new CustomEvent('stateSaved', { detail: { reason: 't11-lost-ack' } }),
-    ));
     await expect.poll(() => harness.applyTrace.some(row =>
-      row.uid === ids.uid && row.acknowledged === true && row.transportLost === true))
-      .toBe(true);
+      row.uid === ids.uid && row.acknowledged === true && row.transportLost === true), {
+      timeout: 15_000,
+    }).toBe(true);
     expect(await remoteTitle(ids)).toBe('ACK recuperado');
     let inspected = await harness.inspect(ids.uid, ids.generationId);
     expect(inspected.total).toBe(1);

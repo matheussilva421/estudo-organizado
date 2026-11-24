@@ -552,7 +552,7 @@ export async function applyRemoteOperation(operation) {
   };
 }
 
-function recordsFromSnapshot(snapshot, collectionName, generationId) {
+function recordsFromSnapshot(snapshot, collectionName, generationId, entityMeta = null) {
   const records = [];
   for (const documentSnapshot of snapshot.docs) {
     const record = documentSnapshot.data();
@@ -579,6 +579,17 @@ function recordsFromSnapshot(snapshot, collectionName, generationId) {
       fail('V1_REMOTE_INVALID_RECORD', 'A identidade lógica do documento não corresponde.');
     }
     records.push(item);
+    entityMeta?.push({
+      entityKey: recordKey(record.entityType, record.entityId),
+      entityType: record.entityType,
+      entityId: record.entityId,
+      collection: collectionName,
+      revision: record.revision,
+      opId: record.opId,
+      opDigest: record.opDigest,
+      dataText: record.data,
+      record: item,
+    });
   }
   return records;
 }
@@ -638,6 +649,7 @@ export async function fetchGenerationRecords(uid, generationId) {
 
   let total = 0;
   const records = [];
+  const entityMeta = [];
   const keys = new Set();
   for (const [collectionName, snapshot] of snapshots) {
     if (snapshot.metadata?.fromCache !== false) {
@@ -648,7 +660,7 @@ export async function fetchGenerationRecords(uid, generationId) {
       fail('V1_REMOTE_MANIFEST_MISMATCH', 'A contagem remota não corresponde ao manifesto.');
     }
     total += snapshot.docs.length;
-    for (const item of recordsFromSnapshot(snapshot, collectionName, generationId)) {
+    for (const item of recordsFromSnapshot(snapshot, collectionName, generationId, entityMeta)) {
       if (keys.has(item.key)) {
         fail('V1_REMOTE_INVALID_RECORD', 'Chave lógica duplicada na baseline.');
       }
@@ -663,6 +675,7 @@ export async function fetchGenerationRecords(uid, generationId) {
     generationId,
     manifest: generation.manifest,
     records,
+    entityMeta,
     evolved,
   };
 }
@@ -671,9 +684,7 @@ function emitDelta(entry, delta) {
   if (entry.stopped) return;
   for (const subscriber of [...entry.handlers]) {
     if (!subscriber.active) continue;
-    try {
-      subscriber.onDelta(delta);
-    } catch (error) {
+    const notify = (error) => {
       try {
         subscriber.onError(remoteError(
           'V1_REMOTE_CONSUMER_ERROR',
@@ -683,7 +694,24 @@ function emitDelta(entry, delta) {
       } catch {
         // A failing observer must not stop the transport for other observers.
       }
+    };
+    if (delta.baseline) {
+      try {
+        const result = subscriber.onDelta(delta);
+        if (result && typeof result.then === 'function') result.catch(notify);
+      } catch (error) {
+        notify(error);
+      }
+      continue;
     }
+    entry.deltaQueue = (entry.deltaQueue || Promise.resolve()).then(async () => {
+      if (!subscriber.active) return;
+      try {
+        await subscriber.onDelta(delta);
+      } catch (error) {
+        notify(error);
+      }
+    }).catch(() => {});
   }
 }
 
@@ -866,6 +894,7 @@ export function subscribeGeneration(uid, generationId, handlers = {}) {
       unsubscribers: [],
       initialized: new Set(),
       baselines: new Map(),
+      deltaQueue: Promise.resolve(),
       stopped: false,
     };
     config.subscriptions.set(key, entry);

@@ -178,6 +178,46 @@ describe('V1 sync worker', () => {
     expect(local.markLocalOperationConflict).not.toHaveBeenCalled();
   });
 
+  it('flushes a debounced local save before applying a non-baseline delta', async () => {
+    local.getPendingOperations.mockResolvedValue([]);
+    store.saveTimeout = 1;
+    store.saveStateToDB = vi.fn(async () => { store.saveTimeout = null; });
+    await worker.startV1Sync({ uid: UID, generationId: GENERATION });
+    const delta = {
+      collection: 'eventos',
+      entityId: 'ev_remote',
+      record: { opId: 'op_remote' },
+      baseline: false,
+    };
+
+    await subscribed.handlers.onDelta(delta);
+
+    expect(store.saveStateToDB).toHaveBeenCalledOnce();
+    expect(bootstrap.reconcileRemoteDelta).toHaveBeenCalledWith(delta, {
+      uid: UID,
+      generationId: GENERATION,
+    });
+  });
+
+  it('emits blocked when generation revalidation clears the active context', async () => {
+    persistentQueue([operation()]);
+    const statuses = [];
+    document.addEventListener('app:primarySyncStatus', (event) => {
+      statuses.push(event.detail);
+    });
+    bootstrap.revalidateV1Generation.mockImplementation(async () => {
+      local.clearActiveV1Context();
+      return { status: 'blocked', reason: 'V1_REMOTE_GENERATION_INVALID' };
+    });
+
+    await worker.startV1Sync({ uid: UID, generationId: GENERATION });
+
+    expect(statuses).toContainEqual(expect.objectContaining({
+      status: 'blocked',
+      reason: 'V1_REMOTE_GENERATION_INVALID',
+    }));
+  });
+
   it('waits while offline and drains automatically after reconnect', async () => {
     const first = operation();
     persistentQueue([first]);

@@ -3,6 +3,7 @@
 // =============================================
 import * as credentialsStore from '../credentials.js?v=8.37';
 import { appendSyncPerformanceMetric } from '../sync/sync-health.js?v=8.37';
+import { isV1SyncEnabled } from '../sync/v1-next/bootstrap.js';
 import { runMigrations as _runMigrations, DEFAULT_SCHEMA_VERSION } from './migrations.js';
 import { reconcileSequenceWithEvents } from '../logic/cycle-progress.js?v=8.37';
 import { markDerivedRecoveryPending } from './boot-recovery.js';
@@ -591,6 +592,16 @@ export function saveStateToDB(
   const skipSyncEvent = options.skipSyncEvent === true;
   const emitUserSaveStatus = options.emitSaveStatus !== false && touchLocalBackup;
   if (emitUserSaveStatus) emitSaveStatus('saving');
+  if (isV1SyncEnabled() && !getActiveV1Context()) {
+    const error = new Error('V1 generation is not active');
+    error.code = 'V1_GENERATION_NOT_ACTIVE';
+    if (emitUserSaveStatus) {
+      emitSaveStatus('error', {
+        detail: 'A geração V1 não está ativa. Recarregue para validar seus dados.',
+      });
+    }
+    return Promise.reject(error);
+  }
   if (!db) {
     const error = new Error('IndexedDB unavailable');
     if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(error) });
@@ -683,18 +694,20 @@ export function saveStateToDB(
             verified: record?.verified,
           });
         }
-        const currentEnvelope = currentRequest.result;
-        const previousEnvelope = options.migrationBackup || currentEnvelope;
-        if (isLocalStateEnvelopeValid(previousEnvelope)) {
-          trackWrite(store.put(
-            { ...previousEnvelope, slot: 'previous' },
-            LOCAL_STATE_PREVIOUS_KEY,
-          ));
+        if (!v1Reads) {
+          const currentEnvelope = currentRequest.result;
+          const previousEnvelope = options.migrationBackup || currentEnvelope;
+          if (isLocalStateEnvelopeValid(previousEnvelope)) {
+            trackWrite(store.put(
+              { ...previousEnvelope, slot: 'previous' },
+              LOCAL_STATE_PREVIOUS_KEY,
+            ));
+          }
+          const persistedState = stateSnapshot || _stateRef;
+          const envelope = createLocalStateEnvelope(persistedState, { slot: 'current' });
+          trackWrite(store.put(envelope, LOCAL_STATE_CURRENT_KEY));
+          trackWrite(store.put(persistedState, LOCAL_STATE_LEGACY_KEY));
         }
-        const persistedState = stateSnapshot || _stateRef;
-        const envelope = createLocalStateEnvelope(persistedState, { slot: 'current' });
-        trackWrite(store.put(envelope, LOCAL_STATE_CURRENT_KEY));
-        trackWrite(store.put(persistedState, LOCAL_STATE_LEGACY_KEY));
         if (prepared) {
           trackWrite(transaction.objectStore(V1_LOCAL_STATE_STORE).put(prepared.stateRecord));
           const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);

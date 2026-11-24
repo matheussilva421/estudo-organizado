@@ -105,6 +105,17 @@ export {
 };
 
 let v1GenerationBlocked = false;
+let v1BlockedStatusListenerInstalled = false;
+
+function installV1BlockedStatusGate() {
+  if (v1BlockedStatusListenerInstalled || typeof document === 'undefined') return;
+  v1BlockedStatusListenerInstalled = true;
+  document.addEventListener('app:primarySyncStatus', (event) => {
+    const detail = event?.detail;
+    if (detail?.mode !== 'v1' || detail.status !== 'blocked') return;
+    gateV1FirstAccess({ status: 'blocked', reason: detail.reason || 'V1_GENERATION_BLOCKED' });
+  });
+}
 
 function setV1GateLocked(locked) {
   const inertNodes = [
@@ -179,6 +190,7 @@ async function completeInitialization(options = {}) {
   initNotifications();
   initSyncCoordinator();
   if (options.v1Context) {
+    installV1BlockedStatusGate();
     await initializeV1SyncStatus(options.v1Context);
     void startV1Sync({
       ...options.v1Context,

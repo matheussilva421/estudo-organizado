@@ -1561,14 +1561,21 @@ function emitPrimaryStatus(status, detail = {}) {
   );
 }
 
-async function persistSyncConfig(skipRender = true) {
-  await saveStateToDB({
-    skipCloudSync: true,
-    skipFirestoreSync: true,
-    skipDriveSync: true,
-    touchLocalBackup: false,
-    skipSyncEvent: true,
-  });
+async function persistSyncConfig(skipRender = true, { bestEffort = true } = {}) {
+  try {
+    await saveStateToDB({
+      skipCloudSync: true,
+      skipFirestoreSync: true,
+      skipDriveSync: true,
+      touchLocalBackup: false,
+      skipSyncEvent: true,
+    });
+  } catch (err) {
+    if (!bestEffort) throw err;
+    // The sync config lives in memory too; a blocked or unavailable local
+    // database must not prevent toggling sync for the current session.
+    console.warn("Firestore sync config could not be persisted:", err?.message || err);
+  }
   if (!skipRender) emitPrimaryStatus("config-updated");
 }
 
@@ -2286,7 +2293,7 @@ export async function autoPullRemoteWhenNewer() {
       conflict: null,
       lastError: null,
     });
-    await persistSyncConfig(true);
+    await persistSyncConfig(true, { bestEffort: false });
     emitPrimaryStatus("synced", { source: "auto-pull", remoteUpdatedAt });
     emitStatus("synced");
     return true;

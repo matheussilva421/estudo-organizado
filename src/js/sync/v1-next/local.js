@@ -502,6 +502,46 @@ export function prepareLocalCommit({
         change.action === 'delete'), updatedAt: now });
       continue;
     }
+    if (change.action === 'upsert' && change.previous && durable &&
+      encodeRecordData(change.previous) !== encodeRecordData(durable)) {
+      const merged = mergeIndependentRecords({
+        base: change.previous,
+        local: change.next,
+        remote: durable,
+      });
+      if (!merged.merged) {
+        const revision = Number.isSafeInteger(meta?.revision) ? meta.revision : 0;
+        const conflictOperation = {
+          opId: operationId(existingIds),
+          uid,
+          generationId,
+          entityKey,
+          entityType: change.next.entityType,
+          entityId: change.next.entityId,
+          collection: entityCollectionForType(change.next.entityType),
+          path: clone(change.next.path),
+          baseRecord: clone(durable),
+          baseRevision: revision,
+          revision: revision + 1,
+          action: 'upsert',
+          data: clone(change.next.data),
+          dataText: encodeRecordData(change.next),
+          opDigest: sha256Utf8(encodeRecordData(change.next)),
+          status: 'conflict',
+          sequence,
+          createdAt: now,
+          updatedAt: now,
+        };
+        existingIds.add(conflictOperation.opId);
+        conflicts.push(conflictRecord(conflictOperation, {
+          code: 'local-stale',
+          remoteRevision: revision,
+          remoteRecord: null,
+        }, { now }));
+        continue;
+      }
+      change.next = merged.record;
+    }
     const tail = tailByEntity.get(entityKey);
     const candidate = tail?.status === 'pending' ? tail : null;
     const baseRevision = candidate?.baseRevision ?? tail?.revision ?? meta?.baseRevision ?? 0;
@@ -917,6 +957,7 @@ export async function installRemoteBaseline({
   generationId,
   state,
   manifest,
+  entityMeta = [],
   now = new Date().toISOString(),
   verifyManifestBaseline = true,
 }) {
@@ -929,11 +970,13 @@ export async function installRemoteBaseline({
   const versionKey = pointerKey(uid);
 
   return runTransaction(
-    [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_SYNC_META_STORE],
+    [V1_LOCAL_STATE_STORE, V1_SYNC_OUTBOX_STORE, V1_ENTITY_META_STORE,
+      V1_SYNC_META_STORE],
     'readwrite',
     (transaction, control) => {
       const stateStore = transaction.objectStore(V1_LOCAL_STATE_STORE);
       const outbox = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
+      const entityMetaStore = transaction.objectStore(V1_ENTITY_META_STORE);
       const syncMetaStore = transaction.objectStore(V1_SYNC_META_STORE);
       const reads = {};
       const done = new Set();
@@ -984,6 +1027,40 @@ export async function installRemoteBaseline({
               reads.syncMeta.nextSequence : 1,
             updatedAt: now,
           });
+          for (const item of Array.isArray(entityMeta) ? entityMeta : []) {
+            if (!item || typeof item.entityKey !== 'string' ||
+              !Number.isSafeInteger(item.revision) || item.revision < 1) {
+              failClosed('baseline entity metadata');
+            }
+            entityMetaStore.put({
+              key: entityMetaKey(uid, generationId, item.entityKey),
+              uid,
+              generationId,
+              entityKey: item.entityKey,
+              entityType: item.entityType,
+              entityId: item.entityId,
+              collection: item.collection,
+              baseRevision: item.revision,
+              revision: item.revision,
+              lastAckedOpId: item.opId,
+              lastRemoteRecord: {
+                schemaVersion: 1,
+                generationId,
+                collection: item.collection,
+                entityType: item.entityType,
+                entityId: item.entityId,
+                baseRevision: Math.max(0, item.revision - 1),
+                revision: item.revision,
+                opId: item.opId,
+                opDigest: item.opDigest,
+                deleted: false,
+                data: item.dataText,
+                updatedAt: now,
+              },
+              lastRecord: clone(item.record),
+              updatedAt: now,
+            });
+          }
           control.setResult(true);
         } catch (error) {
           control.abort(error);

@@ -3,6 +3,7 @@ import { createBaseState, createDisciplina, createEdital, createEvento } from '.
 import { createTransactionalIdb, namedError } from './reta-final-draft-idb-helper.js';
 import { encodeRecordData, validateRecord } from '../../src/js/sync/v1-next/contracts.js';
 import { sha256Utf8 } from '../../src/js/sync/v1-next/sha256.js';
+import { convertBackupV12 } from '../../src/js/sync/v1-next/backup-codec.js';
 
 const STORES = [
   'app_state',
@@ -224,6 +225,62 @@ describe('v1-next local persistence', () => {
     expect(finalOperation).toMatchObject({ action: 'delete', baseRevision: 1, revision: 2 });
     expect(validateRecord(materializeOperation(finalOperation))).toBe(true);
     expect(idb.getRecord('v1_sync_outbox', finalOperation.opId)).toMatchObject({
+      action: 'delete',
+      baseRevision: 1,
+      revision: 2,
+    });
+  });
+
+  it('keeps a delete of a baseline record at its remote revision after first access', async () => {
+    const idb = createDatabase();
+    const local = await importLocal();
+    const uid = 'uid_baseline_delete';
+    const generationId = 'gen_baseline_delete';
+    const entityId = 'ev_baseline_delete';
+    const state = academicState({
+      eventos: [createEvento({ id: entityId, titulo: 'Já existente' })],
+    });
+    const { records, manifestDraft } = convertBackupV12(state);
+    const event = records.eventos.find((record) => record.entityId === entityId);
+    const manifest = {
+      schemaVersion: 1,
+      generationId,
+      migrationId: 'migration_baseline_delete',
+      state: 'verified',
+      revision: 0,
+      sourceSha256: 'a'.repeat(64),
+      businessDigest: manifestDraft.businessDigest,
+      counts: manifestDraft.counts,
+      updatedAt: { seconds: 1800000000, nanoseconds: 0 },
+    };
+    await local.installRemoteBaseline({
+      uid,
+      generationId,
+      state,
+      manifest,
+      entityMeta: [{
+        entityKey: event.key,
+        entityType: event.entityType,
+        entityId: event.entityId,
+        collection: 'eventos',
+        revision: 1,
+        opId: 'remote_baseline_1',
+        opDigest: sha256Utf8(encodeRecordData(event)),
+        dataText: encodeRecordData(event),
+        record: event,
+      }],
+    });
+
+    await local.commitLocalChange({
+      uid,
+      generationId,
+      nextState: academicState({ eventos: [] }),
+    });
+    const deleted = (await local.getPendingOperations(uid, generationId))
+      .find((operation) => operation.entityId === entityId);
+    expect(deleted).toMatchObject({ action: 'delete', baseRevision: 1, revision: 2 });
+    expect(validateRecord(materializeOperation(deleted))).toBe(true);
+    expect(idb.getRecord('v1_sync_outbox', deleted.opId)).toMatchObject({
       action: 'delete',
       baseRevision: 1,
       revision: 2,

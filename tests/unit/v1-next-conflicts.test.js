@@ -187,6 +187,65 @@ describe('V1 revision classification and field merge', () => {
 });
 
 describe('V1 local conflict protocol', () => {
+  it('merges independent fields when a stale tab commits over newer local state', async () => {
+    const local = await importLocal();
+    const base = createBaseState({
+      schemaVersion: 12,
+      eventos: [createEvento({ id: 'ev_stale', titulo: 'Base', notas: 'Base notes' })],
+    });
+    const staleLocal = createBaseState({
+      schemaVersion: 12,
+      eventos: [createEvento({ id: 'ev_stale', titulo: 'Título B', notas: 'Base notes' })],
+    });
+    const durable = createBaseState({
+      schemaVersion: 12,
+      eventos: [createEvento({ id: 'ev_stale', titulo: 'Base', notas: 'Notas A' })],
+    });
+    const prepared = local.prepareLocalCommit({
+      uid: 'uid_stale',
+      generationId: 'gen_stale',
+      previousState: durable,
+      changeBaseState: base,
+      nextState: staleLocal,
+    });
+    const operation = prepared.operations.find((item) => item.entityId === 'ev_stale');
+    expect(operation).toBeTruthy();
+    expect(JSON.parse(operation.dataText).data).toMatchObject({
+      titulo: 'Título B',
+      notas: 'Notas A',
+    });
+    expect(prepared.conflicts).toEqual([]);
+  });
+
+  it('keeps a same-field concurrent edit as a conflict instead of overwriting', async () => {
+    const local = await importLocal();
+    const base = createBaseState({
+      schemaVersion: 12,
+      eventos: [createEvento({ id: 'ev_stale_conflict', titulo: 'Base', notas: 'Base notes' })],
+    });
+    const staleLocal = createBaseState({
+      schemaVersion: 12,
+      eventos: [createEvento({ id: 'ev_stale_conflict', titulo: 'Título B', notas: 'Notas B' })],
+    });
+    const durable = createBaseState({
+      schemaVersion: 12,
+      eventos: [createEvento({ id: 'ev_stale_conflict', titulo: 'Base', notas: 'Notas A' })],
+    });
+    const prepared = local.prepareLocalCommit({
+      uid: 'uid_stale_conflict',
+      generationId: 'gen_stale_conflict',
+      previousState: durable,
+      changeBaseState: base,
+      nextState: staleLocal,
+    });
+    expect(prepared.operations.find((item) => item.entityId === 'ev_stale_conflict'))
+      .toBeUndefined();
+    expect(prepared.conflicts).toContainEqual(expect.objectContaining({
+      entityId: 'ev_stale_conflict',
+      reason: 'local-stale',
+    }));
+  });
+
   it('reconstructs parent and root records while preserving nested disciplines', async () => {
     createDatabase();
     const local = await importLocal();

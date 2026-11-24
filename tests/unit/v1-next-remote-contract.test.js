@@ -391,11 +391,13 @@ describe('V1 remote injected contract', () => {
       docChanges: () => [{ type: 'modified', doc: nextDoc }],
     });
 
-    expect(handlers.onDelta).toHaveBeenCalledTimes(2);
-    expect(handlers.onDelta).toHaveBeenLastCalledWith(expect.objectContaining({
-      entityId: 'e1', baseline: false, changeType: 'modified',
-      record: expect.objectContaining({ opDigest: digest(nextText) }),
-    }));
+    await vi.waitFor(() => expect(handlers.onDelta).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(handlers.onDelta).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        entityId: 'e1', baseline: false, changeType: 'modified',
+        record: expect.objectContaining({ opDigest: digest(nextText) }),
+      }),
+    ));
   });
 
   it('reports listener errors and fails closed on an invalid record', async () => {

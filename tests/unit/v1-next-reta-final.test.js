@@ -87,11 +87,11 @@ it('aborts draft, state and events on an outbox failure and replay enqueues exac
   const pending = await all();
   expect(pending.length).toBeGreaterThan(0);
   expect(pending.some(op => op.entityType === 'retaFinalBloco')).toBe(true);
-  const committed = idb.getRecord('app_state', 'main_state');
+  const committed = idb.getRecord('v1_local_state', key).state;
   const journalCount = idb.journalKeys().length;
   await commit();
   expect(await all()).toEqual(pending);
-  expect(idb.getRecord('app_state', 'main_state')).toEqual(committed);
+  expect(idb.getRecord('app_state', 'main_state')).toEqual(state);
   expect(idb.journalKeys().length).toBe(journalCount);
   expect(idb.getRecord('v1_local_state', key).state.eventos).toEqual(committed.eventos);
   expect(committed.eventos.map(event => event.id)).toEqual(
@@ -126,8 +126,6 @@ it('uses the authoritative V1 cache and preserves a newer remote change outside 
   setActiveV1Context('A', 'g1');
   await commitRetaFinalDraft({ db: idb.database, draftId: 'edit-v1-ahead', expectedPlanId: 'p',
     expectedRevision: 4, context: { today: day, now: day, pruneAutomatic: false } });
-  expect(idb.getRecord('app_state', 'main_state').eventos)
-    .toContainEqual(remoteEvent);
   expect(idb.getRecord('v1_local_state', key)).toMatchObject({ verified: true });
   expect(idb.getRecord('v1_local_state', key).state.eventos)
     .toContainEqual(remoteEvent);

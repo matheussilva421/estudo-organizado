@@ -293,11 +293,8 @@ export function setState(newState, options = {}) {
     // estar nesta whitelist: setState também roda no boot e nos pulls — sem
     // isso, todo reload apagaria os tombstones e exclusões ressuscitariam.
     syncTombstones: merge
-      ? mergeValues(
-          state.syncTombstones,
-          Array.isArray(newState.syncTombstones) ? newState.syncTombstones : []
-        )
-      : deepClone(Array.isArray(newState.syncTombstones) ? newState.syncTombstones : []),
+      ? mergeValues(state.syncTombstones, newState.syncTombstones ?? [])
+      : deepClone(newState.syncTombstones ?? []),
     config: merge
       ? mergeValues(
           state.config,

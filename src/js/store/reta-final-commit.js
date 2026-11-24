@@ -131,6 +131,8 @@ function assertOperationIdsAvailable(journalRecords, draftId, operationIds) {
 }
 
 function recoverStateFromReads(reads) {
+  const v1State = requestResult(reads.v1State)?.state;
+  if (v1State) return v1State;
   const recovered = pickRecoverableLocalState({
     current: requestResult(reads.current),
     previous: requestResult(reads.previous),
@@ -146,10 +148,12 @@ function recoverStateFromReads(reads) {
 }
 
 function recoverReplayStateFromReads(reads, planId, minimumRevision) {
+  const v1State = requestResult(reads.v1State)?.state;
   const current = requestResult(reads.current);
   const previous = requestResult(reads.previous);
   const legacy = requestResult(reads.legacy);
   const candidates = [];
+  if (v1State) candidates.push(v1State);
   if (isLocalStateEnvelopeValid(current)) candidates.push(current.payload);
   if (isLocalStateEnvelopeValid(previous)) candidates.push(previous.payload);
   if (legacy && typeof legacy === "object") {
@@ -709,9 +713,11 @@ export function commitRetaFinalDraft({
               localCommitted: true,
               syncPending: true,
             };
-            appStore.put(previousEnvelope, LOCAL_STATE_PREVIOUS_KEY);
-            appStore.put(currentEnvelope, LOCAL_STATE_CURRENT_KEY);
-            appStore.put(nextState, LOCAL_STATE_LEGACY_KEY);
+            if (!preparedV1) {
+              appStore.put(previousEnvelope, LOCAL_STATE_PREVIOUS_KEY);
+              appStore.put(currentEnvelope, LOCAL_STATE_CURRENT_KEY);
+              appStore.put(nextState, LOCAL_STATE_LEGACY_KEY);
+            }
             draftStore.put(appliedDraft);
             journalStore.put(checkpoint);
             journalStore.put(syncIntent);

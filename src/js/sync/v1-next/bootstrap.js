@@ -183,6 +183,7 @@ export async function bootstrapV1Generation({
       generationId: current.generationId,
       state: verified.state,
       manifest: current.manifest,
+      entityMeta: fetched.entityMeta,
       now,
       verifyManifestBaseline,
     });

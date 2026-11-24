@@ -16,6 +16,10 @@ export let currentView = 'home';
  * @param {string} view - Nome da view
  */
 export function navigate(view) {
+  // The V1 first-access gate is a safety boundary. A render that started
+  // before an auth loss must not replace it with the previous account's UI.
+  if (document.body?.classList?.contains('v1-sync-gated')) return;
+
   // Keep navigation responsive even if a modal is currently open.
   // This prevents stale overlays from trapping pointer events after view switches.
   document.querySelectorAll('.modal-overlay.open').forEach((modal) => {

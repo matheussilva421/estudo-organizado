@@ -469,11 +469,17 @@ async function pushToCloudflareUnlocked(forceOverwrite = false) {
       cfRemoteUpdatedAt: state.config.cfRemoteUpdatedAt,
       cfConflict: state.config.cfConflict,
     });
-    await saveStateToDB({
-      skipCloudSync: true,
-      skipFirestoreSync: true,
-      skipDriveSync: true,
-    });
+    try {
+      await saveStateToDB({
+        skipCloudSync: true,
+        skipFirestoreSync: true,
+        skipDriveSync: true,
+      });
+    } catch (err) {
+      // The remote write already succeeded; report it even when the local
+      // copy cannot be persisted, and let the save-status UI show the failure.
+      console.warn('[Cloudflare] Push succeeded but local persistence failed:', err?.message || err);
+    }
     updateSyncStatus('Nuvem atualizada');
     debugLog('sync', '[Cloudflare] pushToCloudflareUnlocked saveStateToDB completed');
 

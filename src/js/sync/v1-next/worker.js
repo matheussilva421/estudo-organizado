@@ -188,6 +188,23 @@ async function refreshFromCachedState(entry) {
 
 async function handleDelta(entry, delta) {
   if (!isActive(entry)) return;
+  if (!delta.baseline) {
+    let pendingSave = false;
+    let flushSave = null;
+    try {
+      const store = await import('../../store.js?v=8.37');
+      pendingSave = Boolean(store.saveTimeout);
+      flushSave = store.saveStateToDB;
+    } catch {
+      // A partial test double may not expose the save surface.
+    }
+    if (pendingSave && typeof flushSave === 'function') {
+      // A debounced edit is still only in memory. Persist it and create its
+      // outbox operation before a remote delta replaces the in-memory state.
+      await flushSave();
+    }
+    if (!isActive(entry)) return;
+  }
   await reconcileRemoteDelta(delta, {
     uid: entry.uid,
     generationId: entry.generationId,
@@ -451,7 +468,17 @@ async function drainOnce(entry) {
     online: true,
     ...(entry.remoteApi === DEFAULT_REMOTE_API ? {} : { remoteApi: entry.remoteApi }),
   });
-  if (!isActive(entry)) return emptyResult();
+  if (!isActive(entry)) {
+    // markV1GenerationBlocked clears the active context before returning the
+    // blocked result. Surface it while this runtime entry is still current.
+    if (runtime === entry && !entry.stopping && !entry.authPaused &&
+      validated.status !== 'ready') {
+      emitStatus(entry, 'blocked', {
+        reason: validated.reason || 'V1_GENERATION_BLOCKED',
+      });
+    }
+    return emptyResult();
+  }
   if (isV1AuthFailure(validated.reason)) {
     pauseForAuth(entry, validated.reason);
     return { ...emptyResult(), pending: initial.length };
