@@ -5,6 +5,7 @@ import {
   RETA_FINAL_DRAFT_STORE,
   RETA_FINAL_JOURNAL_STORE,
   STORE_NAME,
+  noteV1ChangeBaseline,
 } from "./indexeddb.js";
 import {
   createLocalStateEnvelope,
@@ -44,6 +45,7 @@ import {
   prepareLocalCommit,
   v1ScopeKey,
 } from "../sync/v1-next/local.js";
+import { sha256Utf8 } from "../sync/v1-next/sha256.js";
 
 const clone = (value) => structuredClone(value);
 const DANGEROUS_PATH_SEGMENTS = new Set([
@@ -500,6 +502,7 @@ export function commitRetaFinalDraft({
             );
           }
         }
+        noteV1ChangeBaseline(nextState);
         resolve(clone(commitResult));
       };
       transaction.onerror = (event) => {
@@ -669,6 +672,57 @@ export function commitRetaFinalDraft({
               });
             }
             const committedPlan = nextState.planejamento;
+            if (preparedV1 && committedPlan?.retaFinal &&
+              preparedV1.conflicts.length === 0) {
+              const plan = clone(committedPlan);
+              const blocks = Array.isArray(plan.retaFinal.blocos)
+                ? clone(plan.retaFinal.blocos) : [];
+              plan.retaFinal.blocos = [];
+              const publishOperation = {
+                planId: committedPlan.planId,
+                baseRevision: expectedRevision,
+                revision: committedPlan.revision,
+                opId: `rfpub_${String(draftId).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 120)}`,
+                blocks,
+                metadata: {
+                  plan,
+                  planejamentoArquivado: clone(nextState.planejamentoArquivado ?? null),
+                  operations: clone(draft.operations),
+                },
+              };
+              preparedV1.operations = preparedV1.operations.filter(operation =>
+                operation.collection !== 'retaFinalBlocos' &&
+                !(operation.entityType === 'meta' &&
+                  ['planejamento', 'planejamentoArquivado'].includes(operation.entityId)));
+              preparedV1.entityMeta = preparedV1.entityMeta.filter(record =>
+                record.collection !== 'retaFinalBlocos' &&
+                !(record.entityType === 'meta' &&
+                  ['planejamento', 'planejamentoArquivado'].includes(record.entityId)));
+              const dataText = JSON.stringify(publishOperation);
+              const sequence = preparedV1.syncMeta.nextSequence;
+              preparedV1.syncMeta.nextSequence = sequence + 1;
+              preparedV1.operations.push({
+                opId: publishOperation.opId,
+                uid: activeV1.uid,
+                generationId: activeV1.generationId,
+                entityKey: 'meta:retaFinalRevision',
+                entityType: 'meta',
+                entityId: 'retaFinalRevision',
+                collection: 'meta',
+                path: ['retaFinalRevision'],
+                baseRevision: 0,
+                revision: 1,
+                action: 'upsert',
+                data: publishOperation,
+                dataText,
+                opDigest: sha256Utf8(dataText),
+                status: 'pending',
+                kind: 'reta-final-publish',
+                sequence,
+                createdAt: nextState.planejamento?.updatedAt,
+                updatedAt: nextState.planejamento?.updatedAt,
+              });
+            }
             commitResult = resultFor(committedPlan, draftId);
             const oldCurrent = requestResult(reads.current);
             const previousEnvelope = isLocalStateEnvelopeValid(oldCurrent)

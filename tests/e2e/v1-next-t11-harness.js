@@ -18,6 +18,7 @@ import { encodeDocId, encodeRecordData } from '../../src/js/sync/v1-next/contrac
 import { createE2EState } from '../helpers/e2e-state.js';
 import {
   applyRemoteOperation,
+  fetchPlanRevision,
   fetchGenerationRecords,
   getCurrentGeneration,
   wireFirestores,
@@ -284,6 +285,11 @@ export class V1T11Harness {
     return fetchGenerationRecords(uid, generationId);
   }
 
+  async fetchPlan(uid, generationId) {
+    this.wireUser(uid);
+    return fetchPlanRevision(uid, generationId);
+  }
+
   async applyOperation(operation) {
     const calls = this.applyCalls.get(operation.uid) || 0;
     this.applyCalls.set(operation.uid, calls + 1);
@@ -469,6 +475,13 @@ export class V1T11Harness {
         return browserFailure(error);
       }
     });
+    await page.exposeFunction('__v1t11_fetch_plan', async (uid, generationId) => {
+      try {
+        return browserResult(await this.fetchPlan(uid, generationId));
+      } catch (error) {
+        return browserFailure(error);
+      }
+    });
     await page.exposeFunction('__v1t11_apply_operation', async operation => {
       try {
         return browserResult(await this.applyOperation(operation));
@@ -535,6 +548,10 @@ export class V1T11Harness {
           assertOnline();
           window.__T11_BRIDGE_STATS__.fetch += 1;
           return callBridge('__v1t11_fetch_generation', uid, generationId);
+        },
+        async fetchPlanRevision(uid, generationId) {
+          assertOnline();
+          return callBridge('__v1t11_fetch_plan', uid, generationId);
         },
         async applyRemoteOperation(operation) {
           assertOnline();

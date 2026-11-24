@@ -43,6 +43,7 @@ function receiptFor(item, overrides = {}) {
 let local;
 let remote;
 let bootstrap;
+let retaFinal;
 let store;
 let worker;
 let subscribed;
@@ -58,6 +59,8 @@ async function loadWorker() {
     getPendingOperations: vi.fn(async () => []),
     claimLocalOperation: vi.fn(async op => ({ ...op, status: 'in-flight' })),
     ackLocalOperation: vi.fn(async () => {}),
+    completePlanPublish: vi.fn(async () => true),
+    applyPublishedPlanRevision: vi.fn(async () => true),
     markLocalOperationRetry: vi.fn(async () => {}),
     markLocalOperationConflict: vi.fn(async () => {}),
     mergeLocalOperationWithRemote: vi.fn(async () => ({ merged: false })),
@@ -70,6 +73,7 @@ async function loadWorker() {
     })),
   };
   remote = {
+    fetchPlanRevision: vi.fn(),
     applyRemoteOperation: vi.fn(),
     subscribeGeneration: vi.fn((uid, generationId, handlers) => {
       subscribed = { uid, generationId, handlers, stop: vi.fn() };
@@ -81,11 +85,17 @@ async function loadWorker() {
     reconcileRemoteDelta: vi.fn(async () => {}),
     revalidateV1Generation: vi.fn(async () => ({ status: 'ready' })),
   };
-  store = { setState: vi.fn() };
+  retaFinal = {
+    publishPlanRevision: vi.fn(),
+    applyPlanRevisionToState: vi.fn((state) => state),
+    resolveVisiblePlanRevision: vi.fn(),
+  };
+  store = { setState: vi.fn(), noteV1ChangeBaseline: vi.fn(), state: {} };
 
   vi.doMock('../../src/js/sync/v1-next/local.js', () => local);
   vi.doMock('../../src/js/sync/v1-next/remote.js', () => remote);
   vi.doMock('../../src/js/sync/v1-next/bootstrap.js', () => bootstrap);
+  vi.doMock('../../src/js/sync/v1-next/reta-final.js', () => retaFinal);
   vi.doMock('../../src/js/store.js?v=8.37', () => store);
   worker = await import('../../src/js/sync/v1-next/worker.js');
 }
@@ -176,6 +186,72 @@ describe('V1 sync worker', () => {
     });
     expect(remote.applyRemoteOperation).not.toHaveBeenCalled();
     expect(local.markLocalOperationConflict).not.toHaveBeenCalled();
+  });
+
+  it('publishes a queued Reta Final revision through the logical publisher', async () => {
+    const publish = operation({
+      opId: 'rfpub_1',
+      entityKey: 'meta:retaFinalRevision',
+      entityType: 'meta',
+      entityId: 'retaFinalRevision',
+      collection: 'meta',
+      kind: 'reta-final-publish',
+      data: {
+        planId: 'plan', baseRevision: 0, revision: 1, opId: 'rfpub_1',
+        blocks: [], metadata: {},
+      },
+    });
+    persistentQueue([publish]);
+    retaFinal.publishPlanRevision.mockResolvedValue({
+      status: 'published', planId: 'plan', revision: 1,
+    });
+
+    await worker.startV1Sync({ uid: UID, generationId: GENERATION });
+
+    expect(retaFinal.publishPlanRevision).toHaveBeenCalledWith(publish.data);
+    expect(local.completePlanPublish).toHaveBeenCalledWith(
+      'rfpub_1',
+      expect.objectContaining({ status: 'published', revision: 1 }),
+    );
+  });
+
+  it('applies a published plan pointer without reconciling staging records into state', async () => {
+    local.getPendingOperations.mockResolvedValue([]);
+    local.readLocalGeneration.mockResolvedValue({
+      state: { eventos: [] }, verified: true,
+    });
+    remote.fetchPlanRevision.mockResolvedValue({
+      pointer: { entityId: 'retaFinalRevision' },
+      records: [{ entityId: 'retaFinalRevision' }],
+    });
+    retaFinal.resolveVisiblePlanRevision.mockReturnValue({
+      planId: 'plan', revision: 1, blocks: [],
+      metadata: { plan: { retaFinal: { blocos: [] } } },
+    });
+    retaFinal.applyPlanRevisionToState.mockImplementation(state => state);
+    await worker.startV1Sync({ uid: UID, generationId: GENERATION });
+
+    await subscribed.handlers.onDelta({
+      collection: 'meta',
+      entityId: 'retaFinalRevision',
+      record: {},
+      baseline: false,
+    });
+
+    expect(remote.fetchPlanRevision).toHaveBeenCalledWith(UID, GENERATION);
+    expect(local.applyPublishedPlanRevision).toHaveBeenCalledOnce();
+  });
+
+  it('coalesces a burst of deltas into one UI refresh', async () => {
+    local.getPendingOperations.mockResolvedValue([]);
+    local.readLocalGeneration.mockResolvedValue({
+      state: { eventos: [] }, verified: true,
+    });
+    await worker.startV1Sync({ uid: UID, generationId: GENERATION });
+    await subscribed.handlers.onDelta({ collection: 'retaFinalBlocos', entityId: 'b1', record: {} });
+    await subscribed.handlers.onDelta({ collection: 'retaFinalBlocos', entityId: 'b2', record: {} });
+    await vi.advanceTimersByTimeAsync(200);
+    expect(store.setState).toHaveBeenCalledTimes(1);
   });
 
   it('flushes a debounced local save before applying a non-baseline delta', async () => {

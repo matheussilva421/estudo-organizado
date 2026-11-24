@@ -552,7 +552,7 @@ export async function applyRemoteOperation(operation) {
   };
 }
 
-function recordsFromSnapshot(snapshot, collectionName, generationId, entityMeta = null) {
+function recordsFromSnapshot(snapshot, collectionName, generationId, entityMeta = null, planRecords = null) {
   const records = [];
   for (const documentSnapshot of snapshot.docs) {
     const record = documentSnapshot.data();
@@ -578,8 +578,15 @@ function recordsFromSnapshot(snapshot, collectionName, generationId, entityMeta 
       encodeDocId(item.key) !== documentSnapshot.id) {
       fail('V1_REMOTE_INVALID_RECORD', 'A identidade lógica do documento não corresponde.');
     }
-    records.push(item);
-    entityMeta?.push({
+    const isPlanRecord = collectionName === 'meta' && (
+      item.entityId === 'retaFinalRevision' ||
+      (typeof item.entityId === 'string' && item.entityId.startsWith('retaFinalRevision:batch:')));
+    if (isPlanRecord) {
+      planRecords?.push(item);
+    } else {
+      records.push(item);
+    }
+    if (!isPlanRecord) entityMeta?.push({
       entityKey: recordKey(record.entityType, record.entityId),
       entityType: record.entityType,
       entityId: record.entityId,
@@ -650,6 +657,7 @@ export async function fetchGenerationRecords(uid, generationId) {
   let total = 0;
   const records = [];
   const entityMeta = [];
+  const planRecords = [];
   const keys = new Set();
   for (const [collectionName, snapshot] of snapshots) {
     if (snapshot.metadata?.fromCache !== false) {
@@ -660,7 +668,8 @@ export async function fetchGenerationRecords(uid, generationId) {
       fail('V1_REMOTE_MANIFEST_MISMATCH', 'A contagem remota não corresponde ao manifesto.');
     }
     total += snapshot.docs.length;
-    for (const item of recordsFromSnapshot(snapshot, collectionName, generationId, entityMeta)) {
+    for (const item of recordsFromSnapshot(snapshot, collectionName, generationId, entityMeta,
+      planRecords)) {
       if (keys.has(item.key)) {
         fail('V1_REMOTE_INVALID_RECORD', 'Chave lógica duplicada na baseline.');
       }
@@ -676,7 +685,37 @@ export async function fetchGenerationRecords(uid, generationId) {
     manifest: generation.manifest,
     records,
     entityMeta,
+    planRevision: {
+      pointer: planRecords.find(item => item.entityId === 'retaFinalRevision') || null,
+      records: planRecords,
+    },
     evolved,
+  };
+}
+
+/** Read only the Reta Final staging batches and pointer for a generation. */
+export async function fetchPlanRevision(uid, generationId) {
+  validateUid(uid);
+  validateGenerationId(generationId);
+  const config = requireConfig();
+  requireAuth(config, uid);
+  requireOnline(config);
+  let snapshot;
+  try {
+    snapshot = await config.sdk.getDocsFromServer(config.sdk.collection(
+      config.db, 'users', uid, 'v1SyncNamespaces', generationId, 'meta',
+    ));
+  } catch (error) {
+    throw sdkFailure(error, 'V1_REMOTE_READ_FAILED');
+  }
+  if (snapshot.metadata?.fromCache !== false) {
+    fail('V1_REMOTE_CACHE_REJECTED', 'O plano remoto não veio do servidor.');
+  }
+  const planRecords = [];
+  recordsFromSnapshot(snapshot, 'meta', generationId, null, planRecords);
+  return {
+    pointer: planRecords.find(item => item.entityId === 'retaFinalRevision') || null,
+    records: planRecords,
   };
 }
 

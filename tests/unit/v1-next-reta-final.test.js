@@ -86,7 +86,11 @@ it('aborts draft, state and events on an outbox failure and replay enqueues exac
   };
   const pending = await all();
   expect(pending.length).toBeGreaterThan(0);
-  expect(pending.some(op => op.entityType === 'retaFinalBloco')).toBe(true);
+  expect(pending.find(op => op.kind === 'reta-final-publish')).toMatchObject({
+    entityId: 'retaFinalRevision',
+    status: 'pending',
+  });
+  expect(pending.some(op => op.entityType === 'retaFinalBloco')).toBe(false);
   const committed = idb.getRecord('v1_local_state', key).state;
   const journalCount = idb.journalKeys().length;
   await commit();

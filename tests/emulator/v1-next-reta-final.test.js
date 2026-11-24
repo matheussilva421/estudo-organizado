@@ -2,7 +2,11 @@ import { readFile } from 'node:fs/promises';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import * as sdk from 'firebase/firestore';
 import { afterAll, beforeAll, expect, it } from 'vitest';
-import { wireFirestores } from '../../src/js/sync/v1-next/remote.js';
+import {
+  fetchGenerationRecords,
+  fetchPlanRevision,
+  wireFirestores,
+} from '../../src/js/sync/v1-next/remote.js';
 import { setActiveV1Context, clearActiveV1Context } from '../../src/js/sync/v1-next/local.js';
 import { encodeDocId } from '../../src/js/sync/v1-next/contracts.js';
 
@@ -59,6 +63,14 @@ it('keeps two readers on the prior revision across interrupted staging and publi
   };
   const first = await publishPlanRevision(op);
   expect(first).toMatchObject({ status: 'published', revision: 1, blocks });
+  const planSnapshot = await fetchPlanRevision('A', 'g1');
+  expect(planSnapshot.pointer).toBeTruthy();
+  const resolvedSnapshot = resolveVisiblePlanRevision(planSnapshot.pointer, planSnapshot.records);
+  expect(resolvedSnapshot).toMatchObject({ planId: 'plan', revision: 1, blocks });
+  const generation = await fetchGenerationRecords('A', 'g1');
+  expect(generation.planRevision.pointer).toBeTruthy();
+  expect(generation.records.some(record => record.entityId === 'retaFinalRevision'))
+    .toBe(false);
   const next = { ...op, baseRevision: 1, opId: 'next', blocks: blocks.slice(1).reverse()
     .map((b, ordem) => ({ ...b, ordem, notas: 'nova', dataPlanejada: '2026-11-25' })),
     metadata: { ...metadata, tombstones: ['b0'] } };

@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createBaseState, createEvento } from '../helpers/state-builders.js';
 import { createTransactionalIdb, namedError } from './reta-final-draft-idb-helper.js';
 import { convertBackupV12 } from '../../src/js/sync/v1-next/backup-codec.js';
-import { encodeRecordData } from '../../src/js/sync/v1-next/contracts.js';
+import { encodeRecordData, recordKey } from '../../src/js/sync/v1-next/contracts.js';
 import { sha256Utf8 } from '../../src/js/sync/v1-next/sha256.js';
+import { preparePlanRevision } from '../../src/js/sync/v1-next/reta-final.js';
 
 const STORES = [
   'app_state',
@@ -126,7 +127,7 @@ async function importModules() {
   return { local, bootstrap };
 }
 
-function fakeRemote(current, records = current.records, evolved = false) {
+function fakeRemote(current, records = current.records, evolved = false, planRevision = null) {
   return {
     getCurrentGeneration: vi.fn(async () => current),
     fetchGenerationRecords: vi.fn(async () => ({
@@ -134,6 +135,7 @@ function fakeRemote(current, records = current.records, evolved = false) {
       manifest: current.manifest,
       records,
       evolved,
+      planRevision: planRevision || { pointer: null, records: [] },
     })),
   };
 }
@@ -852,6 +854,57 @@ describe('V1 next first access bootstrap', () => {
       local: (await import('../../src/js/sync/v1-next/local.js')),
       online: false,
     })).toMatchObject({ enabled: true, status: 'requires-network' });
+  });
+
+  it('applies a published Reta Final revision during bootstrap', async () => {
+    createDatabase();
+    const { bootstrap, local } = await importModules();
+    const state = academicState('Plano publicado');
+    const blocks = [{
+      id: 'rf_plan_1', discId: 'disc_1', topicos: [{ assId: 'ass_1', aulaId: null }],
+      minutos: 30, status: 'pendente', ordem: 0,
+      dataOriginal: '2026-11-24', dataPlanejada: '2026-11-24', data: '2026-11-24',
+      rolagens: 0,
+    }];
+    const plan = {
+      ...state.planejamento,
+      ativo: true,
+      tipo: 'reta_final',
+      planId: 'plan_publicado',
+      revision: 2,
+      retaFinal: { nome: 'Reta Final', dataFinal: '2026-12-23', minutosPadrao: 30, blocos: [] },
+    };
+    const prepared = preparePlanRevision({
+      planId: plan.planId,
+      baseRevision: 1,
+      opId: 'rfpub_test',
+      blocks,
+      metadata: { plan, planejamentoArquivado: null },
+    });
+    const pointer = {
+      key: recordKey('meta', 'retaFinalRevision'),
+      entityType: 'meta',
+      entityId: 'retaFinalRevision',
+      path: ['retaFinalRevision'],
+      data: prepared.manifest,
+    };
+    const current = remoteBaseline(state);
+    const remote = fakeRemote(current, current.records, true, {
+      pointer,
+      records: [pointer, ...prepared.batches],
+    });
+
+    const result = await bootstrap.bootstrapV1Generation({
+      uid: 'A',
+      online: true,
+      remoteApi: remote,
+      local,
+    });
+
+    expect(result).toMatchObject({ status: 'ready', generationId: 'gen_a' });
+    const cached = await local.readLocalGeneration('A', 'gen_a');
+    expect(cached.state.planejamento).toMatchObject({ planId: 'plan_publicado', revision: 2 });
+    expect(cached.state.planejamento.retaFinal.blocos).toEqual(blocks);
   });
 
   it('fails closed when the configured test UID is absent', async () => {

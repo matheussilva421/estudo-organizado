@@ -178,10 +178,20 @@ export async function bootstrapV1Generation({
     // by validateRecord before it reaches local storage.
     const verifyManifestBaseline = fetched.evolved !== true;
     const verified = validateV1Baseline(fetched, { verifyManifestBaseline });
+    let installedState = verified.state;
+    if (fetched.planRevision?.pointer) {
+      const { applyPlanRevisionToState, resolveVisiblePlanRevision } =
+        await import('./reta-final.js');
+      const revision = resolveVisiblePlanRevision(
+        fetched.planRevision.pointer,
+        fetched.planRevision.records,
+      );
+      installedState = applyPlanRevisionToState(installedState, revision);
+    }
     await local.installRemoteBaseline({
       uid,
       generationId: current.generationId,
-      state: verified.state,
+      state: installedState,
       manifest: current.manifest,
       entityMeta: fetched.entityMeta,
       now,

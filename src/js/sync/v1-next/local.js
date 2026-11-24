@@ -1131,6 +1131,78 @@ export async function markV1GenerationBlocked(
   if (active?.uid === uid && active.generationId === generationId) clearActiveV1Context();
 }
 
+/** Apply a fully resolved Reta Final revision without enqueueing new writes. */
+export async function applyPublishedPlanRevision({
+  uid,
+  generationId,
+  state: publishedState,
+  now = new Date().toISOString(),
+} = {}) {
+  validateScope(uid, generationId);
+  if (!publishedState || typeof publishedState !== 'object') failClosed('published plan state');
+  const stateKey = scopeKey(uid, generationId);
+  const versionKey = pointerKey(uid);
+  return runTransaction([V1_LOCAL_STATE_STORE], 'readwrite', (transaction, control) => {
+    const store = transaction.objectStore(V1_LOCAL_STATE_STORE);
+    const stateRequest = store.get(stateKey);
+    const pointerRequest = store.get(versionKey);
+    const reads = {};
+    const stage = () => {
+      if (!Object.hasOwn(reads, 'state') || !Object.hasOwn(reads, 'pointer')) return;
+      try {
+        const current = reads.state;
+        const pointer = readPointerRecord(reads.pointer, uid);
+        if (!current || current.key !== stateKey || current.uid !== uid ||
+          current.generationId !== generationId || current.verified !== true ||
+          pointer?.generationId !== generationId || pointer.status !== 'ready') {
+          failClosed('published plan cache');
+        }
+        store.put({
+          ...current,
+          state: clone(publishedState),
+          verified: true,
+          verifiedAt: current.verifiedAt || now,
+          updatedAt: now,
+        });
+        control.setResult(true);
+      } catch (error) {
+        control.abort(error);
+      }
+    };
+    stateRequest.onsuccess = () => { reads.state = stateRequest.result; stage(); };
+    stateRequest.onerror = () => control.abort(stateRequest.error);
+    pointerRequest.onsuccess = () => { reads.pointer = pointerRequest.result; stage(); };
+    pointerRequest.onerror = () => control.abort(pointerRequest.error);
+  });
+}
+
+/** Mark a logical plan publication as acknowledged without a fake entity receipt. */
+export async function completePlanPublish(opId, result = {}, now = new Date().toISOString()) {
+  if (typeof opId !== 'string' || !TOKEN.test(opId)) failClosed('operation ID');
+  return runTransaction([V1_SYNC_OUTBOX_STORE], 'readwrite', (transaction, control) => {
+    const store = transaction.objectStore(V1_SYNC_OUTBOX_STORE);
+    const request = store.get(opId);
+    request.onerror = () => control.abort(request.error);
+    request.onsuccess = () => {
+      const operation = request.result;
+      if (!operation) {
+        control.setResult(false);
+        return;
+      }
+      const acked = operation.status === 'acked';
+      store.put({
+        ...operation,
+        status: 'acked',
+        publishedPlanId: result.planId ?? operation.publishedPlanId ?? null,
+        publishedRevision: result.revision ?? operation.publishedRevision ?? null,
+        ackedAt: acked ? operation.ackedAt : now,
+        updatedAt: now,
+      });
+      control.setResult(true);
+    };
+  });
+}
+
 /** Apply one validated remote record to state without creating a local operation. */
 export async function applyRemoteRecord({
   uid,

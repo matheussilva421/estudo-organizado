@@ -274,6 +274,23 @@ export function resolveVisiblePlanRevision(manifestInput, records) {
   return { ...clone(manifest), ...normalized };
 }
 
+/** Apply a resolved logical plan revision to the application state. */
+export function applyPlanRevisionToState(state, revision) {
+  if (!isObject(state) || !isObject(revision) || !isObject(revision.metadata) ||
+    !isObject(revision.metadata.plan) || !isObject(revision.metadata.plan.retaFinal) ||
+    !Array.isArray(revision.blocks)) {
+    fail('RETA_FINAL_REVISION_INVALID', 'Revisão aplicável ausente.');
+  }
+  const next = clone(state);
+  const plan = clone(revision.metadata.plan);
+  plan.retaFinal.blocos = clone(revision.blocks);
+  next.planejamento = plan;
+  if (revision.metadata.planejamentoArquivado !== undefined) {
+    next.planejamentoArquivado = clone(revision.metadata.planejamentoArquivado);
+  }
+  return next;
+}
+
 function operationScope(operation) {
   const active = getActiveV1Context();
   const uid = operation.uid ?? active?.uid;
@@ -348,8 +365,6 @@ export async function publishPlanRevision(operation) {
         });
       }
       pointerBase = pointerRecord.revision;
-    } else if (!replay && operation.baseRevision !== 0) {
-      fail('RETA_FINAL_STALE', 'Primeira publicação deve partir da revisão zero.');
     }
 
     const staged = [];

@@ -1,8 +1,10 @@
 import {
   ackLocalOperation,
+  applyPublishedPlanRevision,
   acquireV1WorkerLease,
   claimLocalOperation,
   clearActiveV1Context,
+  completePlanPublish,
   getActiveV1Context,
   getPendingOperations,
   markLocalOperationConflict,
@@ -13,7 +15,12 @@ import {
   renewV1WorkerLease,
   setActiveV1Context,
 } from './local.js';
-import { applyRemoteOperation, subscribeGeneration } from './remote.js';
+import { applyRemoteOperation, fetchPlanRevision, subscribeGeneration } from './remote.js';
+import {
+  applyPlanRevisionToState,
+  publishPlanRevision,
+  resolveVisiblePlanRevision,
+} from './reta-final.js';
 import {
   isV1AuthFailure,
   reconcileRemoteDelta,
@@ -41,6 +48,7 @@ const CONFLICT_CODES = new Set([
 ]);
 const DEFAULT_REMOTE_API = Object.freeze({
   applyRemoteOperation,
+  fetchPlanRevision,
   subscribeGeneration,
 });
 
@@ -186,8 +194,40 @@ async function refreshFromCachedState(entry) {
   }
 }
 
+function scheduleDeltaRefresh(entry) {
+  if (!isActive(entry)) return;
+  clearTimer(entry, 'refreshTimer');
+  entry.refreshTimer = setTimeout(() => {
+    entry.refreshTimer = null;
+    if (isActive(entry)) void refreshFromCachedState(entry);
+  }, EVENT_DEBOUNCE_MS * 2);
+}
+
 async function handleDelta(entry, delta) {
   if (!isActive(entry)) return;
+  if (delta.collection === 'meta' && typeof delta.entityId === 'string' &&
+    (delta.entityId === 'retaFinalRevision' ||
+      delta.entityId.startsWith('retaFinalRevision:batch:'))) {
+    if (delta.entityId === 'retaFinalRevision') {
+      const remote = await entry.remoteApi.fetchPlanRevision(
+        entry.uid, entry.generationId,
+      );
+      if (remote?.pointer) {
+        const revision = resolveVisiblePlanRevision(remote.pointer, remote.records);
+        const cached = await readLocalGeneration(entry.uid, entry.generationId);
+        if (cached?.state) {
+          const nextState = applyPlanRevisionToState(cached.state, revision);
+          await applyPublishedPlanRevision({
+            uid: entry.uid,
+            generationId: entry.generationId,
+            state: nextState,
+          });
+          scheduleDeltaRefresh(entry);
+        }
+      }
+    }
+    return;
+  }
   if (!delta.baseline) {
     let pendingSave = false;
     let flushSave = null;
@@ -209,7 +249,7 @@ async function handleDelta(entry, delta) {
     uid: entry.uid,
     generationId: entry.generationId,
   });
-  await refreshFromCachedState(entry);
+  scheduleDeltaRefresh(entry);
 }
 
 function pauseForAuth(entry, reason) {
@@ -218,6 +258,7 @@ function pauseForAuth(entry, reason) {
   clearTimer(entry, 'debounceTimer');
   clearTimer(entry, 'retryTimer');
   clearTimer(entry, 'listenerTimer');
+  clearTimer(entry, 'refreshTimer');
   entry.unsubscribe?.();
   entry.unsubscribe = null;
   emitStatus(entry, 'auth-required', { reason });
@@ -364,6 +405,41 @@ async function drainUnderLease(entry, leaseLost) {
     if (!isActive(entry) || leaseLost()) break;
     const operation = await claimLocalOperation(candidate);
     if (!operation || !isActive(entry) || leaseLost()) continue;
+
+    if (operation.kind === 'reta-final-publish') {
+      try {
+        const result = await publishPlanRevision(operation.data);
+        await completePlanPublish(operation.opId, result);
+        summary.acked += 1;
+      } catch (error) {
+        if (!isActive(entry) || leaseLost()) return summary;
+        if (error?.code === 'RETA_FINAL_STALE') {
+          await markLocalOperationConflict(operation.opId, {
+            code: 'reta-final-stale',
+            remoteRevision: error.remoteRevision ?? null,
+            remoteRecord: null,
+          });
+          summary.conflicts += 1;
+          continue;
+        }
+        if (isV1AuthFailure(error?.code)) {
+          pauseForAuth(entry, error.code);
+          await markLocalOperationRetry(operation.opId, {
+            reason: error.code,
+            nextAttemptAt: null,
+          });
+          return { ...summary, pending: (await getPendingOperations(entry.uid, entry.generationId)).length };
+        }
+        await retryOperation(operation, error?.code || error?.message || 'plan-publish-error');
+        stopReason = error?.code || 'V1_REMOTE_TRANSIENT';
+        emitStatus(entry, 'backoff', {
+          reason: stopReason,
+          error: error?.message || null,
+        });
+        if (STOPPING_CODES.has(error?.code)) break;
+      }
+      continue;
+    }
 
     let outcome;
     try {
@@ -572,6 +648,7 @@ export async function startV1Sync({ uid, generationId, remoteApi, authFailure } 
     debounceTimer: null,
     retryTimer: null,
     listenerTimer: null,
+    refreshTimer: null,
     heartbeat: null,
     authPaused: false,
     reason: 'start',
@@ -626,6 +703,7 @@ export function stopV1Sync() {
   runtime = null;
   clearTimer(entry, 'debounceTimer');
   clearTimer(entry, 'retryTimer');
+  clearTimer(entry, 'refreshTimer');
   try {
     entry.unsubscribe?.();
   } catch {
