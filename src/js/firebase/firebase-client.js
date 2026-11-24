@@ -2,14 +2,18 @@ import {
   initializeApp,
   getApps,
   getAuth,
+  connectAuthEmulator,
+  createUserWithEmailAndPassword,
   GoogleAuthProvider,
   getRedirectResult,
   onAuthStateChanged,
   onIdTokenChanged,
   signInWithPopup,
   signInWithRedirect,
+  signInWithEmailAndPassword,
   signOut,
   initializeFirestore,
+  connectFirestoreEmulator,
   persistentLocalCache,
   persistentMultipleTabManager,
   initializeAppCheck,
@@ -63,6 +67,20 @@ export function initFirebaseServices() {
       tabManager: persistentMultipleTabManager(),
     }),
   });
+  const emulator = typeof window !== 'undefined' ? window.__ESTUDO_FIREBASE_EMULATOR__ : null;
+  if (emulator?.authHost) {
+    connectAuthEmulator(auth, `http://${emulator.authHost}`, { disableWarnings: true });
+  }
+  if (emulator?.firestoreHost) {
+    const separator = String(emulator.firestoreHost).lastIndexOf(':');
+    const host = separator > 0
+      ? String(emulator.firestoreHost).slice(0, separator)
+      : String(emulator.firestoreHost);
+    const port = separator > 0
+      ? Number(String(emulator.firestoreHost).slice(separator + 1))
+      : 8080;
+    connectFirestoreEmulator(db, host, port);
+  }
 
   const appCheckSiteKey = getRuntimeAppCheckSiteKey();
   if (appCheckSiteKey) {
@@ -116,6 +134,17 @@ export async function completeGoogleRedirectSignIn() {
   const { configured, auth } = initFirebaseServices();
   if (!configured || !auth) return null;
   return await getRedirectResult(auth);
+}
+
+/** Test-only credential sign-in; only reaches an Auth Emulator configured above. */
+export async function signInWithTestEmail(email, password, { create = false } = {}) {
+  const { configured, auth } = initFirebaseServices();
+  if (!configured || !auth || !window.__ESTUDO_FIREBASE_EMULATOR__?.authHost) {
+    throw new Error('Auth Emulator não configurado para o teste.');
+  }
+  return create
+    ? createUserWithEmailAndPassword(auth, email, password)
+    : signInWithEmailAndPassword(auth, email, password);
 }
 
 export async function signOutFirebase() {

@@ -8,6 +8,8 @@ import {
   COLLECTION_NAMES,
   auditBackupBytes,
   createEmulatorGateway,
+  createProductionGateway,
+  prepareMigration,
   runCommand,
 } from '../../scripts/v1-sync-migration.mjs';
 
@@ -280,16 +282,16 @@ describe('V1 migration CLI', () => {
     expect(verified.result.checks.find(check => check.check === 'businessDigest')?.ok).toBe(false);
   });
 
-  it('always refuses production activation before reading or writing anything', async () => {
+  it('fails closed before reading or writing when production authorization is absent', async () => {
     const readFileSpy = vi.fn(() => { throw new Error('must not read'); });
     const output = vi.fn();
     const exitCode = await runCommand([
       'activate', '--target', 'production', '--backup', 'PRIVATE_PATH',
-      '--state-dir', 'PRIVATE_STATE', '--uid', 'PRIVATE_UID', '--force',
+      '--state-dir', 'PRIVATE_STATE', '--uid', 'PRIVATE_UID',
     ], {}, { readFile: readFileSpy, output });
     expect(exitCode).toBe(1);
     expect(output).toHaveBeenCalledWith(expect.objectContaining({
-      status: 'REFUSED', code: 'PRODUCTION_ACTIVATION_DISABLED',
+      status: 'FAIL', code: expect.stringMatching(/^PRODUCTION_/),
     }));
     expect(readFileSpy).not.toHaveBeenCalled();
     expect(JSON.stringify(output.mock.calls)).not.toMatch(/PRIVATE_/);
@@ -306,5 +308,53 @@ describe('V1 migration CLI', () => {
       projectId: 'demo-estudo-v1-sync',
       emulatorHost: '10.0.0.2:8085',
     })).toThrow('INVALID_EMULATOR_HOST');
+  });
+
+  it('keeps the production gateway restricted to the V1 project and UID', async () => {
+    expect(() => createProductionGateway({
+      uid: 'synthetic-user',
+      projectId: 'eo-v2-f7-test-20261117',
+      getAccessToken: () => 'test-token',
+      fetchImpl: vi.fn(),
+    })).toThrow('PRODUCTION_PROJECT_MISMATCH');
+
+    const calls = [];
+    const gateway = createProductionGateway({
+      uid: 'synthetic-user',
+      projectId: 'app-de-estudos-14564',
+      getAccessToken: () => 'test-token',
+      fetchImpl: async (url, options) => {
+        calls.push({ url, options });
+        return new Response(JSON.stringify({ fields: { schemaVersion: { integerValue: '1' } } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      },
+    });
+    await gateway.getDocument(['v1SyncControl', 'current']);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe(
+      'https://firestore.googleapis.com/v1/projects/app-de-estudos-14564/databases/(default)/documents/users/synthetic-user/v1SyncControl/current',
+    );
+    expect(calls[0].options.headers.authorization).toBe('Bearer test-token');
+    expect(calls[0].options.headers.authorization).not.toContain('owner');
+  });
+
+  it('prepares and verifies a production journal with an injected gateway', async () => {
+    const context = await fixture();
+    const prepared = await prepareMigration({
+      backupBytes: context.bytes,
+      expectedSha256: context.expectedSha256,
+      target: 'production',
+      uid: 'synthetic-user',
+      gateway: context.gateway,
+      stateDirectory: context.stateDirectory,
+      batchSize: 2,
+      now,
+    });
+    expect(prepared).toMatchObject({ status: 'VERIFIED' });
+    const journal = JSON.parse(await readFile(join(context.stateDirectory, 'journal.json'), 'utf8'));
+    expect(journal.target).toBe('production');
+    expect(journal.completedBatches.length).toBeGreaterThan(0);
   });
 });

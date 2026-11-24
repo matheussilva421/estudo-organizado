@@ -222,7 +222,7 @@ describe('store.js', () => {
       document.removeEventListener('stateSaved', handler);
     });
 
-    it('accepts skipSyncEvent option in object mode', async () => {
+    it('fails closed when IndexedDB is unavailable', async () => {
       // Verify the function signature accepts the new option
       // This is a signature test — the function should not throw
       const callWithSkip = () => store.saveStateToDB({
@@ -233,8 +233,7 @@ describe('store.js', () => {
         skipSyncEvent: true,
       });
 
-      // Should not throw even without IndexedDB
-      await expect(callWithSkip()).resolves.not.toThrow();
+      await expect(callWithSkip()).rejects.toThrow('IndexedDB unavailable');
     });
   });
 });

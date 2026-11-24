@@ -45,7 +45,7 @@ function collectActionRegistryEntries() {
   // Read all action modules from src/js/ui/actions/
   const actionsDir = join(srcDir, 'js', 'ui', 'actions');
   const entries = new Map();
-  const actionKeyPattern = /registerAction\s*\(\s*['"]([a-z0-9-]+)['"]/gm;
+  const actionKeyPattern = /register(?:LegacySync)?Action\s*\(\s*['"]([a-z0-9-]+)['"]/gm;
 
   const actionFiles = readdirSync(actionsDir).filter((file) => file.endsWith('.js'));
 

@@ -104,6 +104,24 @@ async function syncCloudflareChannel() {
   // Note: pushToCloudflare swallows network errors and returns false; we
   // detect silent failures by checking whether cfLastSyncAt advanced.
   const beforeAt = state.config?.cfLastSyncAt || null;
+  if (state.config?.cfLocalPersistenceError) {
+    try {
+      await saveStateToDB({
+        skipCloudSync: true,
+        skipFirestoreSync: true,
+        skipDriveSync: true,
+        touchLocalBackup: false,
+      });
+      delete state.config.cfLocalPersistenceError;
+      return { status: 'ok', localRecovered: true };
+    } catch (err) {
+      return {
+        status: 'local-pending',
+        error: 'Envio remoto já confirmado; persistência local continua pendente.',
+        localError: err?.message || String(err),
+      };
+    }
+  }
   try {
     await forceCloudflareSync({ overwriteRemote: false });
     if (state.config?.cfConflict) {
@@ -114,6 +132,13 @@ async function syncCloudflareChannel() {
       return {
         status: 'error',
         error: 'Sincronização do Cloudflare não progrediu — verifique URL e token.',
+      };
+    }
+    if (state.config?.cfLocalPersistenceError) {
+      return {
+        status: 'local-pending',
+        error: 'Envio remoto confirmado; cópia local pendente.',
+        localError: state.config.cfLocalPersistenceError.message,
       };
     }
     return { status: 'ok' };
@@ -135,7 +160,7 @@ async function syncDriveChannel() {
 }
 
 function aggregateSummary(result) {
-  const counts = { ok: 0, conflict: 0, error: 0, skipped: 0 };
+  const counts = { ok: 0, conflict: 0, error: 0, skipped: 0, pending: 0 };
   for (const key of SYNC_CHANNELS) {
     const s = result[key]?.status || 'skipped';
     counts[s] = (counts[s] || 0) + 1;
@@ -143,7 +168,7 @@ function aggregateSummary(result) {
   let overall = 'idle';
   if (counts.error > 0 && counts.ok === 0 && counts.conflict === 0) overall = 'error';
   else if (counts.conflict > 0 && counts.ok === 0 && counts.error === 0) overall = 'conflict';
-  else if (counts.error > 0 || counts.conflict > 0) overall = 'partial';
+  else if (counts.error > 0 || counts.conflict > 0 || counts.pending > 0) overall = 'partial';
   else if (counts.ok > 0) overall = 'synced';
   return { ...counts, overall };
 }

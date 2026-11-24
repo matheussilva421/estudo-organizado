@@ -46,6 +46,11 @@ const PILL_STATES = {
     label: "Pendente",
     cssClass: "sync-pill--pending",
   },
+  "local-pending": {
+    icon: "fa-cloud-arrow-up",
+    label: "Nuvem ok; local pendente",
+    cssClass: "sync-pill--pending",
+  },
   error: {
     icon: "fa-circle-exclamation",
     label: "Erro no sync",
@@ -433,6 +438,7 @@ const HEALTH_ICONS = {
   queued: "fa-clock",
   syncing: "fa-spinner fa-spin",
   local_saved: "fa-database",
+  "local-pending": "fa-cloud-arrow-up",
   degraded: "fa-triangle-exclamation",
 };
 
@@ -449,6 +455,7 @@ const HEALTH_LABELS = {
   queued: "Pendente",
   syncing: "Pendente",
   local_saved: "OK",
+  "local-pending": "Pendente local",
   degraded: "Erro",
 };
 

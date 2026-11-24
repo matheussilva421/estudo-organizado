@@ -5,7 +5,7 @@
 
 import { state } from "../../store.js?v=8.37";
 import { esc } from "../../utils.js?v=8.37";
-import { isLegacySyncBlocked } from '../../sync/v1-next/bootstrap.js';
+import { isLegacySyncBlocked } from '../../sync/v1-next/bootstrap.js?v=8.37';
 import { buildSyncCenterModel } from "../../sync/sync-center.js?v=8.37";
 import { getFirestoreSyncStatus } from "../../sync/firestore-sync-engine.js?v=8.37";
 import { formatBackupDateTime } from "./backup-settings.js?v=8.37";

@@ -414,16 +414,20 @@ export function buildSyncCenterModel({
       configured: cloudflareConfigured,
       health: config.cfConflict
         ? "conflict"
-        : config.cfSyncEnabled
+        : config.cfLocalPersistenceError
+          ? "pending"
+          : config.cfSyncEnabled
           ? "ok"
           : "idle",
-      pending: false,
+      pending: Boolean(config.cfLocalPersistenceError),
       lastSyncAt: config.cfLastSyncAt || null,
       remoteAt: config.cfRemoteUpdatedAt || null,
       conflict: config.cfConflict || null,
-      detail: cloudflareConfigured
-        ? "Backup manual configurado."
-        : "Informe URL e token para backup.",
+      detail: config.cfLocalPersistenceError
+        ? "Envio remoto confirmado; persistência local pendente."
+        : cloudflareConfigured
+          ? "Backup manual configurado."
+          : "Informe URL e token para backup.",
     },
     {
       id: "drive",

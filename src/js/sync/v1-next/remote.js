@@ -601,6 +601,28 @@ function recordsFromSnapshot(snapshot, collectionName, generationId, entityMeta 
   return records;
 }
 
+function checkedReceipt(receipt, documentId, generationId) {
+  if (!isMap(receipt) || receipt.opId !== documentId ||
+    receipt.schemaVersion !== 1 || receipt.generationId !== generationId ||
+    !COLLECTIONS.includes(receipt.collection) || typeof receipt.entityType !== 'string' ||
+    typeof receipt.entityId !== 'string' || !Number.isSafeInteger(receipt.revision) ||
+    receipt.revision < 1 || receipt.baseRevision !== receipt.revision - 1 ||
+    typeof receipt.deleted !== 'boolean' ||
+    typeof receipt.opDigest !== 'string' || !SHA256.test(receipt.opDigest)) {
+    fail('V1_REMOTE_INVALID_RECEIPT', 'Recibo remoto inválido.');
+  }
+  let expectedCollection;
+  try {
+    expectedCollection = entityCollectionForType(receipt.entityType);
+  } catch (error) {
+    fail('V1_REMOTE_INVALID_RECEIPT', 'Tipo do recibo remoto inválido.', error);
+  }
+  if (expectedCollection !== receipt.collection) {
+    fail('V1_REMOTE_INVALID_RECEIPT', 'Coleção do recibo remoto inválida.');
+  }
+  return receipt;
+}
+
 /** Read a complete active baseline for the atomic local swap performed by T5. */
 export async function fetchGenerationRecords(uid, generationId) {
   validateUid(uid);
@@ -648,6 +670,14 @@ export async function fetchGenerationRecords(uid, generationId) {
   if (operationsSnapshot.metadata?.fromCache !== false) {
     fail('V1_REMOTE_CACHE_REJECTED', 'O histórico remoto não veio do servidor.');
   }
+  const receipts = new Map();
+  for (const receiptDocument of operationsSnapshot.docs) {
+    const receipt = checkedReceipt(receiptDocument.data(), receiptDocument.id, generationId);
+    if (receipts.has(receipt.opId)) {
+      fail('V1_REMOTE_INVALID_RECEIPT', 'Recibo remoto duplicado.');
+    }
+    receipts.set(receipt.opId, receipt);
+  }
   // Counts/digest are the immutable migration commitment. After the owner's
   // first acknowledged operation, the live generation legitimately evolves;
   // records remain protected by revision + sha256(opDigest), while UID/rules
@@ -680,11 +710,29 @@ export async function fetchGenerationRecords(uid, generationId) {
   if (!evolved && total !== generation.manifest.counts.total) {
     fail('V1_REMOTE_MANIFEST_MISMATCH', 'O total remoto não corresponde ao manifesto.');
   }
+  const metaByKey = new Map(entityMeta.map(record => [record.entityKey, record]));
+  for (const record of records) {
+    const metadata = metaByKey.get(recordKey(record.entityType, record.entityId));
+    if (!metadata) fail('V1_REMOTE_INVALID_RECORD', 'Metadados da baseline ausentes.');
+    if (metadata.revision <= 1 && !receipts.has(metadata.opId)) continue;
+    const receipt = receipts.get(metadata.opId);
+    if (!receipt) {
+      fail('V1_REMOTE_RECEIPT_MISSING', 'Recibo da revisão evoluída ausente.');
+    }
+    if (receipt.revision !== metadata.revision ||
+      receipt.opDigest !== metadata.opDigest ||
+      receipt.entityType !== metadata.entityType ||
+      receipt.entityId !== metadata.entityId ||
+      receipt.collection !== metadata.collection || receipt.deleted) {
+      fail('V1_REMOTE_RECEIPT_MISMATCH', 'Recibo não corresponde ao registro materializado.');
+    }
+  }
   return {
     generationId,
     manifest: generation.manifest,
     records,
     entityMeta,
+    receiptEvidence: { receipts: receipts.size, liveRecords: records.length },
     planRevision: {
       pointer: planRecords.find(item => item.entityId === 'retaFinalRevision') || null,
       records: planRecords,

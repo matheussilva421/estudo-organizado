@@ -854,6 +854,14 @@ describe('V1 next first access bootstrap', () => {
       local: (await import('../../src/js/sync/v1-next/local.js')),
       online: false,
     })).toMatchObject({ enabled: true, status: 'requires-network' });
+    expect(bootstrap.isV1SyncEnabled({
+      windowRef: { location: { hostname: 'estudo-organizado.matheussilva421.workers.dev' } },
+      storage: { getItem: () => null },
+    })).toBe(true);
+    expect(bootstrap.isV1SyncEnabled({
+      windowRef: { location: { hostname: 'example.test' } },
+      storage: { getItem: () => null },
+    })).toBe(false);
   });
 
   it('applies a published Reta Final revision during bootstrap', async () => {

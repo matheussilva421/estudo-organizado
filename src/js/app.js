@@ -154,7 +154,7 @@ function gateV1FirstAccess(result) {
     content.innerHTML = `
       <section class="v1-first-access" data-v1-sync-gate="${status}"
         role="status" aria-live="polite"
-        style="max-width:560px;margin:72px auto;padding:28px;border:1px solid var(--border);border-radius:16px;background:var(--surface);">
+        style="max-width:560px;margin:72px auto;padding:28px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);">
         <h2 style="margin-top:0;">${title}</h2>
         <p style="color:var(--text-secondary);line-height:1.6;">${needsLogin ? 'Entre com sua conta Google para carregar os dados desta conta.' : message}</p>
         ${needsLogin ? '<button type="button" class="btn btn-primary" data-action="firestore-sign-in">Entrar com Google</button>' : ''}

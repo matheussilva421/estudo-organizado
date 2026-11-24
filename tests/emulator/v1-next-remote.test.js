@@ -486,6 +486,48 @@ describe('V1 remote Firestore transactions', () => {
 });
 
 describe('V1 remote baseline and listeners', () => {
+  it('rejects an evolved live record without its matching receipt', async () => {
+    const op = operation({
+      opId: 'op_missing_receipt',
+      baseRevision: 1,
+      item: eventItem('e1', 'Evolved'),
+    });
+    await asAdmin(async db => {
+      const batch = writeBatch(db);
+      batch.set(entityRef(db, op), entityRecord(op));
+      await batch.commit();
+    });
+    await activate({ counts: { ...EMPTY_COUNTS, eventos: 1 } });
+    wire(ownerDb, { reads: 0, writes: 0 });
+
+    await expect(fetchGenerationRecords(UID, GENERATION)).rejects.toMatchObject({
+      code: 'V1_REMOTE_RECEIPT_MISSING',
+    });
+  });
+
+  it('rejects a receipt whose digest does not match the live record', async () => {
+    const op = operation({
+      opId: 'op_bad_receipt',
+      baseRevision: 1,
+      item: eventItem('e1', 'Evolved'),
+    });
+    await pair(op);
+    await asAdmin(async db => {
+      const batch = writeBatch(db);
+      batch.set(receiptRef(db, op), {
+        ...receiptRecord(op),
+        opDigest: 'f'.repeat(64),
+      });
+      await batch.commit();
+    });
+    await activate({ counts: { ...EMPTY_COUNTS, eventos: 1 } });
+    wire(ownerDb, { reads: 0, writes: 0 });
+
+    await expect(fetchGenerationRecords(UID, GENERATION)).rejects.toMatchObject({
+      code: 'V1_REMOTE_RECEIPT_MISMATCH',
+    });
+  });
+
   it('reads back all T1 records and fails closed on absent or mismatched manifest data', async () => {
     const op = operation();
     await pair(op);

@@ -1,4 +1,4 @@
-import { isLegacySyncBlocked } from './v1-next/bootstrap.js';
+import { isLegacySyncBlocked } from './v1-next/bootstrap.js?v=8.37';
 import { debugLog } from "../debug.js";
 import {
   completeGoogleRedirectSignIn,

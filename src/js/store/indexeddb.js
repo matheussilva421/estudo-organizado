@@ -3,7 +3,7 @@
 // =============================================
 import * as credentialsStore from '../credentials.js?v=8.37';
 import { appendSyncPerformanceMetric } from '../sync/sync-health.js?v=8.37';
-import { isV1SyncEnabled } from '../sync/v1-next/bootstrap.js';
+import { isV1SyncEnabled } from '../sync/v1-next/bootstrap.js?v=8.37';
 import { runMigrations as _runMigrations, DEFAULT_SCHEMA_VERSION } from './migrations.js';
 import { reconcileSequenceWithEvents } from '../logic/cycle-progress.js?v=8.37';
 import { markDerivedRecoveryPending } from './boot-recovery.js';
@@ -753,6 +753,9 @@ export function saveStateToDB(
         );
       }
       if (emitUserSaveStatus) emitSaveStatus('saved');
+      if (_stateRef?.config?.cfLocalPersistenceError) {
+        delete _stateRef.config.cfLocalPersistenceError;
+      }
       appendSyncPerformanceMetric(_stateRef, {
         name: 'localCommitMs',
         durationMs: performance.now() - localCommitStart,

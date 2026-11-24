@@ -42,7 +42,7 @@ import {
   resolveEntityConflictKeepLocal,
   resolveEntityConflictKeepRemote,
 } from '../../sync/firestore-sync-engine.js?v=8.37';
-import { isLegacySyncBlocked } from '../../sync/v1-next/bootstrap.js';
+import { isLegacySyncBlocked } from '../../sync/v1-next/bootstrap.js?v=8.37';
 import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.37';
 import { syncAllChannels, isManualSyncRunning } from '../../sync/manual-sync.js?v=8.37';
 import { downloadSyncLog } from '../../sync/sync-diagnostic.js?v=8.37';

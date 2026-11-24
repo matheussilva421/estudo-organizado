@@ -177,7 +177,7 @@ describe('store.js - Sync helpers', () => {
   });
 
   describe('saveStateToDB()', () => {
-    it('salva estado no IndexedDB', async () => {
+    it('falha fechado quando o IndexedDB está indisponível', async () => {
       const testState = {
         schemaVersion: 7,
         editais: [],
@@ -185,13 +185,11 @@ describe('store.js - Sync helpers', () => {
         config: {}
       };
 
-      // A função deve resolver sem erro
-      await store.saveStateToDB(testState);
-
-      expect(store.state).toBeDefined();
+      await expect(store.saveStateToDB(testState))
+        .rejects.toThrow('IndexedDB unavailable');
     });
 
-    it('atualiza o estado após salvar', async () => {
+    it('não confirma estado quando o IndexedDB está indisponível', async () => {
       const testState = {
         schemaVersion: 7,
         editais: [{ id: 'ed_1', nome: 'Teste' }],
@@ -199,9 +197,10 @@ describe('store.js - Sync helpers', () => {
         config: {}
       };
 
-      await store.saveStateToDB(testState);
-
-      expect(store.state.editais.length).toBeGreaterThanOrEqual(0);
+      const before = JSON.stringify(store.state.editais || []);
+      await expect(store.saveStateToDB(testState))
+        .rejects.toThrow('IndexedDB unavailable');
+      expect(JSON.stringify(store.state.editais || [])).toBe(before);
     });
   });
 

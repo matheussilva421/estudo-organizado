@@ -1,5 +1,7 @@
 export { initializeApp, getApps } from 'firebase/app';
 export {
+  connectAuthEmulator,
+  createUserWithEmailAndPassword,
   getAuth,
   GoogleAuthProvider,
   getRedirectResult,
@@ -7,6 +9,7 @@ export {
   onIdTokenChanged,
   signInWithPopup,
   signInWithRedirect,
+  signInWithEmailAndPassword,
   signOut
 } from 'firebase/auth';
 export {

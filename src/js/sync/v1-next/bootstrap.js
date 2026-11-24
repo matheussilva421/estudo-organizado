@@ -26,6 +26,9 @@ const DEFAULT_REMOTE = Object.freeze({
 });
 const V1_FLAG_KEY = 'estudo_v1_sync_enabled';
 const TEST_CONFIG_KEY = '__ESTUDO_V1_SYNC_TEST__';
+const V1_PRODUCTION_HOSTS = new Set([
+  'estudo-organizado.matheussilva421.workers.dev',
+]);
 const AUTH_TIMEOUT_MS = 10_000;
 
 function clone(value) {
@@ -317,13 +320,15 @@ export async function reconcileRemoteDelta(
   return outcome;
 }
 
-/** Opt-in surface used by local tests and Chromium fixtures. Production is off. */
+/** Dev flag plus the authorized production host after cutover. */
 export function isV1SyncEnabled({
   windowRef = globalThis.window,
   storage = globalThis.localStorage,
 } = {}) {
   try {
     if (windowRef?.[TEST_CONFIG_KEY]?.enabled === true) return true;
+    const hostname = windowRef?.location?.hostname;
+    if (typeof hostname === 'string' && V1_PRODUCTION_HOSTS.has(hostname)) return true;
     return storage?.getItem(V1_FLAG_KEY) === 'true';
   } catch {
     return false;

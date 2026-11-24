@@ -241,6 +241,8 @@ export function shouldWarnV1BeforeUnload(status = latestStatus) {
 function hasV1Runtime() {
   try {
     if (globalThis.window?.__ESTUDO_V1_SYNC_TEST__?.enabled === true) return true;
+    const hostname = globalThis.window?.location?.hostname;
+    if (hostname === 'estudo-organizado.matheussilva421.workers.dev') return true;
     if (globalThis.localStorage?.getItem('estudo_v1_sync_enabled') === 'true') return true;
   } catch {
     // Storage can be unavailable in hardened browser contexts.

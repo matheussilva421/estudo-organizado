@@ -72,6 +72,46 @@ describe('sync simulation contracts', () => {
     expect(body.payload.config.cfSyncEnabled).toBe(false);
   });
 
+  it('distinguishes remote confirmation from a failed local persistence', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      success: true,
+      meta: {
+        updatedAt: '2026-04-29T21:31:00.000Z',
+        deviceId: 'remote-device',
+        version: 2,
+      },
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    const cloudStatus = [];
+    const toasts = [];
+    const onStatus = event => cloudStatus.push(event.detail);
+    const onToast = event => toasts.push(event.detail);
+    document.addEventListener('app:cloudSyncStatus', onStatus);
+    document.addEventListener('app:showToast', onToast);
+    const { store, cloudSync } = await importCloudSync({ fetchImpl: fetchMock });
+    store.setState(createBaseState({
+      eventos: [createEvento({ id: 'ev_local', titulo: 'Evento local' })],
+      config: {
+        cfSyncEnabled: true,
+        cfUrl: 'https://sync.example.test',
+        cfToken: 'isolated-token',
+        cfRemoteUpdatedAt: '2026-04-29T20:00:00.000Z',
+      },
+    }));
+
+    await expect(cloudSync.pushToCloudflare(true)).resolves.toBe(true);
+
+    expect(store.state.config.cfLocalPersistenceError).toMatchObject({
+      remoteUpdatedAt: '2026-04-29T21:31:00.000Z',
+    });
+    expect(cloudStatus).toContainEqual(expect.objectContaining({
+      status: 'local-pending', remoteConfirmed: true, localPersisted: false,
+    }));
+    expect(toasts).toContainEqual(expect.objectContaining({ type: 'warning' }));
+    expect(cloudStatus.some(item => item.status === 'synced')).toBe(false);
+    document.removeEventListener('app:cloudSyncStatus', onStatus);
+    document.removeEventListener('app:showToast', onToast);
+  });
+
   it('surfaces Cloudflare pull network failures in the config status element', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       error: 'service unavailable'

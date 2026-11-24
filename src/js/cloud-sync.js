@@ -469,29 +469,47 @@ async function pushToCloudflareUnlocked(forceOverwrite = false) {
       cfRemoteUpdatedAt: state.config.cfRemoteUpdatedAt,
       cfConflict: state.config.cfConflict,
     });
+    let localPersisted = false;
     try {
       await saveStateToDB({
         skipCloudSync: true,
         skipFirestoreSync: true,
         skipDriveSync: true,
       });
+      localPersisted = true;
+      delete state.config.cfLocalPersistenceError;
     } catch (err) {
       // The remote write already succeeded; report it even when the local
       // copy cannot be persisted, and let the save-status UI show the failure.
       console.warn('[Cloudflare] Push succeeded but local persistence failed:', err?.message || err);
+      state.config.cfLocalPersistenceError = {
+        message: err?.message || String(err),
+        at: new Date().toISOString(),
+        remoteUpdatedAt: state.config.cfRemoteUpdatedAt || null,
+      };
     }
-    updateSyncStatus('Nuvem atualizada');
+    updateSyncStatus(localPersisted
+      ? 'Nuvem atualizada'
+      : 'Nuvem atualizada; cópia local pendente', !localPersisted);
     debugLog('sync', '[Cloudflare] pushToCloudflareUnlocked saveStateToDB completed');
 
     document.dispatchEvent(new Event('app:invalidateCaches'));
     document.dispatchEvent(
       new CustomEvent('app:cloudSyncStatus', {
-        detail: { status: 'synced', reason: 'push' },
+        detail: {
+          status: localPersisted ? 'synced' : 'local-pending',
+          reason: 'push',
+          remoteConfirmed: true,
+          localPersisted,
+          error: localPersisted ? null : state.config.cfLocalPersistenceError,
+        },
       })
     );
     document.dispatchEvent(
       new CustomEvent('app:showToast', {
-        detail: { msg: 'Enviado para a nuvem (Cloudflare)', type: 'success' },
+        detail: localPersisted
+          ? { msg: 'Enviado para a nuvem (Cloudflare)', type: 'success' }
+          : { msg: 'Enviado para a nuvem; cópia local pendente. Não reenvie antes de salvar.', type: 'warning' },
       })
     );
     debugLog('sync', '[Cloudflare] pushToCloudflareUnlocked COMPLETE');

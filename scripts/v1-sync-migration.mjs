@@ -7,6 +7,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { homedir } from 'node:os';
 import { pathToFileURL, URLSearchParams } from 'node:url';
 import {
   auditBusinessEquivalence,
@@ -37,6 +38,9 @@ const DEFAULT_BATCH_SIZE = 25;
 const DEFAULT_PROJECT_ID = 'demo-estudo-v1-sync';
 const DEFAULT_EMULATOR_HOST = '127.0.0.1:8085';
 const DEFAULT_STATE_DIRECTORY = join('output', 'v1-sync-migration');
+const PRODUCTION_PROJECT_ID = 'app-de-estudos-14564';
+const PRODUCTION_STATE_DIRECTORY = join('output', 'v1-sync-migration-production');
+const PRODUCTION_CONFIRMATION = 'CUTOVER_V1_2026-11-24';
 const JOURNAL_FILE = 'journal.json';
 const TOKEN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -44,6 +48,7 @@ const SUCCESS_STATUSES = new Set(['PASS', 'VERIFIED', 'ALREADY_VERIFIED', 'ACTIV
 const OPTION_NAMES = new Set([
   'backup',
   'batch-size',
+  'confirm-production',
   'emulator-host',
   'expected-sha256',
   'project',
@@ -311,7 +316,7 @@ function createJournal({ target, generationId, migrationId, sourceSha256,
 }
 
 function validateJournal(journal, expected) {
-  if (!journal || journal.schemaVersion !== 1 || journal.target !== 'emulator' ||
+  if (!journal || journal.schemaVersion !== 1 || journal.target !== expected.target ||
     journal.generationId !== expected.generationId ||
     journal.migrationId !== expected.migrationId ||
     journal.sourceSha256 !== expected.sourceSha256 ||
@@ -473,7 +478,8 @@ async function verifyBaseline({
   if (audit.status !== 'PASS') fail('SOURCE_AUDIT_FAILED');
   const { raw, converted } = parseBackup(backupBytes);
   const identity = generationIdentity(audit.source.sha256);
-  if (journal.schemaVersion !== 1 || journal.target !== 'emulator' ||
+  if (journal.schemaVersion !== 1 ||
+    !['emulator', 'production'].includes(journal.target) ||
     journal.generationId !== identity.generationId ||
     journal.migrationId !== identity.migrationId ||
     journal.sourceSha256 !== audit.source.sha256 ||
@@ -550,17 +556,176 @@ function journalPathFor(stateDirectory) {
   return join(stateDirectory, JOURNAL_FILE);
 }
 
-function requireEmulatorTarget(target) {
-  if (target !== 'emulator') fail('EMULATOR_TARGET_REQUIRED');
+function requireMigrationTarget(target) {
+  if (!['emulator', 'production'].includes(target)) fail('MIGRATION_TARGET_REQUIRED');
 }
 
 function requireUid(uid) {
   if (typeof uid !== 'string' || !TOKEN.test(uid)) fail('INVALID_UID');
 }
 
+function requireProductionAuthorization(options, env) {
+  if (options.target !== 'production') fail('PRODUCTION_TARGET_REQUIRED');
+  if (options.projectId !== PRODUCTION_PROJECT_ID) fail('PRODUCTION_PROJECT_MISMATCH');
+  if (!env.ESTUDO_V1_PRODUCTION_UID || options.uid !== env.ESTUDO_V1_PRODUCTION_UID) {
+    fail('PRODUCTION_UID_MISMATCH');
+  }
+  if (options.expectedSha256 !== DEFAULT_EXPECTED_SHA256) fail('PRODUCTION_SHA_MISMATCH');
+  if (options.confirmProduction !== PRODUCTION_CONFIRMATION) {
+    fail('PRODUCTION_CONFIRMATION_REQUIRED');
+  }
+}
+
+function createFirebaseTokenProvider(env = process.env) {
+  let cached = null;
+  return async function getAccessToken() {
+    if (env.GOOGLE_OAUTH_ACCESS_TOKEN) return env.GOOGLE_OAUTH_ACCESS_TOKEN;
+    if (cached && cached.expiresAt > Date.now() + 60_000) return cached.token;
+    const configPath = env.FIREBASE_CONFIGSTORE_PATH ||
+      join(homedir(), '.config', 'configstore', 'firebase-tools.json');
+    let config;
+    try {
+      config = JSON.parse(await readFileFromDisk(configPath, 'utf8'));
+    } catch {
+      fail('PRODUCTION_AUTH_REQUIRED');
+    }
+    const tokens = config?.tokens || {};
+    if (tokens.access_token && Number(tokens.expires_at) > Date.now() + 60_000) {
+      cached = { token: tokens.access_token, expiresAt: Number(tokens.expires_at) };
+      return cached.token;
+    }
+    if (!tokens.refresh_token) fail('PRODUCTION_AUTH_REQUIRED');
+    let api;
+    try {
+      const { createRequire } = await import('node:module');
+      const require = createRequire(join(process.cwd(), 'package.json'));
+      api = require('firebase-tools/lib/api.js');
+    } catch {
+      fail('PRODUCTION_AUTH_UNAVAILABLE');
+    }
+    const body = new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: tokens.refresh_token,
+      client_id: api.clientId(),
+      client_secret: api.clientSecret(),
+    });
+    let response;
+    try {
+      response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body,
+      });
+    } catch {
+      fail('PRODUCTION_AUTH_FAILED');
+    }
+    if (!response.ok) fail('PRODUCTION_AUTH_FAILED');
+    const refreshed = await response.json();
+    if (typeof refreshed?.access_token !== 'string' || !refreshed.access_token) {
+      fail('PRODUCTION_AUTH_FAILED');
+    }
+    cached = {
+      token: refreshed.access_token,
+      expiresAt: Date.now() + (Number(refreshed.expires_in) || 3600) * 1000,
+    };
+    return cached.token;
+  };
+}
+
+/** REST gateway for the authorized production project. Admin IAM bypasses rules. */
+export function createProductionGateway({
+  uid,
+  projectId = PRODUCTION_PROJECT_ID,
+  getAccessToken = createFirebaseTokenProvider(),
+  fetchImpl = globalThis.fetch,
+} = {}) {
+  requireUid(uid);
+  if (projectId !== PRODUCTION_PROJECT_ID) fail('PRODUCTION_PROJECT_MISMATCH');
+  if (typeof fetchImpl !== 'function' || typeof getAccessToken !== 'function') {
+    fail('PRODUCTION_GATEWAY_UNAVAILABLE');
+  }
+  const root = ['users', uid];
+  const documentsUrl = `https://firestore.googleapis.com/v1/projects/` +
+    `${PRODUCTION_PROJECT_ID}/databases/(default)/documents`;
+
+  async function request(url, options = {}) {
+    const accessToken = await getAccessToken();
+    let response;
+    try {
+      response = await fetchImpl(url, {
+        ...options,
+        headers: { authorization: `Bearer ${accessToken}`, ...(options.headers || {}) },
+      });
+    } catch {
+      fail('PRODUCTION_UNAVAILABLE');
+    }
+    return response;
+  }
+
+  function absoluteParts(parts) {
+    return [...root, ...parts];
+  }
+
+  async function getDocument(parts) {
+    const full = absoluteParts(parts);
+    const response = await request(`${documentsUrl}/${full.map(encodeURIComponent).join('/')}`);
+    if (response.status === 404) return null;
+    if (!response.ok) fail('PRODUCTION_READ_FAILED');
+    const body = await response.json();
+    return { path: parts, data: decodeFields(body.fields || {}), updateTime: body.updateTime };
+  }
+
+  async function listDocuments(parts) {
+    const full = absoluteParts(parts);
+    const documents = [];
+    let pageToken;
+    do {
+      const query = new URLSearchParams({ pageSize: '300' });
+      if (pageToken) query.set('pageToken', pageToken);
+      const response = await request(
+        `${documentsUrl}/${full.map(encodeURIComponent).join('/')}?${query}`,
+      );
+      if (response.status === 404) return documents;
+      if (!response.ok) fail('PRODUCTION_READ_FAILED');
+      const body = await response.json();
+      for (const document of body.documents || []) {
+        documents.push({
+          path: documentPathFromName(document.name),
+          data: decodeFields(document.fields || {}),
+          updateTime: document.updateTime,
+        });
+      }
+      pageToken = body.nextPageToken;
+    } while (pageToken);
+    return documents;
+  }
+
+  async function commit(writes) {
+    const body = {
+      writes: writes.map(write => {
+        const full = absoluteParts(write.path);
+        return {
+          update: { name: documentName(PRODUCTION_PROJECT_ID, full), fields: encodeFields(write.data) },
+          currentDocument: write.type === 'create'
+            ? { exists: false }
+            : { updateTime: write.expectedUpdateTime },
+        };
+      }),
+    };
+    const response = await request(`${documentsUrl}:commit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) fail('PRODUCTION_COMMIT_FAILED');
+  }
+
+  return { getDocument, listDocuments, commit };
+}
+
 export async function prepareMigration({ backupBytes, expectedSha256, target,
   uid, gateway, stateDirectory, batchSize = DEFAULT_BATCH_SIZE, now = Date.now }) {
-  requireEmulatorTarget(target);
+  requireMigrationTarget(target);
   requireUid(uid);
   const audit = auditBackupBytes(backupBytes, { expectedSha256 });
   if (audit.status !== 'PASS') fail('SOURCE_AUDIT_FAILED');
@@ -689,7 +854,7 @@ export async function prepareMigration({ backupBytes, expectedSha256, target,
 
 export async function verifyMigration({ backupBytes, expectedSha256, target,
   uid, gateway, stateDirectory }) {
-  requireEmulatorTarget(target);
+  requireMigrationTarget(target);
   requireUid(uid);
   const journal = await loadJournal(journalPathFor(stateDirectory));
   if (!journal) fail('JOURNAL_NOT_FOUND');
@@ -699,10 +864,7 @@ export async function verifyMigration({ backupBytes, expectedSha256, target,
 
 export async function activateMigration({ target, backupBytes, expectedSha256,
   uid, gateway, stateDirectory, now = Date.now }) {
-  if (target === 'production' || target == null) {
-    return { command: 'activate', status: 'REFUSED', code: 'PRODUCTION_ACTIVATION_DISABLED' };
-  }
-  requireEmulatorTarget(target);
+  requireMigrationTarget(target);
   requireUid(uid);
   const journal = await loadJournal(journalPathFor(stateDirectory));
   if (!journal) fail('JOURNAL_NOT_FOUND');
@@ -782,14 +944,15 @@ function parseArguments(args, env) {
     selected[argument.slice(2)] = value;
     index += 1;
   }
+  const target = selected.target ?? (command === 'activate' ? 'production' : null);
   return {
     command,
     options: {
       backupPath: selected.backup ?? env.ESTUDO_V1_BACKUP_PATH,
       expectedSha256: selected['expected-sha256'] ?? DEFAULT_EXPECTED_SHA256,
-      target: selected.target ?? (command === 'activate' ? 'production' : null),
+      target,
       stateDirectory: selected['state-dir'] ?? env.ESTUDO_V1_MIGRATION_STATE_DIR ??
-        DEFAULT_STATE_DIRECTORY,
+        (target === 'production' ? PRODUCTION_STATE_DIRECTORY : DEFAULT_STATE_DIRECTORY),
       uid: selected.uid ?? env.ESTUDO_V1_UID,
       projectId: selected.project ?? env.FIREBASE_PROJECT_ID ?? DEFAULT_PROJECT_ID,
       emulatorHost: selected['emulator-host'] ?? env.FIRESTORE_EMULATOR_HOST ??
@@ -797,13 +960,10 @@ function parseArguments(args, env) {
       batchSize: selected['batch-size'] === undefined
         ? DEFAULT_BATCH_SIZE
         : parseIntegerOption('batch-size', selected['batch-size']),
+      confirmProduction: selected['confirm-production'] ??
+        env.ESTUDO_V1_PRODUCTION_CONFIRMATION,
     },
   };
-}
-
-function requestedTarget(args) {
-  const index = args.indexOf('--target');
-  return index >= 0 ? args[index + 1] : null;
 }
 
 function safeCode(error) {
@@ -829,29 +989,30 @@ export async function runCommand(args, env = process.env, dependencies = {}) {
     return 1;
   }
 
-  // Production activation is unreachable by design. Resolve nothing before this gate.
-  if (args[0] === 'activate' && (requestedTarget(args) ?? 'production') === 'production') {
-    const result = { command: 'activate', status: 'REFUSED',
-      code: 'PRODUCTION_ACTIVATION_DISABLED' };
-    output(result);
-    return 1;
-  }
-
   try {
     const { command, options } = parseArguments(args, env);
+    if (options.target === 'production') {
+      requireProductionAuthorization(options, env);
+    }
     const sourceBytes = await readSource(readFile, options.backupPath);
     if (command === 'audit') {
       const result = auditBackupBytes(sourceBytes, { expectedSha256: options.expectedSha256 });
       output(result);
       return result.status === 'PASS' ? 0 : 1;
     }
-    requireEmulatorTarget(options.target);
+    requireMigrationTarget(options.target);
     requireUid(options.uid);
-    const gateway = dependencies.gateway ?? createEmulatorGateway({
-      uid: options.uid,
-      projectId: options.projectId,
-      emulatorHost: options.emulatorHost,
-    });
+    const gateway = dependencies.gateway ?? (options.target === 'production'
+      ? createProductionGateway({
+        uid: options.uid,
+        projectId: options.projectId,
+        getAccessToken: createFirebaseTokenProvider(env),
+      })
+      : createEmulatorGateway({
+        uid: options.uid,
+        projectId: options.projectId,
+        emulatorHost: options.emulatorHost,
+      }));
     let result;
     if (command === 'prepare') {
       result = await prepareMigration({
